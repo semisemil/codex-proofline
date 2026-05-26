@@ -101,24 +101,32 @@ snippets/
 https://github.com/semisemil/codex-proofline 이 레포지토리에 있는 Proofline 스킬을 설치해줘.
 ```
 
-당신이 AI Agent라면 아래 방법대로 설치를 진행하면 됩니다.
+Codex가 따라야 할 설치 절차는 다음과 같습니다.
+
 ```text
-사용자에게서 설치 위치를 확인 (전역 설치 / 프로젝트 설치)
+1. 사용자에게 설치 위치를 확인한다.
+   - 전역 설치
+   - 프로젝트 설치
 
-설치 방식:
-1. 전역 설치
-   - `skills/proofline-collaboration`을 `~/.agents/skills/proofline-collaboration`에 복사
-   - `skills/proofline-capability-growth`를 `~/.agents/skills/proofline-capability-growth`에 복사
-   - `~/.codex/AGENTS.md`에 `snippets/AGENTS.global.example.md` 내용을 추가
+2. 전역 설치라면:
+   - `skills/proofline-collaboration`을 `~/.agents/skills/proofline-collaboration`에 복사한다.
+   - `skills/proofline-capability-growth`를 `~/.agents/skills/proofline-capability-growth`에 복사한다.
+   - 필요하면 `~/.codex/AGENTS.md`에 `snippets/AGENTS.global.example.md` 내용을 추가한다.
 
-2. 프로젝트 설치
-   - `skills/proofline-collaboration`을 `<project>/.agents/skills/proofline-collaboration`에 복사
-   - `skills/proofline-capability-growth`를 `<project>/.agents/skills/proofline-capability-growth`에 복사
-   - 프로젝트 `AGENTS.md`에 `snippets/AGENTS.repo.minimal.md` 내용을 추가
+3. 프로젝트 설치라면:
+   - `skills/proofline-collaboration`을 `<project>/.agents/skills/proofline-collaboration`에 복사한다.
+   - `skills/proofline-capability-growth`를 `<project>/.agents/skills/proofline-capability-growth`에 복사한다.
+   - 프로젝트 `AGENTS.md`에 `snippets/AGENTS.repo.minimal.md` 내용을 추가한다.
 
-- `AGENTS.md`는 기존 내용을 보존하고 최소 지침만 추가.
-- 설치 후 두 `SKILL.md` 파일이 실제로 있는지 확인.
-- 완료 보고에는 실행한 명령과 확인 결과를 나눠서 보고.
+4. `AGENTS.md`를 수정할 때:
+   - 기존 내용을 보존한다.
+   - `BEGIN CODEX-PROOFLINE` / `END CODEX-PROOFLINE` 블록이 있으면 그 블록만 교체한다.
+   - 블록이 없으면 파일 끝에 새 Proofline 블록을 추가한다.
+   - 블록 밖의 내용은 수정하지 않는다.
+
+5. 설치 후 확인한다.
+   - 두 `SKILL.md` 파일이 실제로 있는지 확인한다.
+   - 완료 보고에는 실행한 명령과 확인 결과를 나눠서 적는다.
 ```
 
 ### 방법 B. 사람이 직접 설치하기
@@ -143,8 +151,8 @@ ls ~/.agents/skills/proofline-capability-growth/SKILL.md
 
 ### 프로젝트에 최소 지침 추가하기
 
-Proofline을 사용할 프로젝트의 `AGENTS.md`에 최소 문장만 넣는 것을 권장합니다.
-최소 문장은 다음 파일에 들어 있습니다.
+Proofline을 사용할 프로젝트의 `AGENTS.md`에는 Proofline 블록만 작게 넣는 것을 권장합니다.
+최소 지침은 다음 파일에 들어 있습니다.
 
 ```text
 snippets/AGENTS.repo.minimal.md
@@ -155,6 +163,8 @@ snippets/AGENTS.repo.minimal.md
 ```text
 snippets/AGENTS.global.example.md
 ```
+
+두 스니펫 모두 `BEGIN CODEX-PROOFLINE` / `END CODEX-PROOFLINE` 영역 구분을 포함합니다. 나중에 Proofline 지침이 바뀌면 이 블록만 교체하면 됩니다.
 
 ## 사용 예시
 
