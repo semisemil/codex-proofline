@@ -1,35 +1,46 @@
 ---
 name: proofline-capability-growth
-description: Use when reviewing repeated manual work, proposing automation candidates, checking whether a workflow should become a skill, script, hook, Codex automation, or AGENTS.md update.
+description: Use for Codex capability growth: review repeated manual work, shortlist automation candidates, check existing tools, and prepare skill/script/hook/Codex automation registration only after user approval.
 ---
 
 # Proofline Capability Growth
 
-This skill helps Codex find repeated manual work and propose safe automation candidates.
+Use this skill to decide whether repeated manual work should become a small automation.
 
-It must not create automation without user approval.
+Do not create or register automation without explicit user approval.
 
-## Core rules
+## Always apply
 
-1. Do not create automation immediately.
-2. First create a shortlist.
-3. Use only evidence-backed candidates.
-4. Reject broad or speculative automation.
-5. Check whether existing skills, scripts, tests, CI, or repo tools already solve the problem.
-6. Prefer the smallest useful automation.
-7. Ask for user approval before creating or registering anything.
+- Shortlist first; do not automate immediately.
+- Use evidence-backed candidates only.
+- Reject broad, vague, one-off, or speculative automation.
+- Check existing scripts, tests, CI, hooks, skills, and AGENTS.md rules before proposing anything new.
+- Prefer the smallest useful change.
 
-## Load only what is needed
+## Read more only when needed
+
+Do not read every asset by default. Use this file as the router.
 
 - Candidate scan:
   - Read `assets/protocols/candidate-selection.md`
   - Use `assets/prompts/capability-growth-scan.md`
   - Use `assets/templates/capability-shortlist.md`
+  - Trigger when repeated manual work, repeated user corrections, recurring `.proofline/issues/`, or automation requests appear.
 
 - Existing tool check:
   - Read `assets/protocols/existing-tool-check.md`
+  - Trigger when a candidate may already be covered by tests, CI, scripts, hooks, another skill, or a small checklist.
 
-- User approved automation registration:
+- User-approved registration:
   - Read `assets/protocols/approval-before-registration.md`
   - Use `assets/prompts/automation-registration.md`
   - Use `assets/templates/automation-registration-request.md`
+  - Trigger only after the user approves a specific candidate.
+
+## Reject or defer when
+
+- It happened only once.
+- Steps or success conditions are unclear.
+- It needs heavy human judgment each run.
+- It would create a broad always-on rule.
+- Existing tooling already solves it well enough.
