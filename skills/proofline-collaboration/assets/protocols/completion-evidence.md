@@ -4,28 +4,16 @@ Do not report completion before checking the current work.
 
 ## Valid evidence
 
-Use evidence from this task only:
+Use current-task evidence only:
 
-- tests
-- build
-- typecheck
-- lint
-- code search
-- dependency check
-- call path check
+- tests, build, typecheck, lint
+- code search, dependency check, call path check
 - source-target comparison
 - actual app, CLI, API, or UI behavior
 
 ## Invalid evidence
 
-Do not use these as completion evidence:
-
-- intention
-- memory
-- past success
-- "looks right"
-- indirect confidence
-- unrun checks
+Do not use intention, memory, past success, "looks right", indirect confidence, or unrun checks as completion proof.
 
 ## Report rules
 
@@ -37,12 +25,12 @@ Separate:
 4. Blocked
 5. Issues recorded
 
-If verification cannot be run, say why.
+If verification cannot run, say why.
 
-## Small report rule
+## Keep it short
 
-Keep verification short but concrete. Prefer one line per check:
+Use one concrete line per check:
 
 - `pnpm test parser`: passed
 - `rg "LegacyParser" src/ui`: no matches
-- Not verified: real payment token flow, no test credentials available
+- Not verified: real payment token flow; no test credentials
