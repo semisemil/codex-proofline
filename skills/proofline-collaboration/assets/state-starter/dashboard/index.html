@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proofline Issue Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Proofline</p>
+      <h1>Issue Dashboard</h1>
+      <p class="description">
+        원본은 <code>.proofline/issues/*.md</code>입니다. 이 화면 파일은 고정되어 있고,
+        보통 이슈 등록 중에는 수정하지 않습니다.
+      </p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel controls" aria-labelledby="load-title">
+      <h2 id="load-title">이슈 불러오기</h2>
+      <p>
+        로컬에서 볼 때는 <code>.proofline/issues</code> 폴더를 선택하세요.
+        HTTP로 열었을 때는 manifest를 불러올 수 있습니다.
+      </p>
+
+      <div class="control-group">
+        <label class="file-button">
+          <span>issues 폴더 선택</span>
+          <input id="folder-input" type="file" accept=".md" webkitdirectory multiple>
+        </label>
+        <button id="manifest-button" type="button">manifest 불러오기</button>
+      </div>
+
+      <p id="load-status" class="status-message">아직 이슈를 불러오지 않았습니다.</p>
+    </section>
+
+    <section class="summary-grid" aria-label="Issue summary">
+      <article class="summary-card">
+        <span>Total</span>
+        <strong id="summary-total">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>Open</span>
+        <strong id="summary-open">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>Blocked</span>
+        <strong id="summary-blocked">0</strong>
+      </article>
+      <article class="summary-card">
+        <span>Resolved</span>
+        <strong id="summary-resolved">0</strong>
+      </article>
+    </section>
+
+    <section class="panel filters" aria-labelledby="filter-title">
+      <h2 id="filter-title">필터</h2>
+      <div class="filter-row">
+        <label>
+          검색
+          <input id="search-input" type="search" placeholder="id, title, evidence...">
+        </label>
+        <label>
+          Status
+          <select id="status-filter">
+            <option value="all">all</option>
+            <option value="open">open</option>
+            <option value="doing">doing</option>
+            <option value="blocked">blocked</option>
+            <option value="resolved">resolved</option>
+            <option value="ignored">ignored</option>
+          </select>
+        </label>
+        <label>
+          Risk
+          <select id="risk-filter">
+            <option value="all">all</option>
+            <option value="critical">critical</option>
+            <option value="high">high</option>
+            <option value="medium">medium</option>
+            <option value="low">low</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="issues-section" aria-labelledby="issues-title">
+      <div class="section-heading">
+        <h2 id="issues-title">Issues</h2>
+        <p id="issue-count">0 issues</p>
+      </div>
+      <div id="issues-list" class="issues-list">
+        <article class="empty-state">
+          <h3>표시할 이슈가 없습니다.</h3>
+          <p><code>.proofline/issues</code> 폴더를 선택하거나 manifest를 불러오세요.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <template id="issue-template">
+    <article class="issue-card">
+      <div class="issue-card-header">
+        <div>
+          <p class="issue-id"></p>
+          <h3 class="issue-title"></h3>
+        </div>
+        <div class="badges">
+          <span class="badge status-badge"></span>
+          <span class="badge risk-badge"></span>
+        </div>
+      </div>
+      <dl class="issue-meta">
+        <div>
+          <dt>Discovered while</dt>
+          <dd class="issue-discovered"></dd>
+        </div>
+        <div>
+          <dt>Suggested next step</dt>
+          <dd class="issue-next-step"></dd>
+        </div>
+      </dl>
+      <div class="issue-evidence"></div>
+      <details class="issue-body-wrap">
+        <summary>Markdown body</summary>
+        <div class="issue-body markdown-body"></div>
+      </details>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
