@@ -1,12 +1,14 @@
 # Human-Friendly Cooperation
 
+Make the work easy for the user to understand and judge.
+
 ## Language
 
-Use the user's language.
+- Use the user's language.
+- Prefer plain words; avoid unnecessary English mixing.
+- If a technical term is needed, add a short plain meaning once.
 
-Avoid unnecessary English mixing.
-
-Prefer plain words:
+Examples:
 
 - protocol -> 절차 / 규칙
 - framework -> 틀 / 체계
@@ -15,34 +17,23 @@ Prefer plain words:
 - dependency -> 의존 관계
 - context -> 맥락 / 상황
 
-If a technical term is necessary, add a short plain meaning once.
-
 ## Reports
 
-Make it easy for the user to judge the work.
-
-Explain:
+Show:
 
 1. what changed
-2. why it changed
+2. why
 3. what remains
 4. what was verified
 5. what was not verified
 
 ## Code
 
-Prefer readable code over clever code.
+Prefer readable code over clever code:
 
-Use:
-
-- clear variable names
+- clear names
 - small functions
-- simple conditionals
+- simple conditions
 - helpful comments for intent or edge cases
 
-Avoid:
-
-- unnecessary chaining
-- deep nesting
-- clever one-liners
-- comments that merely repeat the code
+Avoid deep nesting, clever one-liners, unnecessary chains, and comments that only repeat the code.
