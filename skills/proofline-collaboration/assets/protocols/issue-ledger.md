@@ -32,9 +32,8 @@ Do not edit dashboard frontend files during normal issue registration.
 1. If `.proofline/` does not exist, copy `assets/state-starter/` into `.proofline/`.
 2. Create the next issue file under `.proofline/issues/`.
 3. Use the issue template from `assets/templates/issue.md`.
-4. If Manifest Mode is enabled, update `.proofline/issues/index.json`.
-5. Do not edit dashboard HTML/CSS/JS.
-6. Mention the issue id in the final report.
+4. Do not edit dashboard HTML/CSS/JS.
+5. Mention the issue id in the final report.
 
 ## Issue id
 

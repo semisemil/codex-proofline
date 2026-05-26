@@ -19,22 +19,21 @@
   </header>
 
   <main class="layout">
-    <section class="panel controls" aria-labelledby="load-title">
-      <h2 id="load-title">이슈 불러오기</h2>
-      <p>
-        로컬에서 볼 때는 <code>.proofline/issues</code> 폴더를 선택하세요.
-        HTTP로 열었을 때는 manifest를 불러올 수 있습니다.
-      </p>
+    <section id="folder-status" class="folder-strip" data-status="loading" aria-labelledby="load-title">
+      <div class="folder-copy">
+        <h2 id="load-title">Issues folder</h2>
+        <p id="load-status" class="status-message">저장된 issues 폴더에 자동 연결하는 중입니다.</p>
+      </div>
 
-      <div class="control-group">
-        <label class="file-button">
+      <div class="folder-actions">
+        <button id="reload-button" type="button">다시 읽기</button>
+        <button id="connect-button" type="button">초기 폴더 설정</button>
+        <button id="change-folder-button" type="button" hidden>폴더 재지정</button>
+        <label id="folder-picker" class="file-button" hidden>
           <span>issues 폴더 선택</span>
           <input id="folder-input" type="file" accept=".md" webkitdirectory multiple>
         </label>
-        <button id="manifest-button" type="button">manifest 불러오기</button>
       </div>
-
-      <p id="load-status" class="status-message">아직 이슈를 불러오지 않았습니다.</p>
     </section>
 
     <section class="summary-grid" aria-label="Issue summary">
@@ -56,7 +55,7 @@
       </article>
     </section>
 
-    <section class="panel filters" aria-labelledby="filter-title">
+    <section class="filters" aria-labelledby="filter-title">
       <h2 id="filter-title">필터</h2>
       <div class="filter-row">
         <label>
@@ -95,7 +94,7 @@
       <div id="issues-list" class="issues-list">
         <article class="empty-state">
           <h3>표시할 이슈가 없습니다.</h3>
-          <p><code>.proofline/issues</code> 폴더를 선택하거나 manifest를 불러오세요.</p>
+          <p><code>.proofline/issues</code>에 등록된 이슈가 아직 없습니다.</p>
         </article>
       </div>
     </section>

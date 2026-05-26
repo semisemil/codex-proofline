@@ -20,8 +20,4 @@ Open:
 
 `.proofline/dashboard/index.html`
 
-Then choose the `.proofline/issues` folder.
-
-## Server or Pages view
-
-If using Manifest Mode, keep `.proofline/issues/index.json` updated. The dashboard can then load issue files automatically over HTTP.
+Connect the `.proofline/issues` folder once. The dashboard remembers that folder and reads Markdown issues from it on later visits. Use the folder reassignment control if the issues folder moves.

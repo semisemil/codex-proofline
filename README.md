@@ -2,7 +2,7 @@
 
 Codex Proofline은 Codex 위에 얹는 가벼운 협업 품질 하네스입니다.
 Codex App과 Codex CLI가 읽고 따를 수 있는 스킬, 템플릿, 작은 상태 저장소로 이루어진 레이어입니다.
-Proofline의 목표는 Codex를 더 조심스럽고, 정직하고, 사람이 함께 일하기 편한 개발 동료로 만드는 것입니다.
+Proofline의 목표는 Codex가 더 조심스럽고, 정직하고, 함께 일하기 쉬운 개발 동료처럼 행동하게 돕는 것입니다.
 
 ## 왜 만들었나
 
@@ -67,7 +67,6 @@ skills/
         config.json
         issues/
           PL-0000.example.md
-          index.json
         dashboard/
           index.html
           style.css
@@ -106,15 +105,20 @@ https://github.com/semisemil/codex-proofline 이 레포지토리에 있는 Proof
 ```text
 사용자에게서 설치 위치를 확인 (전역 설치 / 프로젝트 설치)
 
-전역 설치
-- `skills/proofline-collaboration`을 `~/.agents/skills/proofline-collaboration`에 복사
-- `skills/proofline-capability-growth`를 `~/.agents/skills/proofline-capability-growth`에 복사
-- 전역 AGENTS.md 에 `codex-proofline/snippets/AGENTS.global.example.md` 내용 추가
+설치 방식:
+1. 전역 설치
+   - `skills/proofline-collaboration`을 `~/.agents/skills/proofline-collaboration`에 복사
+   - `skills/proofline-capability-growth`를 `~/.agents/skills/proofline-capability-growth`에 복사
+   - `~/.codex/AGENTS.md`에 `snippets/AGENTS.global.example.md` 내용을 추가
 
-프로젝트 설치
-- `skills/proofline-collaboration`을 `프로젝트 경로/.codex/skills/proofline-collaboration`에 복사
-- `skills/proofline-capability-growth`를 `프로젝트 경로/.codex/skills/proofline-capability-growth`에 복사
-- 프로젝트 AGENTS.md 에 `codex-proofline/snippets/AGENTS.repo.minimal.md` 내용 추가
+2. 프로젝트 설치
+   - `skills/proofline-collaboration`을 `<project>/.agents/skills/proofline-collaboration`에 복사
+   - `skills/proofline-capability-growth`를 `<project>/.agents/skills/proofline-capability-growth`에 복사
+   - 프로젝트 `AGENTS.md`에 `snippets/AGENTS.repo.minimal.md` 내용을 추가
+
+- `AGENTS.md`는 기존 내용을 보존하고 최소 지침만 추가.
+- 설치 후 두 `SKILL.md` 파일이 실제로 있는지 확인.
+- 완료 보고에는 실행한 명령과 확인 결과를 나눠서 보고.
 ```
 
 ### 방법 B. 사람이 직접 설치하기
@@ -140,12 +144,7 @@ ls ~/.agents/skills/proofline-capability-growth/SKILL.md
 ### 프로젝트에 최소 지침 추가하기
 
 Proofline을 사용할 프로젝트의 `AGENTS.md`에 최소 문장만 넣는 것을 권장합니다.
-
-```md
-For large tasks, refactors, exact ports, or side-issue tracking, use `$proofline-collaboration`.
-```
-
-이 문장은 다음 파일에도 들어 있습니다.
+최소 문장은 다음 파일에 들어 있습니다.
 
 ```text
 snippets/AGENTS.repo.minimal.md
@@ -156,8 +155,6 @@ snippets/AGENTS.repo.minimal.md
 ```text
 snippets/AGENTS.global.example.md
 ```
-
-레포의 `AGENTS.md`는 여러 사람이 함께 쓰는 파일일 수 있으므로, Proofline 관련 내용을 길게 넣지 않는 것이 좋습니다.
 
 ## 사용 예시
 
@@ -207,7 +204,6 @@ Proofline은 프로젝트별 상태를 전용 폴더에 둡니다.
   issues/
     PL-0001.md
     PL-0002.md
-    index.json
   dashboard/
     index.html
     style.css
@@ -262,9 +258,7 @@ Proofline은 기본적으로 작업 계약, 원본 대화, 긴 추론 기록, �
 
 대시보드는 정적 HTML/CSS/JS 뷰어입니다.
 
-Python, Node, 서버, 빌드 도구 없이도 볼 수 있습니다.
-
-### Local folder mode
+### Stored folder mode
 
 로컬에서 볼 때는 아래 파일을 엽니다.
 
@@ -272,19 +266,13 @@ Python, Node, 서버, 빌드 도구 없이도 볼 수 있습니다.
 .proofline/dashboard/index.html
 ```
 
-그다음 화면에서 `.proofline/issues` 폴더를 선택합니다.
+처음 한 번 화면의 `issues 폴더 연결` 버튼을 눌러 `.proofline/issues` 폴더를 선택합니다.
 
-이 방식은 브라우저가 사용자의 명시적 선택 없이 로컬 폴더를 마음대로 읽지 못하게 하는 보안 제약을 피하기 위한 방식입니다.
+그 뒤에는 대시보드를 열 때 저장된 폴더 권한으로 `.proofline/issues/*.md` 파일을 자동으로 읽습니다. 새 이슈는 Markdown 파일만 추가하면 됩니다.
 
-### Manifest mode
+이슈 폴더 위치가 바뀌면 `폴더 재지정` 버튼으로 새 `.proofline/issues` 폴더를 선택합니다.
 
-HTTP로 대시보드를 열 때는 manifest를 사용할 수 있습니다.
-
-```text
-.proofline/issues/index.json
-```
-
-이 방식은 GitHub Pages, 로컬 정적 서버, 사내 문서 사이트에서 쓰기 좋습니다.
+브라우저 권한이 지워졌거나 자동 연결이 막히면 `issues 폴더 연결`을 눌러 권한을 다시 확인합니다. 폴더 권한 저장을 지원하지 않는 브라우저에서는 화면의 폴더 선택 방식으로 읽습니다.
 
 ## 설계 원칙
 

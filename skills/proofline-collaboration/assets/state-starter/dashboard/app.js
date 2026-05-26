@@ -9,7 +9,11 @@ const state = {
 
 const elements = {
   folderInput: document.getElementById('folder-input'),
-  manifestButton: document.getElementById('manifest-button'),
+  folderPicker: document.getElementById('folder-picker'),
+  connectButton: document.getElementById('connect-button'),
+  changeFolderButton: document.getElementById('change-folder-button'),
+  folderStatus: document.getElementById('folder-status'),
+  reloadButton: document.getElementById('reload-button'),
   loadStatus: document.getElementById('load-status'),
   searchInput: document.getElementById('search-input'),
   statusFilter: document.getElementById('status-filter'),
@@ -38,15 +42,25 @@ const statusOrder = {
   resolved: 4
 };
 
+const directoryStore = {
+  dbName: 'proofline-dashboard',
+  storeName: 'directory-handles',
+  key: 'issues-directory'
+};
+
 elements.folderInput.addEventListener('change', async (event) => {
   const files = Array.from(event.target.files || [])
-    .filter((file) => file.name.endsWith('.md'))
-    .filter((file) => !file.name.endsWith('.example.md'));
+    .filter((file) => isIssueFileName(file.name));
 
   await loadMarkdownFiles(files);
 });
 
-elements.manifestButton.addEventListener('click', loadFromManifest);
+elements.connectButton.addEventListener('click', connectIssuesDirectory);
+elements.changeFolderButton.addEventListener('click', changeIssuesDirectory);
+
+elements.reloadButton.addEventListener('click', () => {
+  loadFromDefaultSources();
+});
 
 elements.searchInput.addEventListener('input', (event) => {
   state.filters.text = event.target.value.trim().toLowerCase();
@@ -66,7 +80,7 @@ elements.riskFilter.addEventListener('change', (event) => {
 async function loadMarkdownFiles(files) {
   if (files.length === 0) {
     state.issues = [];
-    elements.loadStatus.textContent = '선택한 폴더에서 Markdown 이슈 파일을 찾지 못했습니다.';
+    setFolderStatus('선택한 폴더에서 Markdown 이슈 파일을 찾지 못했습니다.', 'warning');
     render();
     return;
   }
@@ -84,49 +98,294 @@ async function loadMarkdownFiles(files) {
   }
 
   state.issues = loadedIssues;
-  elements.loadStatus.textContent = buildLoadMessage(loadedIssues.length, errors);
+  setFolderStatus(buildLoadMessage(loadedIssues.length, errors), errors.length ? 'warning' : 'ready');
   render();
 }
 
-async function loadFromManifest() {
+async function loadFromDefaultSources() {
+  showLoadingState('저장된 issues 폴더에 자동 연결하는 중입니다.');
+
+  const directoryHandle = await getStoredDirectoryHandle();
+  if (!directoryHandle) {
+    showInitialSetupRequired('처음 한 번 .proofline/issues 폴더를 설정하세요.');
+    return;
+  }
+
+  if (!(await hasDirectoryPermission(directoryHandle, true))) {
+    showPermissionRequired('저장된 폴더가 있지만 브라우저가 자동 연결을 막았습니다. 권한을 확인하세요.');
+    return;
+  }
+
+  await loadFromDirectoryHandle(directoryHandle);
+}
+
+async function connectIssuesDirectory() {
+  if (!supportsFileSystemAccess()) {
+    showFallbackPicker('이 브라우저는 폴더 권한 저장을 지원하지 않습니다. 대신 issues 폴더 선택을 사용하세요.');
+    return;
+  }
+
+  let directoryHandle = await getStoredDirectoryHandle();
+
+  if (directoryHandle && await hasDirectoryPermission(directoryHandle, true)) {
+    await loadFromDirectoryHandle(directoryHandle);
+    return;
+  }
+
   try {
-    const manifestResponse = await fetch('../issues/index.json');
-    if (!manifestResponse.ok) {
-      throw new Error(`manifest fetch failed: ${manifestResponse.status}`);
-    }
+    directoryHandle = await openIssuesDirectoryPicker(directoryHandle);
 
-    const manifest = await manifestResponse.json();
-    const issuePaths = Array.isArray(manifest.issues) ? manifest.issues : [];
-    const loadedIssues = [];
-    const errors = [];
-
-    for (const issuePath of issuePaths) {
-      try {
-        const response = await fetch(`../issues/${issuePath}`);
-        if (!response.ok) {
-          throw new Error(`fetch failed: ${response.status}`);
-        }
-        const content = await response.text();
-        loadedIssues.push(parseIssueMarkdown(content, issuePath));
-      } catch (error) {
-        errors.push(`${issuePath}: ${error.message}`);
-      }
-    }
-
-    state.issues = loadedIssues;
-    elements.loadStatus.textContent = buildLoadMessage(loadedIssues.length, errors);
-    render();
+    await saveDirectoryHandle(directoryHandle);
+    await loadFromDirectoryHandle(directoryHandle);
   } catch (error) {
-    elements.loadStatus.textContent = `manifest를 불러오지 못했습니다. 로컬에서는 issues 폴더 선택을 사용하세요. (${error.message})`;
+    if (error.name === 'AbortError') {
+      setFolderStatus('폴더 연결이 취소되었습니다.', 'warning');
+      return;
+    }
+
+    setFolderStatus(`issues 폴더를 연결하지 못했습니다. (${error.message})`, 'error');
   }
 }
 
-function buildLoadMessage(count, errors) {
-  if (errors.length === 0) {
-    return `${count}개 이슈를 불러왔습니다.`;
+async function changeIssuesDirectory() {
+  if (!supportsFileSystemAccess()) {
+    showFallbackPicker('이 브라우저는 폴더 재지정을 저장할 수 없습니다. 대신 issues 폴더 선택을 사용하세요.');
+    return;
   }
 
-  return `${count}개 이슈를 불러왔고, ${errors.length}개 파일은 실패했습니다: ${errors.join('; ')}`;
+  const currentHandle = await getStoredDirectoryHandle();
+
+  try {
+    const nextHandle = await openIssuesDirectoryPicker(currentHandle);
+    await saveDirectoryHandle(nextHandle);
+    await loadFromDirectoryHandle(nextHandle);
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      setFolderStatus('폴더 재지정이 취소되었습니다.', 'warning');
+      return;
+    }
+
+    setFolderStatus(`issues 폴더를 재지정하지 못했습니다. (${error.message})`, 'error');
+  }
+}
+
+async function openIssuesDirectoryPicker(startHandle) {
+  const options = {
+    id: getDirectoryPickerId(),
+    mode: 'read'
+  };
+
+  if (startHandle) {
+    options.startIn = startHandle;
+  }
+
+  try {
+    return await window.showDirectoryPicker(options);
+  } catch (error) {
+    if (!startHandle || error.name === 'AbortError') {
+      throw error;
+    }
+
+    return window.showDirectoryPicker({
+      id: options.id,
+      mode: options.mode
+    });
+  }
+}
+
+function getDirectoryPickerId() {
+  return `proofline-issues-${hashString(window.location.href)}`;
+}
+
+function hashString(value) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
+  }
+
+  return Math.abs(hash).toString(36);
+}
+
+async function loadFromDirectoryHandle(directoryHandle) {
+  showLoadingState(`${getDirectoryLabel(directoryHandle)} 폴더를 읽는 중입니다.`);
+
+  const loadedIssues = [];
+  const errors = [];
+
+  try {
+    for await (const [fileName, handle] of directoryHandle.entries()) {
+      if (handle.kind !== 'file' || !isIssueFileName(fileName)) {
+        continue;
+      }
+
+      try {
+        const file = await handle.getFile();
+        const content = await file.text();
+        loadedIssues.push(parseIssueMarkdown(content, fileName));
+      } catch (error) {
+        errors.push(`${fileName}: ${error.message}`);
+      }
+    }
+  } catch (error) {
+    showPermissionRequired(`저장된 issues 폴더를 읽지 못했습니다. 권한을 확인하세요. (${error.message})`);
+    return;
+  }
+
+  state.issues = loadedIssues;
+  showConfiguredState(buildLoadMessage(loadedIssues.length, errors, getDirectoryLabel(directoryHandle)), errors.length ? 'warning' : 'ready');
+  render();
+}
+
+function showInitialSetupRequired(message) {
+  state.issues = [];
+  elements.reloadButton.disabled = true;
+  elements.connectButton.hidden = false;
+  elements.connectButton.textContent = '초기 폴더 설정';
+  elements.changeFolderButton.hidden = true;
+  elements.folderPicker.hidden = true;
+  setFolderStatus(message, 'needed');
+  render();
+}
+
+function showPermissionRequired(message) {
+  state.issues = [];
+  elements.reloadButton.disabled = false;
+  elements.connectButton.hidden = false;
+  elements.connectButton.textContent = '권한 확인';
+  elements.changeFolderButton.hidden = false;
+  elements.folderPicker.hidden = true;
+  setFolderStatus(message, 'warning');
+  render();
+}
+
+function showConfiguredState(message, status) {
+  elements.reloadButton.disabled = false;
+  elements.connectButton.hidden = true;
+  elements.connectButton.textContent = '초기 폴더 설정';
+  elements.changeFolderButton.hidden = false;
+  elements.folderPicker.hidden = true;
+  setFolderStatus(message, status);
+}
+
+function showLoadingState(message) {
+  elements.reloadButton.disabled = true;
+  elements.folderPicker.hidden = true;
+  setFolderStatus(message, 'loading');
+}
+
+function showFallbackPicker(message) {
+  state.issues = [];
+  elements.reloadButton.disabled = true;
+  elements.connectButton.hidden = true;
+  elements.changeFolderButton.hidden = true;
+  elements.folderPicker.hidden = false;
+  setFolderStatus(message, 'warning');
+  render();
+}
+
+function setFolderStatus(message, status) {
+  elements.folderStatus.dataset.status = status;
+  elements.loadStatus.textContent = message;
+}
+
+function supportsFileSystemAccess() {
+  return 'showDirectoryPicker' in window && 'indexedDB' in window;
+}
+
+async function hasDirectoryPermission(directoryHandle, requestPermission) {
+  const options = { mode: 'read' };
+
+  if ((await directoryHandle.queryPermission(options)) === 'granted') {
+    return true;
+  }
+
+  if (!requestPermission) {
+    return false;
+  }
+
+  try {
+    return (await directoryHandle.requestPermission(options)) === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+async function getStoredDirectoryHandle() {
+  if (!supportsFileSystemAccess()) {
+    return null;
+  }
+
+  try {
+    const db = await openDirectoryDb();
+    const handle = await getFromStore(db, directoryStore.key);
+    db.close();
+    return handle || null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveDirectoryHandle(directoryHandle) {
+  const db = await openDirectoryDb();
+  await putInStore(db, directoryStore.key, directoryHandle);
+  db.close();
+}
+
+function openDirectoryDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(directoryStore.dbName, 1);
+
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(directoryStore.storeName);
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function getFromStore(db, key) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(directoryStore.storeName, 'readonly');
+    const request = transaction.objectStore(directoryStore.storeName).get(key);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+function putInStore(db, key, value) {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(directoryStore.storeName, 'readwrite');
+    transaction.objectStore(directoryStore.storeName).put(value, key);
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+function buildLoadMessage(count, errors, sourceLabel) {
+  const sourceText = sourceLabel ? `${sourceLabel}에서 ` : '';
+
+  if (errors.length === 0) {
+    return `${sourceText}${count}개 이슈를 불러왔습니다.`;
+  }
+
+  return `${sourceText}${count}개 이슈를 불러왔고, ${errors.length}개 파일은 실패했습니다: ${errors.join('; ')}`;
+}
+
+function isIssueFileName(fileName) {
+  return typeof fileName === 'string'
+    && fileName.endsWith('.md')
+    && !fileName.endsWith('.example.md')
+    && !fileName.includes('/')
+    && !fileName.includes('\\');
+}
+
+function getDirectoryLabel(directoryHandle) {
+  return directoryHandle?.name || '.proofline/issues';
 }
 
 function parseIssueMarkdown(content, fileName) {
@@ -267,7 +526,7 @@ function renderIssueList(issues) {
   if (issues.length === 0) {
     const emptyState = document.createElement('article');
     emptyState.className = 'empty-state';
-    emptyState.innerHTML = '<h3>표시할 이슈가 없습니다.</h3><p>필터를 바꾸거나 이슈 폴더를 다시 선택하세요.</p>';
+    emptyState.innerHTML = '<h3>표시할 이슈가 없습니다.</h3><p>필터를 바꾸거나 issues 폴더를 다시 읽어보세요.</p>';
     elements.issuesList.appendChild(emptyState);
     return;
   }
@@ -402,4 +661,4 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-render();
+loadFromDefaultSources();
