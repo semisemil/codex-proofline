@@ -1,12 +1,10 @@
 # Exact Port Protocol
 
-Use this when the user asks to port, migrate, copy, transplant, or preserve behavior exactly.
+Use when the user asks to port, migrate, copy, transplant, preserve behavior exactly, or avoid rewriting.
 
 ## Core rule
 
-The source is authoritative.
-
-Do not simplify, rewrite, omit, rename, or change behavior unless the user approved it.
+The source is authoritative. Do not simplify, rewrite, omit, rename, or change behavior unless the user approved it.
 
 ## Before editing
 
@@ -17,14 +15,14 @@ Create a source-target mapping:
 
 ## Deviations
 
-Any intentional difference must be listed as a deviation:
+List every intentional difference:
 
 | Deviation | Reason | User approved? | Evidence |
 |---|---|---|---|
 
 ## Completion
 
-Do not say the port is equivalent unless there is comparison evidence.
+Do not claim equivalence without comparison evidence.
 
 Final report must separate:
 
@@ -33,11 +31,4 @@ Final report must separate:
 3. not verified parts
 4. checks run
 
-## Evidence examples
-
-- same input/output test against source and target
-- fixture comparison
-- API response comparison
-- snapshot comparison
-- search for missing source functions, constants, or branches
-- typecheck/build/test results
+Evidence can include same-input/output tests, fixture/API/snapshot comparison, search for missing source parts, and typecheck/build/test results.
