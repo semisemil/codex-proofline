@@ -96,31 +96,25 @@ snippets/
 
 ### 방법 A. Codex에게 설치 맡기기
 
-Codex App 또는 Codex CLI에서 이 레포지토리를 열고, 아래 프롬프트를 그대로 입력하세요.
+아래 프롬프트를 그대로 입력하세요.
 
 ```text
-이 레포지토리에 있는 Proofline 스킬을 내 로컬 Codex 스킬 폴더에 설치해줘.
-
-요구사항:
-- `skills/proofline-collaboration`을 `~/.agents/skills/proofline-collaboration`에 복사해줘.
-- `skills/proofline-capability-growth`를 `~/.agents/skills/proofline-capability-growth`에 복사해줘.
-- 이미 같은 폴더가 있으면 덮어쓰기 전에 기존 폴더 존재 여부를 알려줘.
-- 설치 후 두 `SKILL.md` 파일이 실제로 있는지 확인해줘.
-- 프로젝트의 `AGENTS.md`는 내가 따로 요청하기 전에는 수정하지 마.
-- 완료 보고에는 실행한 명령과 확인 결과를 나눠서 적어줘.
+https://github.com/semisemil/codex-proofline 이 레포지토리에 있는 Proofline 스킬을 설치해줘.
 ```
 
-설치 후 다른 프로젝트에 Proofline을 켜고 싶다면, 그 프로젝트에서 아래 프롬프트를 쓰면 됩니다.
-
+당신이 AI Agent라면 아래 방법대로 설치를 진행하면 됩니다.
 ```text
-이 프로젝트에서 Proofline을 사용할 수 있게 최소 설정만 해줘.
+사용자에게서 설치 위치를 확인 (전역 설치 / 프로젝트 설치)
 
-요구사항:
-- repo `AGENTS.md`가 없으면 만들어줘.
-- 있으면 기존 내용을 보존하고, 필요한 최소 문장만 추가해줘.
-- 추가할 문장은 `codex-proofline/snippets/AGENTS.repo.minimal.md`를 기준으로 해줘.
-- Proofline 전용 긴 규칙 블록은 넣지 마.
-- 변경 전후를 짧게 보고해줘.
+전역 설치
+- `skills/proofline-collaboration`을 `~/.agents/skills/proofline-collaboration`에 복사
+- `skills/proofline-capability-growth`를 `~/.agents/skills/proofline-capability-growth`에 복사
+- 전역 AGENTS.md 에 `codex-proofline/snippets/AGENTS.global.example.md` 내용 추가
+
+프로젝트 설치
+- `skills/proofline-collaboration`을 `프로젝트 경로/.codex/skills/proofline-collaboration`에 복사
+- `skills/proofline-capability-growth`를 `프로젝트 경로/.codex/skills/proofline-capability-growth`에 복사
+- 프로젝트 AGENTS.md 에 `codex-proofline/snippets/AGENTS.repo.minimal.md` 내용 추가
 ```
 
 ### 방법 B. 사람이 직접 설치하기
