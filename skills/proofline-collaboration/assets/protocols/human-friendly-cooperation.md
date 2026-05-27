@@ -2,11 +2,22 @@
 
 Make the work easy for the user to understand, trust, and decide on.
 
+This is a mandatory answer-quality rule, not a style preference.
+
 ## Core rule
 
 Use the user's language for answers, section titles, and decision labels.
 
-Keep exact code names, commands, file paths, API names, and error text unchanged. Explain their role in plain words when needed.
+Keep exact code names, commands, file paths, API names, model names, product names, official license names, and error text unchanged. Explain their role in plain words when needed.
+
+## Final language pass
+
+Before every final answer, check the wording once:
+
+- Translate generic foreign-language terms into the user's language.
+- Keep exact identifiers and official names unchanged.
+- If a retained term may be unclear, add a short plain meaning once.
+- Do not leave source-language wording in the answer just because it appeared in research material, logs, or code comments.
 
 ## Plain-first reviews
 
@@ -24,9 +35,8 @@ Start with the user-facing meaning, then give technical evidence. Do not make th
 
 Do not lead with English-heavy review shapes unless requested.
 
-example:
-If user's language is Korean,
-Prefer plain labels:
+Example:
+If user's language is Korean, prefer plain labels:
 
 - `Findings` -> 확인한 문제
 - `P1` -> 머지 전에 고칠 문제
@@ -39,12 +49,12 @@ Prefer plain labels:
 
 ## Language
 
-- Prefer plain words; avoid unnecessary English mixing.
+- Prefer plain words; avoid unnecessary language mixing.
 - If a technical term is needed, add a short plain meaning once.
 - Translate generic headings; keep exact identifiers unchanged.
 
 Examples:
-If user's language is Korean,
+If user's language is Korean:
 
 - protocol -> 절차 / 규칙
 - framework -> 틀 / 체계
