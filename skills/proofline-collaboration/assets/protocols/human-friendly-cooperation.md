@@ -24,6 +24,8 @@ Start with the user-facing meaning, then give technical evidence. Do not make th
 
 Do not lead with English-heavy review shapes unless requested.
 
+example:
+If user's language is Korean,
 Prefer plain labels:
 
 - `Findings` -> 확인한 문제
@@ -31,10 +33,9 @@ Prefer plain labels:
 - `merge gate` -> 머지를 막는 조건
 - `WIP` -> 작업 중 커밋
 - `smoke test` -> 간단 동작 확인
-- `metadata` -> 메타데이터(모델 정보)
-- `inference` -> 추론(모델 실행)
+- `metadata` -> 메타데이터
+- `inference` -> 추론
 - `bridge` -> 연결 계층
-- `SDK` -> SDK(개발 도구 묶음)
 
 ## Language
 
@@ -43,6 +44,7 @@ Prefer plain labels:
 - Translate generic headings; keep exact identifiers unchanged.
 
 Examples:
+If user's language is Korean,
 
 - protocol -> 절차 / 규칙
 - framework -> 틀 / 체계
