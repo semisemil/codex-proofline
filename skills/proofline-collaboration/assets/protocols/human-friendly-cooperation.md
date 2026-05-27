@@ -1,12 +1,44 @@
 # Human-Friendly Cooperation
 
-Make the work easy for the user to understand and judge.
+Make the work easy for the user to understand, trust, and decide on.
+
+## Core rule
+
+Use the user's language for the answer, including section titles and decision labels. Keep exact code names, commands, file paths, API names, and error text unchanged, but explain their role in plain words when needed.
+
+## Avoid raw reviewer style
+
+Do not lead with internal review labels or English-heavy report shapes such as `Findings`, `P1`, `merge gate`, `WIP`, `smoke`, `SDK`, or `metadata` unless the user asked for that format.
+
+Prefer plain decision language:
+
+- `Findings` -> 확인한 문제
+- `P1` -> 머지 전에 고칠 문제
+- `merge gate` -> 머지를 막는 조건
+- `WIP` -> 작업 중 커밋
+- `smoke test` -> 간단 동작 확인
+- `metadata` -> 메타데이터(모델 정보)
+- `inference` -> 추론(모델 실행)
+- `bridge` -> 연결 계층
+- `SDK` -> SDK(개발 도구 묶음)
+
+## Explain in this order
+
+For reviews, merge advice, bug reports, or technical judgments, use this shape unless the user asks otherwise:
+
+1. plain verdict
+2. why it matters
+3. what was checked
+4. what remains
+5. recommended next action
+
+Start with the user-facing meaning, then give technical evidence. Do not make the user decode raw logs or internal labels first.
 
 ## Language
 
-- Use the user's language.
 - Prefer plain words; avoid unnecessary English mixing.
 - If a technical term is needed, add a short plain meaning once.
+- Translate generic headings; keep exact identifiers unchanged.
 
 Examples:
 
@@ -16,16 +48,6 @@ Examples:
 - invariant -> 반드시 지켜야 할 조건
 - dependency -> 의존 관계
 - context -> 맥락 / 상황
-
-## Reports
-
-Show:
-
-1. what changed
-2. why
-3. what remains
-4. what was verified
-5. what was not verified
 
 ## Code
 
