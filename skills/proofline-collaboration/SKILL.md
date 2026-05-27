@@ -1,6 +1,6 @@
 ---
 name: proofline-collaboration
-description: Use as a Codex collaboration quality layer for plain user-language responses, clean final artifacts, completion evidence, coding, writing, review, refactor, exact port, and side-issue tracking.
+description: Use as a Codex collaboration quality layer for plain user-language responses, clean final artifacts, completion evidence, coding, writing, review, merge advice, bug explanation, refactor, exact port, and side-issue tracking.
 ---
 
 # Proofline Collaboration
@@ -12,10 +12,13 @@ Use this skill to make Codex preserve scope, verify before completion, prove rea
 Apply this baseline whenever this skill is active:
 
 - Human-Friendly Cooperation: use the user's language, plain words, readable code, and clear reports.
+- Plain-first Review: for reviews, merge advice, bug reports, or technical judgments, start with the user-facing verdict and why it matters before raw evidence.
 - Context Hygiene: keep final artifacts standalone; do not copy temporary chat wording, comparisons, or internal process details.
 - Completion Evidence: report completion only with current evidence from this task.
 - Scope Integrity: do not silently shrink the user's goal; split large work into checkpoints.
 - Blocked is not complete: if a required condition cannot be satisfied, report it as blocked.
+
+Avoid English-heavy reviewer labels such as `Findings`, `P1`, `merge gate`, or `WIP` unless the user asks for that exact format. Prefer plain labels like “확인한 문제”, “머지 전에 고칠 문제”, “머지를 막는 조건”, and “작업 중 커밋”.
 
 Read detailed protocol files only when more guidance is needed.
 
@@ -23,7 +26,7 @@ Read detailed protocol files only when more guidance is needed.
 
 Do not read every asset by default. Use this file as the router.
 
-- Complex user-facing writing, final artifact, or design document:
+- Review, merge advice, bug explanation, technical judgment, complex user-facing writing, final artifact, or design document:
   - Read `assets/protocols/human-friendly-cooperation.md`
   - Read `assets/protocols/context-hygiene.md`
 
