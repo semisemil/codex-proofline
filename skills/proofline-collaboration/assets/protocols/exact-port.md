@@ -1,30 +1,18 @@
-# Exact Port Protocol
+# Exact Port
 
 Use when the user asks to port, migrate, copy, transplant, preserve behavior exactly, or avoid rewriting.
 
-## Core rule
+## Before
 
 The source is authoritative. Do not simplify, rewrite, omit, rename, or change behavior unless the user approved it.
 
-## Before editing
+Track source-target mapping and every deviation with reason, user approval, and evidence.
 
-Create a source-target mapping:
-
-| Source | Target | Expected relation | Notes |
-|---|---|---|---|
-
-## Deviations
-
-List every intentional difference:
-
-| Deviation | Reason | User approved? | Evidence |
-|---|---|---|---|
-
-## Completion
+## Complete
 
 Do not claim equivalence without comparison evidence.
 
-Final report must separate:
+Report:
 
 1. confirmed equivalent parts
 2. deviations

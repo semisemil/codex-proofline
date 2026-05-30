@@ -1,20 +1,10 @@
-# Scope Integrity Protocol
+# Scope Integrity
 
 Use when a task is large, risky, multi-step, or easy to shrink accidentally.
 
-## Rules
+## Before
 
-- Treat the user's stated goal as the work contract.
-- Do not silently reduce the goal.
-- Split large work into checkpoints instead of shrinking it.
-- Risk warnings are allowed; silent goal changes are not.
-- Smaller scope is allowed only as an explicit proposal that needs user approval.
-- If the requested goal cannot be completed, report a blocker instead of packaging it as partial success.
-
-## Work contract
-
-For large work, state:
-
+Treat the user's stated goal as the work contract. For large work, state:
 - user goal
 - non-negotiable requirements
 - checkpoints
@@ -22,10 +12,12 @@ For large work, state:
 - known risks or blockers
 - decisions needing user approval
 
-## During work
+## During
 
-If a checkpoint fails, do not skip it quietly. Either fix it, report a blocker, or ask approval to change scope.
+Split large work into checkpoints. Warn about risk when needed. If a checkpoint fails, fix it, report a blocker, or ask approval to change scope.
 
-## Completion
+## Complete
 
 Complete means the approved goal is done and verified.
+
+Never reduce scope silently or package partial success as full completion.

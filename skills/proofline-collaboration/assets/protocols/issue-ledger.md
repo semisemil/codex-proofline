@@ -1,36 +1,20 @@
-# Issue Ledger Protocol
+# Issue Ledger
 
 Use when a real side issue is found and will not be fixed in the current approved scope.
 
-## Record only when all are true
+## Record
 
-- There is concrete evidence.
-- The issue is not fixed in the current task.
-- The issue can affect future work.
-- There is a suggested next step.
+Only record when there is concrete evidence, the issue is not fixed in the current task, it can affect future work, and there is a suggested next step.
 
-Do not record vague guesses, preferences, temporary notes, or issues fixed immediately.
+Never record vague guesses, preferences, temporary notes, or issues fixed immediately.
 
-## Source of truth
+## Write
 
-Each issue is one Markdown file:
+Each issue is one Markdown file under `.proofline/issues/`.
 
-`.proofline/issues/*.md`
+If `.proofline/` does not exist, copy `assets/state-starter/` into `.proofline/`. Create the next `PL-0001`-style issue under `.proofline/issues/`, use `assets/templates/issue.md`, and mention the issue id in the final report.
 
-Dashboard files are static and must not be edited during normal issue registration:
-
-- `.proofline/dashboard/index.html`
-- `.proofline/dashboard/style.css`
-- `.proofline/dashboard/app.js`
-
-## First issue flow
-
-1. If `.proofline/` does not exist, copy `assets/state-starter/` into `.proofline/`.
-2. Create the next `PL-0001`-style issue under `.proofline/issues/`.
-3. Use `assets/templates/issue.md`.
-4. Mention the issue id in the final report.
-
-## Required JSON front matter
+Required front matter:
 
 - id
 - status: open | doing | blocked | resolved | ignored
@@ -45,3 +29,5 @@ Dashboard files are static and must not be edited during normal issue registrati
 - updated_at
 
 Resolved issues must include resolved evidence.
+
+Never edit dashboard files during normal issue registration.
