@@ -2,6 +2,8 @@
 
 ## Shortlist
 
+Write `No candidates` instead of candidate sections when no candidate meets every requirement.
+
 ### Candidate 1
 
 - Name:

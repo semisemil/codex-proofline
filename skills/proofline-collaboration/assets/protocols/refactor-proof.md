@@ -4,11 +4,13 @@ Use for refactor, restructuring, responsibility split, dependency cleanup, archi
 
 ## Before
 
-State current -> intended responsibility owner, call path, dependency direction, and state/data flow.
+State current -> intended responsibility owner, call path, dependency direction, and state/data flow. Mark a field `N/A` only when it is outside the requested change.
 
 ## Complete
 
-Evidence that at least one real structure changed:
+Complete only when every non-`N/A` intended structure is implemented and evidenced.
+
+Evidence must include at least one real structure change:
 
 - call path changed
 - responsibility moved
@@ -16,7 +18,7 @@ Evidence that at least one real structure changed:
 - state/data owner changed
 - old coupling was removed or reduced
 
-Check old imports, paths, names, or direct calls that should be gone. Check the new call path and dependency direction where possible. Run relevant tests, build, typecheck, or lint. If a check cannot run, report not verified.
+Check old imports, paths, names, or direct calls that should be gone. Check every non-`N/A` new call path and dependency direction. Run relevant tests, build, typecheck, or lint. If a check cannot run, report not verified.
 
 ## Never
 

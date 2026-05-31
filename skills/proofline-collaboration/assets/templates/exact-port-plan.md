@@ -17,9 +17,9 @@
 |---|---|---|---|
 |  |  |  |  |
 
-## Allowed deviations
+## Approved deviations
 
-| Deviation | Reason | User approved? |
+| Deviation | Reason | Approved before edit? |
 |---|---|---|
 |  |  | no |
 

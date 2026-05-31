@@ -10,6 +10,9 @@ description: Enforce baseline quality, evidence-backed completion, scope integri
 Read:
 - `assets/protocols/baseline-quality.md`
 
+Also read:
+- `assets/protocols/language-naturalness.md` when the user's active language is not primarily English, or mixed source terms may affect readability.
+
 Do:
 - Report completion only with current-task evidence.
 - Preserve user goal; checkpoint large work.

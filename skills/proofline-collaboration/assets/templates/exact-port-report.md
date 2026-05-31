@@ -8,7 +8,7 @@
 
 ## Deviations
 
-| id | Difference | Reason | Approved |
+| id | Difference | Reason | Approved before edit |
 |---|---|---|---|
 |  |  |  |  |
 

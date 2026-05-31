@@ -27,11 +27,15 @@ skills/proofline-collaboration/assets/protocols/baseline-quality.md
 
 Baseline Quality가 다루는 내용:
 
-- 사용자 언어 사용
+- 기본 답변 언어 선택
 - 쉬운 말과 명확한 판단 순서
 - 독립적으로 읽히는 최종 산출물
 - 제품 세계 안에 머무는 UI 문구
 - 읽기 쉬운 코드
+
+사용자의 주 사용 언어가 영어 중심이 아니거나 원문 용어가 섞여 읽기 어려워질 수 있으면 아래 프로토콜도 읽습니다.
+
+- `language-naturalness.md`: 사용자 언어와 분야에서 자연스러운 기술 표현, 음차/완역 판단, 번역체 방지
 
 작업 성격에 따라 필요한 프로토콜만 추가로 읽습니다.
 
@@ -60,6 +64,7 @@ skills/
     assets/
       protocols/
         baseline-quality.md
+        language-naturalness.md
         completion-evidence.md
         exact-port.md
         issue-ledger.md

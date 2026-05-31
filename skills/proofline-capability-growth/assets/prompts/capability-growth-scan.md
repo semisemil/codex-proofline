@@ -6,6 +6,8 @@ Do not create automation yet.
 
 Create a shortlist only when there is concrete evidence.
 
+If no candidate meets every requirement, report `No candidates` and list rejected ideas only.
+
 A candidate must have:
 
 1. repetition

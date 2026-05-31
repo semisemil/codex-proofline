@@ -23,13 +23,14 @@ Do not read every asset by default. Use this file as the router.
 
 - Candidate scan:
   - Read `assets/protocols/candidate-selection.md`
+  - Read `assets/protocols/existing-tool-check.md`
   - Use `assets/prompts/capability-growth-scan.md`
   - Use `assets/templates/capability-shortlist.md`
   - Trigger when repeated manual work, repeated user corrections, recurring `.proofline/issues/`, or automation requests appear.
 
 - Existing tool check:
   - Read `assets/protocols/existing-tool-check.md`
-  - Trigger when a candidate may already be covered by tests, CI, scripts, hooks, another skill, or a small checklist.
+  - Trigger when checking a specific candidate outside a full scan.
 
 - User-approved registration:
   - Read `assets/protocols/approval-before-registration.md`

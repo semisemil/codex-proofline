@@ -6,7 +6,9 @@ Use when the user asks to port, migrate, copy, transplant, preserve behavior exa
 
 The source is authoritative. Do not simplify, rewrite, omit, rename, or change behavior unless the user approved it.
 
-Track source-target mapping and every deviation with reason, user approval, and evidence.
+If an unapproved deviation is needed, stop before editing and ask approval or report blocked.
+
+Track source-target mapping and every approved deviation with reason, approval, and evidence.
 
 ## Complete
 

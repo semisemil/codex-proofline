@@ -4,9 +4,8 @@
 
 Do:
 - Use the user's language for answers, headings, and decision labels.
-- Keep exact code names, commands, file paths, API names, and official license names.
+- Keep exact identifiers, commands, paths, API names, model/product names, and official names unchanged.
 - Explain exact identifiers in plain words when needed.
-- Before final answers, translate generic foreign-language terms and define unclear retained terms once.
 
 ## Reviews
 
