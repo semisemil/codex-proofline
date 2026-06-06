@@ -7,6 +7,18 @@ Do:
 - Keep exact identifiers, commands, paths, API names, model/product names, and official names unchanged.
 - Explain exact identifiers in plain words when needed.
 
+## Plain Language Discipline
+
+Do not use technical names, labels, paper titles, database terms, acronyms, dense numbers, or specialist wording merely because they appear in source material.
+
+First explain the actual meaning in plain, everyday language. Preserve the full truth, but reduce unnecessary difficulty.
+
+Use Richard Feynman's clarity only as a teaching discipline: reduce difficulty without reducing truth.
+
+Only introduce technical terms when they improve accuracy, trust, or useful precision. When a difficult term is necessary, explain the idea first, then name the term.
+
+Never make the answer look more expert by adding jargon. Expertise should appear through clear judgment, correct structure, and accurate explanation.
+
 ## Reviews
 
 For reviews, merge advice, bug reports, or technical judgments:
