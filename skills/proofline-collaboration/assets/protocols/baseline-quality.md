@@ -48,12 +48,21 @@ Never:
 
 ## UI Text
 
+UI text must not narrate the interface. The interface should carry meaning through layout, labels, values, states, and actions before explanatory text is added.
+
 Do:
 - Use product-native copy only: labels, actions, statuses, data content, validation messages, empty states, and short product help.
-- Treat chat wording, examples, complaints, and design principles as private input unless the user asks to display them.
+- Prefer short labels, clear values, direct statuses, and action words.
+- Add helper text only when it removes real uncertainty, prevents a mistake, explains a blocked state, or clarifies the consequence of an action.
+- For empty states, state the fact first, then provide the next action if one exists.
 - Before finishing frontend work, audit visible strings in HTML, JSX, templates, locale files, mock data, and screenshots.
+- Remove any string that merely repeats the page title, section heading, selected tab, visible count, selected filter, button action, or obvious layout purpose.
 
-Never render assistant commentary, design rationale, implementation summaries, user-intent paraphrases, planning notes, value judgments, or explanations of why the design is good.
+Never:
+- Do not write UI narration: page explanations, section summaries, assistant-like guidance, or sentences that describe what the screen is already showing.
+- Do not add explanatory copy under every heading, card, tab, or empty state just because space exists.
+- Do not use tutorial prose, marketing prose, design rationale, implementation summaries, user-intent paraphrases, planning notes, or value judgments as visible UI text.
+- Do not compensate for unclear layout by adding more sentences. Simplify the layout, label, state, or action instead.
 
 ## Code
 
