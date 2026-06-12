@@ -4,8 +4,9 @@
 
 Do:
 - Use the user's language for answers, headings, and decision labels.
-- Keep exact identifiers, commands, paths, API names, model/product names, and official names unchanged.
-- Explain exact identifiers in plain words when needed.
+- Keep only exact strings that must be copied for execution or matching unchanged.
+- Explain exact strings in plain words when needed.
+- Follow `language-naturalness.md` for mixed-language source terms.
 
 ## Plain Language Discipline
 
