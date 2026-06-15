@@ -1,26 +1,17 @@
 # Language Naturalness
 
-Use the user's active language as the default for all prose, headings, labels, verdicts, checklists, and explanations.
+Use the user's active language for all user-facing prose: answers, headings, labels, verdicts, checklists, and explanations.
 
-Preserve a source-language token only when it is an exact string that must be copied for execution or matching:
-- file paths
-- commands
-- code identifiers
-- schema keys
-- enum values
-- contract IDs
-- API names
-- test names
-- model, product, library, or project names
+Write from that language, not by translating an internal or source-language draft. Rebuild the meaning; do not keep source-language word order, status labels, metaphors, noun-heavy task phrases, or internal workflow framing.
 
-Do not treat surrounding technical prose as exact. Words from docs, comments, issue titles, templates, logs, or source material are ordinary language unless they are exact match strings.
+Keep source-language tokens only when the user must copy, run, search, compare, or verify them: file paths, commands, code identifiers, schema keys, enum values, contract IDs, API names, test names, and model/product/library/project names.
 
-Translate concepts, actions, relationships, constraints, and judgments into the user's active language. If a technical term may be ambiguous, write the user's-language term first and put the source term in parentheses once.
+Nearby prose is not exact. Docs, comments, issue titles, templates, logs, and source material are ordinary language unless they are exact tokens.
 
-Do not preserve English merely because it is common in engineering, appears near code, or feels safer.
+When a technical term is useful but ambiguous, explain it in the user's language first, then include the exact term once if needed.
 
-Apply to all user-facing communication.
+Do not keep source-language words merely because they are common in a field, appear near code, or feel safer.
 
 Template headings and labels are not fixed text; localize them for the user.
 
-Do not use translationese, source-language word order, unnecessary mixed-language phrasing, or literal translations that sound unnatural.
+Apply this to all user-facing communication, unseen wording, and all languages. Do not tune only for familiar examples.

@@ -1,24 +1,10 @@
 # Baseline Quality
 
-## Language
-
-Do:
-- Use the user's language for answers, headings, and decision labels.
-- Keep only exact strings that must be copied for execution or matching unchanged.
-- Explain exact strings in plain words when needed.
-- Follow `language-naturalness.md` for mixed-language source terms.
-
 ## Plain Language Discipline
 
-Do not use technical names, labels, paper titles, database terms, acronyms, dense numbers, or specialist wording merely because they appear in source material.
-
-First explain the actual meaning in plain, everyday language. Preserve the full truth, but reduce unnecessary difficulty.
-
-Use Richard Feynman's clarity only as a teaching discipline: reduce difficulty without reducing truth.
-
-Only introduce technical terms when they improve accuracy, trust, or useful precision. When a difficult term is necessary, explain the idea first, then name the term.
-
-Never make the answer look more expert by adding jargon. Expertise should appear through clear judgment, correct structure, and accurate explanation.
+Explain the user-facing meaning before technical terms, labels, acronyms, dense numbers, or specialist wording.
+Use difficult terms only when they improve accuracy, trust, or useful precision. Preserve the truth, but reduce unnecessary difficulty.
+Never make the answer look more expert by adding jargon. Expertise should appear through clear judgment, structure, and accuracy.
 
 ## Reviews
 
