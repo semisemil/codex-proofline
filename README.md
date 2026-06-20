@@ -1,7 +1,7 @@
 # Codex Proofline
 
-Codex Proofline은 Codex 협업을 위한 작은 품질 안전장치입니다.
-Codex가 작업 범위를 지키고, 완료 전에 확인하고, 명확하게 보고하고, 실제 부수 이슈를 잊지 않게 돕습니다.
+Codex 작업에 붙이는 작은 품질 안전장치입니다.
+기본 답변과 산출물의 품질을 항상 지키고, 큰 작업에서는 범위·확인·완료 보고·부수 이슈를 놓치지 않게 돕습니다.
 
 ## 해결하려는 문제
 
@@ -10,34 +10,32 @@ Codex가 작업 범위를 지키고, 완료 전에 확인하고, 명확하게 �
 - 정확한 이식이 비슷한 재작성으로 바뀐다.
 - 작업 중 발견한 부수 이슈가 채팅 안에만 남는다.
 - 확인보다 완료 보고가 먼저 나온다.
-- 최종 산출물에 임시 대화 표현이나 내부 과정이 섞인다.
+- 교정용 예시나 임시 대화 표현이 최종 산출물에 섞인다.
 
 Proofline은 이런 지점을 작게 붙잡는 규칙 묶음입니다.
 
 ## 스킬
 
-### `proofline-collaboration`
+### `proofline-baseline-quality`
 
-코딩, 글쓰기, 리뷰, 리팩터링, 정확한 이식, 부수 이슈 기록, 완료 보고에 쓰는 협업 품질 스킬입니다.
-항상 하나의 기본 프로토콜을 읽습니다.
+모든 사용자 대상 답변과 최종 산출물에 항상 쓰는 기본 품질 스킬입니다.
 
-```text
-skills/proofline-collaboration/assets/protocols/baseline-quality.md
-```
+다루는 내용:
 
-Baseline Quality가 다루는 내용:
-
-- 기본 답변 언어 선택
-- 쉬운 말과 명확한 판단 순서
-- 독립적으로 읽히는 최종 산출물
+- 사용자의 주 사용 언어로 자연스럽게 작성
+- 어려운 말보다 쉬운 뜻을 먼저 설명
+- 채팅 기록 없이도 독립적으로 읽히는 산출물
+- 교정 예시에서 실제 규칙을 뽑아 비슷한 경우에도 적용
+- 진단용 예시, 거절된 문구, 교정 과정이 결과물에 섞이지 않게 확인
 - 제품 세계 안에 머무는 UI 문구
 - 읽기 쉬운 코드
 
-사용자의 주 사용 언어가 영어 중심이 아니거나 원문 용어가 섞여 읽기 어려워질 수 있으면 아래 프로토콜도 읽습니다.
+### `proofline-collaboration`
 
-- `language-naturalness.md`: 사용자 언어와 분야에서 자연스러운 기술 표현, 음차/완역 판단, 번역체 방지
+큰 작업, 위험한 작업, 여러 단계 작업, 범위가 줄기 쉬운 작업, 확인이 필요한 완료 보고, 구조 리팩터링, 정확한 이식, 실제 부수 이슈 기록에 쓰는 협업 품질 스킬입니다.
+작업 내용이 조건에 맞거나 사용자가 `$proofline-collaboration`을 직접 호출할 때 사용합니다.
 
-작업 성격에 따라 필요한 프로토콜만 추가로 읽습니다.
+작업 성격에 따라 필요한 프로토콜만 읽습니다.
 
 - `scope-integrity.md`: 크거나 위험하거나 여러 단계인 작업, 범위가 줄어들기 쉬운 작업
 - `completion-evidence.md`: 최종 보고, 막힌 작업, 생략되거나 실패한 확인
@@ -47,9 +45,9 @@ Baseline Quality가 다루는 내용:
 
 ### `proofline-capability-growth`
 
-반복되는 수작업이 자동화 후보인지 검토할 때 쓰는 스킬입니다.
+반복되는 수작업이 자동화 후보인지 확인할 때 쓰는 스킬입니다.
 
-- 반복 수작업 검토
+- 반복 수작업 확인
 - 기존 도구, 테스트, CI, 훅, 스킬 확인
 - 자동화 후보 목록 작성
 - 근거가 약하거나 너무 넓은 후보 제외
@@ -59,12 +57,13 @@ Baseline Quality가 다루는 내용:
 
 ```text
 skills/
+  proofline-baseline-quality/
+    SKILL.md
+
   proofline-collaboration/
     SKILL.md
     assets/
       protocols/
-        baseline-quality.md
-        language-naturalness.md
         completion-evidence.md
         exact-port.md
         issue-ledger.md
@@ -88,6 +87,12 @@ skills/
       prompts/
       templates/
 
+evals/
+  baseline-quality/
+    correction-example-leakage.md
+    correction-generalization.md
+    explicit-preservation-exceptions.md
+
 snippets/
   AGENTS.repo.minimal.md
   AGENTS.global.example.md
@@ -106,10 +111,11 @@ https://github.com/semisemil/codex-proofline 이 레포지토리에 있는 Proof
 Codex가 해야 할 일:
 
 1. 전역 설치인지 프로젝트 설치인지 확인한다.
-2. 두 스킬 디렉터리를 복사한다.
-3. 알맞은 `AGENTS.md`에 Proofline 블록을 추가하거나 교체한다. (파일이 없으면 생성)
-4. Proofline 블록 밖의 기존 내용은 보존한다.
-5. 설치 뒤 두 `SKILL.md` 파일이 있는지 확인한다.
+2. 세 스킬 디렉터리를 복사한다.
+3. 알맞은 `AGENTS.md`에 Proofline 블록을 추가하거나 교체한다. 파일이 없으면 생성한다.
+4. 기존 `v1` 표시 블록이 있으면 새 무버전 블록으로 교체한다.
+5. Proofline 블록 밖의 기존 내용은 보존한다.
+6. 설치 뒤 세 `SKILL.md` 파일이 있는지 확인한다.
 
 ### 직접 설치하기
 
@@ -120,6 +126,7 @@ git clone https://github.com/semisemil/codex-proofline.git
 cd codex-proofline
 
 mkdir -p ~/.agents/skills
+cp -R skills/proofline-baseline-quality ~/.agents/skills/
 cp -R skills/proofline-collaboration ~/.agents/skills/
 cp -R skills/proofline-capability-growth ~/.agents/skills/
 ```
@@ -127,6 +134,7 @@ cp -R skills/proofline-capability-growth ~/.agents/skills/
 확인:
 
 ```bash
+ls ~/.agents/skills/proofline-baseline-quality/SKILL.md
 ls ~/.agents/skills/proofline-collaboration/SKILL.md
 ls ~/.agents/skills/proofline-capability-growth/SKILL.md
 ```
@@ -145,19 +153,25 @@ snippets/AGENTS.repo.minimal.md
 snippets/AGENTS.global.example.md
 ```
 
-두 스니펫 모두 영역 표시를 포함합니다.
+두 스니펫 모두 고정된 영역 표시를 포함합니다.
 
 ```text
-<!-- BEGIN CODEX-PROOFLINE v1 -->
+<!-- BEGIN CODEX-PROOFLINE -->
 ...
-<!-- END CODEX-PROOFLINE v1 -->
+<!-- END CODEX-PROOFLINE -->
 ```
 
-Proofline 지침을 갱신할 때는 이 블록만 교체하고 `AGENTS.md`의 나머지 내용은 그대로 둡니다.
+Proofline 지침을 갱신할 때는 이 블록만 교체하고 `AGENTS.md`의 나머지 내용은 그대로 둡니다. 이전 `v1` 표시 블록이 남아 있으면 무버전 블록으로 한 번 교체합니다.
 
 ## 사용 예시
 
-### Proofline-Collaboration
+### `proofline-baseline-quality`
+
+AGENTS 블록을 설치하면 별도 호출 없이 모든 사용자 대상 답변과 산출물에 적용합니다.
+
+### `proofline-collaboration`
+
+작업 조건에 따라 자동으로 선택되거나 아래처럼 직접 호출할 수 있습니다.
 
 ```text
 $proofline-collaboration
@@ -169,12 +183,18 @@ $proofline-collaboration
 이 원본 구현을 target 쪽으로 그대로 이식해줘.
 ```
 
-### proofline-capability-growth
+### `proofline-capability-growth`
 
 ```text
 $proofline-capability-growth
 최근 반복되는 수작업을 살펴보고 자동화 후보를 제안해줘.
 ```
+
+## 검증 사례
+
+`evals/baseline-quality/`에는 교정 예시가 결과물에 새는 문제, 예시의 명사만 바뀌었을 때 규칙을 놓치는 문제, 정확한 원문 보존이 필요한 예외를 확인하는 사례가 있습니다.
+
+각 파일의 `Pass`와 `Fail` 조건으로 스킬 변경 전후 결과를 비교합니다. 이 파일들은 설치 대상 스킬이 아니라 검증용 입력입니다.
 
 ## 프로젝트 상태 저장소
 
@@ -242,6 +262,8 @@ Proofline은 기본적으로 전체 대화, 넓은 작업 계약, 긴 추론 기
 Proofline은 다음 원칙을 따릅니다.
 
 - 사용자의 목표를 말없이 줄이지 않는다.
+- 교정 예시의 겉문구보다 실제 규칙을 찾아 비슷한 경우에도 적용한다.
+- 진단용 예시와 교정 과정은 요구된 내용이 아니면 최종 산출물에서 제거한다.
 - 큰 작업은 줄이는 대신 체크포인트로 나눈다.
 - 현재 작업에서 나온 확인만 완료 증거로 인정한다.
 - 막힌 상태와 완료 상태를 섞지 않는다.
