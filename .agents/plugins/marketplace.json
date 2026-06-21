@@ -7,9 +7,8 @@
     {
       "name": "proofline",
       "source": {
-        "source": "url",
-        "url": "https://github.com/semisemil/codex-proofline.git",
-        "ref": "main"
+        "source": "local",
+        "path": "./"
       },
       "policy": {
         "installation": "AVAILABLE",
