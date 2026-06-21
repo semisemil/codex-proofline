@@ -162,10 +162,4 @@ skills/
       protocols/
       prompts/
       templates/
-
-evals/
-  baseline-quality/
-    correction-example-leakage.md
-    correction-generalization.md
-    explicit-preservation-exceptions.md
 ```
