@@ -44,6 +44,8 @@ codex plugin marketplace add semisemil/codex-proofline
 codex
 ```
 
+`SessionStart` hook 실행에는 `node` 명령이 필요합니다.
+
 1. `/plugins`를 엽니다.
 2. Proofline 마켓플레이스에서 `Proofline`을 선택합니다.
 3. `Install plugin`을 선택합니다.
@@ -129,6 +131,7 @@ $proofline-capability-growth
 
 hooks/
   hooks.json
+  load-baseline.js
 
 skills/
   proofline-baseline-quality/
