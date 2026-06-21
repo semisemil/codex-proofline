@@ -1,0 +1,32 @@
+{
+  "name": "proofline",
+  "version": "0.1.0",
+  "description": "Small quality safeguards for Codex work.",
+  "author": {
+    "name": "semisemil",
+    "url": "https://github.com/semisemil"
+  },
+  "homepage": "https://github.com/semisemil/codex-proofline",
+  "repository": "https://github.com/semisemil/codex-proofline",
+  "license": "MIT",
+  "keywords": [
+    "quality",
+    "verification",
+    "refactoring",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Proofline",
+    "shortDescription": "Quality safeguards for Codex work",
+    "longDescription": "Improve baseline response quality and reduce scope shrinkage, missed verification, and incomplete completion reports during Codex work.",
+    "developerName": "semisemil",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions",
+      "Lifecycle hooks"
+    ],
+    "websiteURL": "https://github.com/semisemil/codex-proofline"
+  }
+}
