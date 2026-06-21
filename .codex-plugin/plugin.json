@@ -1,7 +1,7 @@
 {
   "name": "proofline",
-  "version": "0.1.0",
-  "description": "Small quality safeguards for Codex work.",
+  "version": "0.1.1",
+  "description": "Codex의 대화 품질과 작업 신뢰성을 높이는 플러그인입니다.",
   "author": {
     "name": "semisemil",
     "url": "https://github.com/semisemil"
@@ -19,13 +19,15 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Proofline",
-    "shortDescription": "Quality safeguards for Codex work",
-    "longDescription": "Improve baseline response quality and reduce scope shrinkage, missed verification, and incomplete completion reports during Codex work.",
+    "shortDescription": "대화 품질과 작업 신뢰성을 높이는 규칙",
+    "longDescription": "기본 품질 규칙을 세션마다 적용하고, 큰 작업에서 범위 축소, 확인 누락, 불완전한 완료 보고를 줄입니다.",
     "developerName": "semisemil",
     "category": "Productivity",
     "capabilities": [
-      "Instructions",
-      "Lifecycle hooks"
+      "기본 품질 규칙",
+      "작업 범위 확인",
+      "완료 근거 확인",
+      "SessionStart hook"
     ],
     "websiteURL": "https://github.com/semisemil/codex-proofline"
   }
