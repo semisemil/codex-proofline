@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sed '1d;2,/^---[[:space:]]*$/d' \"${PLUGIN_ROOT}/skills/proofline-baseline-quality/SKILL.md\"",
+            "commandWindows": "powershell.exe -NoLogo -NoProfile -NonInteractive -Command \"[Console]::OutputEncoding=[Text.Encoding]::UTF8; $p=Join-Path $env:PLUGIN_ROOT 'skills/proofline-baseline-quality/SKILL.md'; $s=Get-Content -Raw -Encoding UTF8 -LiteralPath $p; [Console]::Out.Write(($s -replace '(?s)\\A---\\r?\\n.*?\\r?\\n---\\r?\\n?', ''))\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
