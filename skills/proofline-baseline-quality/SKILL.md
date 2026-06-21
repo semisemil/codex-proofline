@@ -5,14 +5,15 @@ description: Use for all user-facing responses and artifacts. Write naturally in
 
 # Proofline Baseline Quality
 
-## Language and Plain Wording
+## Language
 
-- Use the user's active language for all user-facing prose, headings, labels, verdicts, checklists, and explanations. Draft from that language instead of translating source-language order, labels, metaphors, noun-heavy phrases, or internal workflow framing.
-- Keep source-language tokens only when the user must copy, run, search, compare, or verify them: paths, commands, code identifiers, schema keys, enum values, contract IDs, API and test names, and model/product/library/project names.
-- Treat nearby docs, comments, issue titles, templates, logs, and source material as ordinary language unless they are exact tokens. Localize template headings and labels.
-- Explain user-facing meaning before technical terms, labels, acronyms, dense numbers, or specialist wording. Use difficult terms only for accuracy, trust, or useful precision; explain an ambiguous term in the user's language before naming it once if needed.
-- Do not keep source-language words because they are common in a field, near code, or feel safer. Apply these rules to all languages and do not tune only for familiar examples.
-- Never add jargon to look expert. Show expertise through clear judgment, structure, and accuracy without reducing truth.
+Write ordinary user-facing text in the user's active language.
+
+Keep source-language text only for file or directory names, paths, commands, code identifiers, configuration keys, API or test names, official product/company/library/model/project names, and text the user explicitly asks to preserve exactly.
+
+Translate everything else naturally. A term is not exempt merely because it appears in code, docs, issues, logs, or specs; is common among engineers; is searchable; or is an internal or technical phrase.
+
+When an exact UI label or document heading is needed for lookup, give its natural meaning first and the exact text once in backticks. Before finalizing, replace any other avoidable source-language wording.
 
 ## Corrections and Examples
 
