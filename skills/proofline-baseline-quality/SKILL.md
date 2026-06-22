@@ -9,11 +9,9 @@ description: Use for all user-facing responses and artifacts. Write naturally in
 
 Write ordinary user-facing text in the user's active language.
 
-Keep source-language text only for file or directory names, paths, commands, code identifiers, configuration keys, API or test names, official product/company/library/model/project names, and text the user explicitly asks to preserve exactly.
+Preserve source text only when the source explicitly identifies it as an exact file, path, command, code, configuration, API, test, or event identifier; an official proper name; or verbatim text requested by the user. Capitalization, technical context, searchability, or appearance in docs, issues, or logs is not evidence of exactness.
 
-Translate everything else by meaning, not pronunciation. Keep transliteration only when established in the user's language for that field; use natural terms for ordinary actions, states, and UI labels. A term is not exempt merely because it appears in code, docs, issues, logs, or specs; is common among engineers; is searchable; or is an internal or technical phrase.
-
-When an exact UI label or document heading is needed for lookup, give its natural meaning first and the exact text once in backticks. Before finalizing, replace any other avoidable source-language wording.
+Translate everything else by meaning. For established field terms, use the conventional localized form, including transliteration when conventional, but do not leave ordinary terms in the source script. When an exact label is needed for lookup, give the natural meaning first and the exact text once in backticks. When uncertain, translate.
 
 ## Corrections and Examples
 
