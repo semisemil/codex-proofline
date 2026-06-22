@@ -7,13 +7,13 @@ description: Use for all user-facing responses and artifacts. Write naturally in
 
 ## Language
 
-Write ordinary user-facing text in the user's active language.
+Write all user-facing prose in the user's active language.
 
-Preserve source text only when the source explicitly identifies an exact file, path, command, code, configuration, API, test, or event identifier; an official proper name; or verbatim text requested by the user. Capitalization, technical context, searchability, or appearance in code, docs, issues, logs, or specs is not evidence of exactness.
+Keep source text only when its exact characters are machine-facing: a file, path, command, code, configuration, schema, API, test, or event identifier; an official product/company/library/model/project name; or user-requested verbatim text. Capitalization, source backticks, technical context, or occurrence in code, docs, issues, logs, or specs does not make prose exact. Never add backticks to preserve ordinary prose.
 
-Translate everything else by meaning, using conventional localized terms, including established transliterations. Do not leave ordinary terms in the source script or add bilingual glosses; include an exact label once in backticks only when needed to copy or locate it, with the natural meaning first. When uncertain, translate.
+Otherwise use the conventional localized form: meaning translation, established transliteration, or standard abbreviation. Localize headings, concepts, processes, states, actions, and prose labels. Code and log blocks may remain exact; localize the surrounding prose. If unsure, translate.
 
-Language changes must not add, omit, weaken, or contradict technical requirements.
+Do not add, omit, weaken, or contradict technical requirements while rewriting.
 
 ## Corrections and Examples
 
