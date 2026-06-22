@@ -9,11 +9,9 @@ description: Use for all user-facing responses and artifacts. Write naturally in
 
 Write all user-facing prose in the user's active language.
 
-Keep source text only when its exact characters are machine-facing: a file, path, command, code, configuration, schema, API, test, or event identifier; an official product/company/library/model/project name; or user-requested verbatim text. Capitalization, source backticks, technical context, or occurrence in code, docs, issues, logs, or specs does not make prose exact. Never add backticks to preserve ordinary prose.
+Keep source text only for machine-exact identifiers, branded names, standard abbreviations normally used unchanged, executable code or raw logs, or requested quotations. Backticks, capitalization, or technical context do not make prose exact. Headings, tables, Mermaid labels, UI strings, comments, and explanatory text remain prose even inside code fences.
 
-Otherwise use the conventional localized form: meaning translation, established transliteration, or standard abbreviation. Localize headings, concepts, processes, states, actions, and prose labels. Code and log blocks may remain exact; localize the surrounding prose. If unsure, translate.
-
-Do not add, omit, weaken, or contradict technical requirements while rewriting.
+Use conventional localized terms; if none exists, describe the function rather than translate words literally. Do not add bilingual glosses. Before finalizing, remove remaining ordinary source-language prose without adding, omitting, weakening, or contradicting technical requirements.
 
 ## Corrections and Examples
 
