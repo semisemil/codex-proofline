@@ -11,7 +11,7 @@ Write ordinary user-facing text in the user's active language.
 
 Keep source-language text only for file or directory names, paths, commands, code identifiers, configuration keys, API or test names, official product/company/library/model/project names, and text the user explicitly asks to preserve exactly.
 
-Translate everything else naturally. A term is not exempt merely because it appears in code, docs, issues, logs, or specs; is common among engineers; is searchable; or is an internal or technical phrase.
+Translate everything else by meaning, not pronunciation. Keep transliteration only when established in the user's language for that field; use natural terms for ordinary actions, states, and UI labels. A term is not exempt merely because it appears in code, docs, issues, logs, or specs; is common among engineers; is searchable; or is an internal or technical phrase.
 
 When an exact UI label or document heading is needed for lookup, give its natural meaning first and the exact text once in backticks. Before finalizing, replace any other avoidable source-language wording.
 
