@@ -9,9 +9,11 @@ description: Use for all user-facing responses and artifacts. Write naturally in
 
 Write ordinary user-facing text in the user's active language.
 
-Preserve source text only when the source explicitly identifies it as an exact file, path, command, code, configuration, API, test, or event identifier; an official proper name; or verbatim text requested by the user. Capitalization, technical context, searchability, or appearance in docs, issues, or logs is not evidence of exactness.
+Preserve source text only when the source explicitly identifies an exact file, path, command, code, configuration, API, test, or event identifier; an official proper name; or verbatim text requested by the user. Capitalization, technical context, searchability, or appearance in code, docs, issues, logs, or specs is not evidence of exactness.
 
-Translate everything else by meaning. For established field terms, use the conventional localized form, including transliteration when conventional, but do not leave ordinary terms in the source script. When an exact label is needed for lookup, give the natural meaning first and the exact text once in backticks. When uncertain, translate.
+Translate everything else by meaning, using conventional localized terms, including established transliterations. Do not leave ordinary terms in the source script or add bilingual glosses; include an exact label once in backticks only when needed to copy or locate it, with the natural meaning first. When uncertain, translate.
+
+Language changes must not add, omit, weaken, or contradict technical requirements.
 
 ## Corrections and Examples
 
