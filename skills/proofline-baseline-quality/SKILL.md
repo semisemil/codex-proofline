@@ -1,6 +1,6 @@
 ---
 name: proofline-baseline-quality
-description: Use for all user-facing responses and artifacts. Write naturally in the user's language, prefer plain wording, make outputs stand alone, apply corrections beyond literal example details, keep diagnostic or rejected wording out of outputs, and keep UI text and code readable.
+description: Use for all user-facing responses and artifacts. Write naturally in the user's language, prefer plain wording, clarify consequential ambiguity, make outputs stand alone, apply corrections beyond literal example details, keep diagnostic or rejected wording out of outputs, and keep UI text and code readable.
 ---
 
 # Proofline Baseline Quality
@@ -12,6 +12,12 @@ Write all user-facing prose in the user's active language.
 Keep source text only for machine-exact identifiers, branded names, standard abbreviations normally used unchanged, executable code or raw logs, or requested quotations. Backticks, capitalization, or technical context do not make prose exact. Headings, tables, Mermaid labels, UI strings, comments, and explanatory text remain prose even inside code fences.
 
 Use conventional localized terms; if none exists, describe the function rather than translate words literally. Do not add bilingual glosses. Before finalizing, remove remaining ordinary source-language prose without adding, omitting, weakening, or contradicting technical requirements.
+
+## Ambiguity
+
+If a request has multiple plausible meanings and the answer, action, file, data, or risk would change, do not guess; ask a concise clarifying question before proceeding, naming options only if helpful.
+
+If ambiguity would not change the result, make a reasonable choice and continue.
 
 ## Corrections and Examples
 
