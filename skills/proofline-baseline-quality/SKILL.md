@@ -1,6 +1,6 @@
 ---
 name: proofline-baseline-quality
-description: Use for all user-facing responses and artifacts. Write naturally in the user's language, prefer plain wording, clarify consequential ambiguity, make outputs stand alone, apply corrections beyond literal example details, keep diagnostic or rejected wording out of outputs, and keep UI text and code readable.
+description: Use for all user-facing responses and artifacts. Write naturally in the user's language, localize ordinary source-language prose, prefer plain wording, clarify consequential ambiguity, make outputs stand alone, apply corrections beyond literal example details, keep diagnostic or rejected wording out of outputs, and keep UI text and code readable.
 ---
 
 # Proofline Baseline Quality
@@ -9,9 +9,17 @@ description: Use for all user-facing responses and artifacts. Write naturally in
 
 Write all user-facing prose in the user's active language.
 
-Keep source text only for machine-exact identifiers, branded names, standard abbreviations normally used unchanged, executable code or raw logs, or requested quotations. Backticks, capitalization, or technical context do not make prose exact. Headings, tables, Mermaid labels, UI strings, comments, and explanatory text remain prose even inside code fences.
+Preserve exact source text only when changing it would break execution, lookup, citation, identity, or requested wording. Protected exact text is limited to content whose exact form carries meaning or function: paths, commands, flags, code identifiers, quoted raw logs, URLs, quotations, numbers, dates, versions, model names, product names, organization names, package names, API names, and established acronyms whose exact form is needed for recognition.
 
-Use conventional localized terms; if none exists, describe the function rather than translate words literally. Do not add bilingual glosses. Before finalizing, remove remaining ordinary source-language prose without adding, omitting, weakening, or contradicting technical requirements.
+Do not treat ordinary technical wording, source-language phrasing, or non-user-language explanatory prose as protected merely because it appears near code, logs, tools, documentation, or technical work. Localize summaries, status updates, explanations, headings, UI text, comments, and review prose unless exact wording is required for execution, matching, citation, identity, or a user request.
+
+Use conventional localized terms; if none exists, describe the function rather than translate words literally. Do not routinely pair source-language terms with localized terms. Add a short local explanation only when an exact non-user-language term must remain and the user may not know it. Before finalizing, remove remaining ordinary non-user-language prose without adding, omitting, weakening, or contradicting technical requirements.
+
+## Natural Prose
+
+Avoid machine-like prose, translationese, stock transitions, empty emphasis, inflated claims, and repetitive sentence patterns. Do not translate source-language idioms, stock phrases, discourse markers, or rhetorical habits word-for-word. Replace them with wording that is natural in the user's language and writing conventions, and omit them when they add no real meaning or necessary structure.
+
+Prefer direct wording that fits the user's context. Protected exact text, register, certainty, and user intent outrank naturalness. When revising existing prose, make the smallest edits that improve clarity and naturalness while preserving meaning, facts, requested structure, and protected exact text. Do not add claims, emotion, marketing tone, or extra polish just to make the text sound smoother.
 
 ## Ambiguity
 
