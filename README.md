@@ -38,7 +38,6 @@ Proofline은 코덱스의 대화 기본 품질을 높이고, 범위 축소, 확�
 - 사용자 승인 뒤 등록 프롬프트 준비
 
 ## 설치
-
 ```bash
 codex plugin marketplace add semisemil/codex-proofline
 codex
@@ -53,52 +52,13 @@ codex
 5. 새 대화를 시작합니다.
 
 ## 업그레이드
+### Codex App
+프로그램을 완전히 종료한 뒤 다시 실행합니다.
 
-Codex App에서 설치한 경우 프로그램을 완전히 종료한 뒤 다시 실행합니다.
-
-Codex CLI에서 설치한 경우 아래 명령을 실행합니다.
-
+### Codex CLI
 ```bash
 codex plugin marketplace upgrade proofline
 ```
-
-업그레이드 뒤 새 대화를 시작하면 최신 Proofline 규칙이 적용됩니다.
-
-## 이전 설치에서 옮기기
-
-새 플러그인을 설치하고 hook을 승인한 뒤 기존 설치를 정리합니다.
-
-### 1. `AGENTS.md`의 Proofline 블록 제거
-
-`AGENTS.md`에서 아래 표시 사이의 내용만 제거합니다.
-
-```text
-<!-- BEGIN CODEX-PROOFLINE -->
-...
-<!-- END CODEX-PROOFLINE -->
-```
-
-표시에 `v1`이 붙은 이전 블록도 같은 방식으로 제거합니다.
-
-```text
-<!-- BEGIN CODEX-PROOFLINE v1 -->
-...
-<!-- END CODEX-PROOFLINE v1 -->
-```
-
-Proofline 블록 밖의 내용은 그대로 둡니다.
-
-### 2. 기존 스킬 제거
-
-`~/.agents/skills/` 또는 프로젝트의 `.agents/skills/`에서 아래 폴더를 제거합니다.
-
-```text
-proofline-baseline-quality/
-proofline-collaboration/
-proofline-capability-growth/
-```
-
-프로젝트의 `.proofline/` 폴더는 그대로 둡니다.
 
 ## 사용 예시
 
