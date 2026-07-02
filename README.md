@@ -52,6 +52,18 @@ codex
 4. `/hooks`를 열고 Proofline의 `SessionStart` hook을 확인한 뒤 승인합니다.
 5. 새 대화를 시작합니다.
 
+## 업그레이드
+
+Codex App에서 설치한 경우 프로그램을 완전히 종료한 뒤 다시 실행합니다.
+
+Codex CLI에서 설치한 경우 아래 명령을 실행합니다.
+
+```bash
+codex plugin marketplace upgrade proofline
+```
+
+업그레이드 뒤 새 대화를 시작하면 최신 Proofline 규칙이 적용됩니다.
+
 ## 이전 설치에서 옮기기
 
 새 플러그인을 설치하고 hook을 승인한 뒤 기존 설치를 정리합니다.
