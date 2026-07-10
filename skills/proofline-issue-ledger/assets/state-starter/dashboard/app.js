@@ -8,6 +8,7 @@ const state = {
 };
 
 const elements = {
+  themeToggle: document.getElementById('theme-toggle'),
   folderInput: document.getElementById('folder-input'),
   folderPicker: document.getElementById('folder-picker'),
   connectButton: document.getElementById('connect-button'),
@@ -20,12 +21,32 @@ const elements = {
   riskFilter: document.getElementById('risk-filter'),
   issueCount: document.getElementById('issue-count'),
   issuesList: document.getElementById('issues-list'),
+  issueGroupTemplate: document.getElementById('issue-group-template'),
   issueTemplate: document.getElementById('issue-template'),
   summaryTotal: document.getElementById('summary-total'),
   summaryOpen: document.getElementById('summary-open'),
   summaryBlocked: document.getElementById('summary-blocked'),
-  summaryResolved: document.getElementById('summary-resolved')
+  summaryResolved: document.getElementById('summary-resolved'),
+  summaryButtons: Array.from(document.querySelectorAll('[data-status-filter]'))
 };
+
+// 저장값은 파일 호환성을 위해 유지하고, 화면에서만 한국어로 번역합니다.
+const statusLabels = {
+  open: '열림',
+  doing: '진행 중',
+  blocked: '차단됨',
+  resolved: '해결됨',
+  ignored: '제외됨'
+};
+
+const riskLabels = {
+  critical: '치명적',
+  high: '높음',
+  medium: '중간',
+  low: '낮음'
+};
+
+const themeStorageKey = 'proofline-dashboard-theme';
 
 const riskOrder = {
   critical: 0,
@@ -57,6 +78,15 @@ elements.folderInput.addEventListener('change', async (event) => {
 
 elements.connectButton.addEventListener('click', connectIssuesDirectory);
 elements.changeFolderButton.addEventListener('click', changeIssuesDirectory);
+elements.themeToggle.addEventListener('click', toggleTheme);
+
+for (const button of elements.summaryButtons) {
+  button.addEventListener('click', () => {
+    state.filters.status = button.dataset.statusFilter;
+    elements.statusFilter.value = state.filters.status;
+    render();
+  });
+}
 
 elements.reloadButton.addEventListener('click', () => {
   loadFromDefaultSources();
@@ -76,6 +106,25 @@ elements.riskFilter.addEventListener('change', (event) => {
   state.filters.risk = event.target.value;
   render();
 });
+
+function toggleTheme() {
+  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = nextTheme;
+
+  try {
+    localStorage.setItem(themeStorageKey, nextTheme);
+  } catch {
+    // 로컬 저장소를 막은 브라우저에서도 현재 화면의 테마 전환은 유지합니다.
+  }
+
+  updateThemeControl();
+}
+
+function updateThemeControl() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  elements.themeToggle.textContent = isDark ? '라이트 모드' : '다크 모드';
+  elements.themeToggle.setAttribute('aria-label', isDark ? '라이트 모드로 전환' : '다크 모드로 전환');
+}
 
 async function loadMarkdownFiles(files) {
   if (files.length === 0) {
@@ -103,7 +152,7 @@ async function loadMarkdownFiles(files) {
 }
 
 async function loadFromDefaultSources() {
-  showLoadingState('저장된 issues 폴더에 자동 연결하는 중입니다.');
+  showLoadingState('저장된 이슈 폴더에 자동 연결하는 중입니다.');
 
   const directoryHandle = await getStoredDirectoryHandle();
   if (!directoryHandle) {
@@ -121,7 +170,7 @@ async function loadFromDefaultSources() {
 
 async function connectIssuesDirectory() {
   if (!supportsFileSystemAccess()) {
-    showFallbackPicker('이 브라우저는 폴더 권한 저장을 지원하지 않습니다. 대신 issues 폴더 선택을 사용하세요.');
+    showFallbackPicker('이 브라우저는 폴더 권한 저장을 지원하지 않습니다. 대신 이슈 폴더 선택을 사용하세요.');
     return;
   }
 
@@ -143,13 +192,13 @@ async function connectIssuesDirectory() {
       return;
     }
 
-    setFolderStatus(`issues 폴더를 연결하지 못했습니다. (${error.message})`, 'error');
+    setFolderStatus(`이슈 폴더를 연결하지 못했습니다. (${error.message})`, 'error');
   }
 }
 
 async function changeIssuesDirectory() {
   if (!supportsFileSystemAccess()) {
-    showFallbackPicker('이 브라우저는 폴더 재지정을 저장할 수 없습니다. 대신 issues 폴더 선택을 사용하세요.');
+    showFallbackPicker('이 브라우저는 폴더 재지정을 저장할 수 없습니다. 대신 이슈 폴더 선택을 사용하세요.');
     return;
   }
 
@@ -165,7 +214,7 @@ async function changeIssuesDirectory() {
       return;
     }
 
-    setFolderStatus(`issues 폴더를 재지정하지 못했습니다. (${error.message})`, 'error');
+    setFolderStatus(`이슈 폴더를 재지정하지 못했습니다. (${error.message})`, 'error');
   }
 }
 
@@ -228,7 +277,7 @@ async function loadFromDirectoryHandle(directoryHandle) {
       }
     }
   } catch (error) {
-    showPermissionRequired(`저장된 issues 폴더를 읽지 못했습니다. 권한을 확인하세요. (${error.message})`);
+    showPermissionRequired(`저장된 이슈 폴더를 읽지 못했습니다. 권한을 확인하세요. (${error.message})`);
     return;
   }
 
@@ -514,26 +563,54 @@ function renderSummary() {
   elements.summaryOpen.textContent = String(open);
   elements.summaryBlocked.textContent = String(blocked);
   elements.summaryResolved.textContent = String(resolved);
+
+  for (const button of elements.summaryButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.statusFilter === state.filters.status));
+  }
 }
 
 function renderIssueCount(count) {
-  elements.issueCount.textContent = `${count} issues`;
+  elements.issueCount.textContent = `${count}개`;
 }
 
 function renderIssueList(issues) {
   elements.issuesList.innerHTML = '';
 
   if (issues.length === 0) {
+    const needsFolder = elements.folderStatus.dataset.status === 'needed';
     const emptyState = document.createElement('article');
     emptyState.className = 'empty-state';
-    emptyState.innerHTML = '<h3>표시할 이슈가 없습니다.</h3><p>필터를 바꾸거나 issues 폴더를 다시 읽어보세요.</p>';
+    emptyState.innerHTML = needsFolder
+      ? '<h3>연결된 이슈 폴더가 없습니다.</h3><p>초기 폴더 설정에서 <code>.proofline/issues</code> 폴더를 선택하세요.</p>'
+      : '<h3>표시할 이슈가 없습니다.</h3><p>필터를 바꾸거나 이슈 폴더를 다시 읽어보세요.</p>';
     elements.issuesList.appendChild(emptyState);
     return;
   }
 
+  const groups = new Map();
   for (const issue of issues) {
-    elements.issuesList.appendChild(renderIssueCard(issue));
+    const group = groups.get(issue.status) || [];
+    group.push(issue);
+    groups.set(issue.status, group);
   }
+
+  for (const [status, groupIssues] of groups) {
+    elements.issuesList.appendChild(renderIssueGroup(status, groupIssues));
+  }
+}
+
+function renderIssueGroup(status, issues) {
+  const group = elements.issueGroupTemplate.content.firstElementChild.cloneNode(true);
+  group.dataset.status = normalizeClassName(status);
+  group.querySelector('.issue-group-title').textContent = statusLabels[status] || status;
+  group.querySelector('.issue-group-count').textContent = String(issues.length);
+
+  const rows = group.querySelector('.issue-group-rows');
+  for (const issue of issues) {
+    rows.appendChild(renderIssueCard(issue));
+  }
+
+  return group;
 }
 
 function renderIssueCard(issue) {
@@ -542,12 +619,12 @@ function renderIssueCard(issue) {
 
   card.querySelector('.issue-id').textContent = issue.id;
   card.querySelector('.issue-title').textContent = issue.title;
-  card.querySelector('.status-badge').textContent = issue.status;
 
-  const riskBadge = card.querySelector('.risk-badge');
-  riskBadge.textContent = issue.risk;
-  riskBadge.classList.add(`risk-${normalizeClassName(issue.risk)}`);
+  card.querySelector('.risk-label').textContent = riskLabels[issue.risk] || issue.risk;
 
+  const updated = card.querySelector('.issue-updated');
+  updated.textContent = formatIssueDate(issue.updated_at);
+  updated.dateTime = String(issue.updated_at ?? '');
   card.querySelector('.issue-discovered').textContent = issue.discovered_while;
   card.querySelector('.issue-next-step').textContent = issue.suggested_next_step;
   card.querySelector('.issue-evidence').innerHTML = renderEvidence(issue.evidence);
@@ -556,21 +633,28 @@ function renderIssueCard(issue) {
   return card;
 }
 
+function formatIssueDate(value) {
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp)
+    ? String(value ?? '')
+    : new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' }).format(timestamp);
+}
+
 function renderEvidence(evidenceItems) {
   if (!evidenceItems.length) {
-    return '<p>No evidence recorded.</p>';
+    return '<p>등록된 근거가 없습니다.</p>';
   }
 
   const listItems = evidenceItems
     .map((item) => {
-      const kind = escapeHtml(item.kind || 'evidence');
-      const location = escapeHtml(item.location || 'unknown location');
+      const kind = escapeHtml(item.kind || '근거');
+      const location = escapeHtml(item.location || '위치 미상');
       const note = escapeHtml(item.note || '');
-      return `<li><strong>${kind}</strong> · <code>${location}</code>${note ? ` — ${note}` : ''}</li>`;
+      return `<li><strong>${kind}</strong> / <code>${location}</code>${note ? `: ${note}` : ''}</li>`;
     })
     .join('');
 
-  return `<h4>Evidence</h4><ul class="evidence-list">${listItems}</ul>`;
+  return `<h4>근거</h4><ul class="evidence-list">${listItems}</ul>`;
 }
 
 function renderMarkdown(markdown) {
@@ -661,4 +745,5 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+updateThemeControl();
 loadFromDefaultSources();
