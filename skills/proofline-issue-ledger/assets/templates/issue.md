@@ -1,49 +1,48 @@
 ---
 {
-  "id": "PL-0001",
-  "status": "open",
-  "title": "Short, concrete issue title",
-  "discovered_while": "Task or checkpoint where this was found",
-  "evidence": [
-    {
-      "kind": "file",
-      "location": "src/example.ts:42",
-      "note": "What shows the issue"
-    }
-  ],
-  "risk": "medium",
-  "suggested_next_step": "Small next action to confirm or fix",
-  "linked_context": {
-    "task": "Clean standalone summary of the relevant task",
-    "files": [
-      "src/example.ts"
-    ],
-    "commands": [
-      "rg \"pattern\" src/"
-    ]
-  },
-  "resolved_evidence": [],
-  "created_at": "2026-05-25",
-  "updated_at": "2026-05-25"
+  "id": "{{id}}",
+  "status": "{{status}}",
+  "title": "{{title}}",
+  "discovered_while": "{{discovered_while}}",
+  "description": "{{description}}",
+  "evidence": {{evidence_json}},
+  "risk": "{{risk}}",
+  "impact": "{{impact}}",
+  "suggested_next_step": "{{suggested_next_step}}",
+  "completion_criteria": {{completion_criteria_json}},
+  "linked_context": {{linked_context_json}},
+  "resolved_evidence": {{resolved_evidence_json}},
+  "created_at": "{{created_at}}",
+  "updated_at": "{{updated_at}}"
 }
 ---
 
-# PL-0001 · Short, concrete issue title
+# {{id}} · {{title}}
 
-## Evidence
+## {{description_heading}}
 
-- kind: file
-- location: `src/example.ts:42`
-- note: What shows the issue
+{{description}}
 
-## Risk
+## {{evidence_heading}}
 
-Explain the risk in plain language.
+{{evidence_markdown}}
 
-## Suggested next step
+## {{impact_heading}}
 
-Small next action to confirm or fix.
+{{impact}}
 
-## Resolved evidence
+## {{next_step_heading}}
 
-Not resolved yet.
+{{suggested_next_step}}
+
+## {{completion_criteria_heading}}
+
+{{completion_criteria_markdown}}
+
+## {{resolved_evidence_heading}}
+
+{{resolved_evidence_markdown}}
+
+## {{references_heading}}
+
+{{linked_context_markdown}}

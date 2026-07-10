@@ -17,15 +17,20 @@ Each issue is one Markdown file under `.proofline/issues/`.
 
 If `.proofline/` does not exist, copy `assets/state-starter/` into `.proofline/`. Create the next `PL-0001`-style issue under `.proofline/issues/`, use `assets/templates/issue.md`, and mention the issue id in the final report.
 
+Apply Proofline Baseline Quality to issue artifacts. Replace every `{{...}}` placeholder in the template before saving.
+
 Required front matter:
 
 - id
 - status: open | doing | blocked | resolved | ignored
 - title
 - discovered_while
+- description
 - evidence
 - risk
+- impact
 - suggested_next_step
+- completion_criteria
 - linked_context
 - resolved_evidence
 - created_at
