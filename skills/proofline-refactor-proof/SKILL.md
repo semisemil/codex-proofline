@@ -1,6 +1,11 @@
-# Refactor Proof
+---
+name: proofline-refactor-proof
+description: Use for refactors, restructuring, responsibility splits, dependency cleanup, architecture or module-boundary changes, and state or data flow changes. Prove that the intended structure changed rather than only names or surface code.
+---
 
-Use for refactor, restructuring, responsibility split, dependency cleanup, architecture change, module boundary change, or state/data flow change.
+# Proofline Refactor Proof
+
+Use `assets/templates/refactor-proof-plan.md` before substantial work and `assets/templates/refactor-proof-report.md` for detailed evidence.
 
 ## Before
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proofline Exact Port"
+  short_description: "Preserve behavior during exact code ports"
+  default_prompt: "Use $proofline-exact-port to migrate this implementation without unapproved behavior changes."

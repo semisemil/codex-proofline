@@ -14,18 +14,15 @@ Proofline은 코덱스의 대화 기본 품질을 높이고, 범위 축소, 확�
 - 진단용 예시, 거절된 문구, 교정 과정이 결과물에 섞이지 않게 확인
 - 불필요한 설명 지양
 
-### `proofline-collaboration`
+### 협업 스킬
 
-큰 작업, 위험한 작업, 여러 단계 작업, 범위가 줄기 쉬운 작업, 확인이 필요한 완료 보고, 구조 리팩터링, 정확한 이식, 실제 부수 이슈 기록에 씁니다.
+기존 `proofline-collaboration`의 규칙은 필요한 항목만 켜고 끌 수 있도록 5개 스킬로 분리되어 있습니다.
 
-작업 내용이 조건에 맞거나 사용자가 `$proofline-collaboration`을 직접 호출할 때 사용합니다.
-작업 성격에 따라 필요한 규칙 파일만 읽습니다.
-
-- `scope-integrity.md`: 크거나 위험하거나 여러 단계인 작업, 범위가 줄어들기 쉬운 작업
-- `completion-evidence.md`: 최종 보고, 막힌 작업, 생략되거나 실패한 확인
-- `refactor-proof.md`: 리팩터링, 의존 정리, 책임 분리, 상태·데이터 흐름 변경
-- `exact-port.md`: 정확한 이식, 마이그레이션, 동작 보존 복사, 재작성 금지 작업
-- `issue-ledger.md`: 현재 범위에서 고치지 않는 실제 부수 이슈
+- `proofline-scope-integrity`: 크거나 위험하거나 여러 단계인 작업, 범위가 줄어들기 쉬운 작업
+- `proofline-completion-evidence`: 완료 보고, 막힌 작업, 생략되거나 실패한 확인
+- `proofline-refactor-proof`: 리팩터링, 의존 정리, 책임 분리, 상태·데이터 흐름 변경
+- `proofline-exact-port`: 정확한 이식, 마이그레이션, 동작 보존 복사, 재작성 금지 작업
+- `proofline-issue-ledger`: 현재 범위에서 고치지 않는 실제 부수 이슈
 
 ### `proofline-capability-growth`
 
@@ -72,15 +69,15 @@ $proofline-baseline-quality
 [요청 사항]
 ```
 
-### `proofline-collaboration`
+### 협업 스킬
 
 ```text
-$proofline-collaboration
+$proofline-refactor-proof
 이 모듈을 리팩터링해줘.
 ```
 
 ```text
-$proofline-collaboration
+$proofline-exact-port
 이 원본 구현을 target 쪽으로 그대로 이식해줘.
 ```
 
@@ -111,15 +108,39 @@ skills/
     agents/
       openai.yaml
 
-  proofline-collaboration/
+  proofline-scope-integrity/
     SKILL.md
+    agents/
+      openai.yaml
     assets/
-      protocols/
-        completion-evidence.md
-        exact-port.md
-        issue-ledger.md
-        refactor-proof.md
-        scope-integrity.md
+      templates/
+
+  proofline-completion-evidence/
+    SKILL.md
+    agents/
+      openai.yaml
+    assets/
+      templates/
+
+  proofline-refactor-proof/
+    SKILL.md
+    agents/
+      openai.yaml
+    assets/
+      templates/
+
+  proofline-exact-port/
+    SKILL.md
+    agents/
+      openai.yaml
+    assets/
+      templates/
+
+  proofline-issue-ledger/
+    SKILL.md
+    agents/
+      openai.yaml
+    assets/
       templates/
       state-starter/
         STATE.md

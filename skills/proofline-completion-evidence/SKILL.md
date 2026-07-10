@@ -1,4 +1,11 @@
-# Completion Evidence
+---
+name: proofline-completion-evidence
+description: Use when reporting task completion, verification results, blockers, failed checks, or unverified work. Require current-task evidence and clearly separate completed, verified, unverified, blocked, and recorded issues.
+---
+
+# Proofline Completion Evidence
+
+Use `assets/templates/final-report.md` for a detailed completion report and `assets/templates/blocker-report.md` when work is blocked.
 
 ## Complete
 

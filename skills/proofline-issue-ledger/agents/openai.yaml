@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proofline Issue Ledger"
+  short_description: "Record verified issues outside current scope"
+  default_prompt: "Use $proofline-issue-ledger to record this verified side issue outside the current scope."

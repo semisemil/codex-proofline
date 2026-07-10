@@ -1,10 +1,16 @@
-# Scope Integrity
+---
+name: proofline-scope-integrity
+description: Use when work is large, risky, multi-step, or easy to shrink accidentally. Keep the full approved goal, checkpoints, verification plan, risks, and approval decisions visible. Not for ordinary low-risk work.
+---
 
-Use when a task is large, risky, multi-step, or easy to shrink accidentally.
+# Proofline Scope Integrity
+
+Treat the user's stated goal as the work contract. Use `assets/templates/work-contract.md` when a written contract helps the task.
 
 ## Before
 
-Treat the user's stated goal as the work contract. For large work, state:
+For large work, state:
+
 - user goal
 - non-negotiable requirements
 - checkpoints

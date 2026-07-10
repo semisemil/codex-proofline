@@ -1,6 +1,9 @@
-# Issue Ledger
+---
+name: proofline-issue-ledger
+description: Use when a real side issue is found but will not be fixed within the current approved scope. Record only evidence-backed issues that can affect future work and have a concrete suggested next step.
+---
 
-Use when a real side issue is found and will not be fixed in the current approved scope.
+# Proofline Issue Ledger
 
 ## Record
 

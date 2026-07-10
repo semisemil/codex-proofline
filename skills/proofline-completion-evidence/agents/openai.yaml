@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proofline Completion Evidence"
+  short_description: "Report completion with current verification"
+  default_prompt: "Use $proofline-completion-evidence to report this task with current verification evidence."
