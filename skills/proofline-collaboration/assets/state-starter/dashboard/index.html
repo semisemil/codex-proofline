@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Proofline 이슈</title>
+  <script>
+    // 저장된 선택을 먼저 적용해 초기 테마 깜빡임을 막습니다.
+    (() => {
+      const systemTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('proofline-dashboard-theme') || systemTheme;
+      } catch {
+        document.documentElement.dataset.theme = systemTheme;
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-context-bar">
+    <div class="app-context">
+      <div class="app-identity">
+        <span class="product-name">Proofline</span>
+        <span class="context-divider" aria-hidden="true">/</span>
+        <h1>이슈</h1>
+      </div>
+      <div class="app-context-actions">
+        <code class="source-path">.proofline/issues/*.md</code>
+        <button id="theme-toggle" class="theme-toggle" type="button">다크 모드</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="issue-workspace">
+    <section id="folder-status" class="connection-bar" data-status="loading" aria-labelledby="load-title">
+      <div class="connection-copy">
+        <h2 id="load-title">이슈 폴더</h2>
+        <p id="load-status" class="status-message" aria-live="polite">저장된 이슈 폴더에 연결하는 중입니다.</p>
+      </div>
+
+      <div class="folder-actions">
+        <button id="reload-button" type="button">다시 읽기</button>
+        <button id="connect-button" class="button-primary" type="button">초기 폴더 설정</button>
+        <button id="change-folder-button" type="button" hidden>폴더 재지정</button>
+        <label id="folder-picker" class="file-button" hidden>
+          <span>이슈 폴더 선택</span>
+          <input id="folder-input" type="file" accept=".md" webkitdirectory multiple>
+        </label>
+      </div>
+    </section>
+
+    <nav class="issue-tabs" aria-label="이슈 상태 보기">
+      <button class="issue-tab" type="button" data-status-filter="all" aria-pressed="true">
+        <span>전체</span><strong id="summary-total">0</strong>
+      </button>
+      <button class="issue-tab" type="button" data-status-filter="open" aria-pressed="false">
+        <span>열림</span><strong id="summary-open">0</strong>
+      </button>
+      <button class="issue-tab" type="button" data-status-filter="blocked" aria-pressed="false">
+        <span>차단됨</span><strong id="summary-blocked">0</strong>
+      </button>
+      <button class="issue-tab" type="button" data-status-filter="resolved" aria-pressed="false">
+        <span>해결됨</span><strong id="summary-resolved">0</strong>
+      </button>
+    </nav>
+
+    <section class="query-toolbar" aria-labelledby="filter-title">
+      <h2 id="filter-title" class="sr-only">이슈 필터</h2>
+      <label class="search-control">
+        <span class="sr-only">검색</span>
+        <input id="search-input" type="search" placeholder="ID, 제목, 근거 검색">
+      </label>
+      <label class="filter-control">
+        <span class="sr-only">상태</span>
+        <select id="status-filter" aria-label="상태">
+          <option value="all">상태: 전체</option>
+          <option value="open">상태: 열림</option>
+          <option value="doing">상태: 진행 중</option>
+          <option value="blocked">상태: 차단됨</option>
+          <option value="resolved">상태: 해결됨</option>
+          <option value="ignored">상태: 제외됨</option>
+        </select>
+      </label>
+      <label class="filter-control">
+        <span class="sr-only">위험도</span>
+        <select id="risk-filter" aria-label="위험도">
+          <option value="all">위험도: 전체</option>
+          <option value="critical">위험도: 치명적</option>
+          <option value="high">위험도: 높음</option>
+          <option value="medium">위험도: 중간</option>
+          <option value="low">위험도: 낮음</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="issues-section" aria-labelledby="issues-title">
+      <div class="list-heading">
+        <h2 id="issues-title">모든 이슈</h2>
+        <p id="issue-count" aria-live="polite">0개</p>
+      </div>
+
+      <div id="issues-list" class="issue-groups">
+        <article class="empty-state">
+          <h3>표시할 이슈가 없습니다.</h3>
+          <p><code>.proofline/issues</code> 폴더를 연결하거나 필터를 바꿔보세요.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <template id="issue-group-template">
+    <section class="issue-group">
+      <header class="issue-group-header">
+        <h3 class="issue-group-title"></h3>
+        <span class="issue-group-count"></span>
+      </header>
+      <div class="issue-group-rows"></div>
+    </section>
+  </template>
+
+  <template id="issue-template">
+    <article class="issue-row">
+      <details class="issue-disclosure">
+        <summary class="issue-summary">
+          <p class="issue-id"></p>
+          <h4 class="issue-title"></h4>
+          <span class="risk-label"></span>
+          <time class="issue-updated"></time>
+          <span class="issue-chevron" aria-hidden="true"></span>
+        </summary>
+
+        <div class="issue-detail">
+          <dl class="issue-meta">
+            <div>
+              <dt>발견 맥락</dt>
+              <dd class="issue-discovered"></dd>
+            </div>
+            <div>
+              <dt>권장 다음 조치</dt>
+              <dd class="issue-next-step"></dd>
+            </div>
+          </dl>
+          <div class="issue-evidence"></div>
+          <details class="issue-body-wrap">
+            <summary>Markdown 본문</summary>
+            <div class="issue-body markdown-body"></div>
+          </details>
+        </div>
+      </details>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
