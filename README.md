@@ -48,6 +48,8 @@ codex
 4. `/hooks`를 열고 Proofline의 `SessionStart` hook을 확인한 뒤 승인합니다.
 5. 새 대화를 시작합니다.
 
+훅 실행이 실패하면 상세 오류는 `~/.codex/log/proofline-hook.log`에 JSON Lines 형식으로 기록됩니다.
+
 ## 업그레이드
 ### Codex App
 프로그램을 완전히 종료한 뒤 다시 실행합니다.
