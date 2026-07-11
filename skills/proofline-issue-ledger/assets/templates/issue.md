@@ -1,6 +1,7 @@
 ---
 {
   "id": "{{id}}",
+  "type": "{{type}}",
   "status": "{{status}}",
   "title": "{{title}}",
   "discovered_while": "{{discovered_while}}",
@@ -11,6 +12,7 @@
   "suggested_next_step": "{{suggested_next_step}}",
   "completion_criteria": {{completion_criteria_json}},
   "linked_context": {{linked_context_json}},
+  "work_log": {{work_log_json}},
   "resolved_evidence": {{resolved_evidence_json}},
   "created_at": "{{created_at}}",
   "updated_at": "{{updated_at}}"
@@ -38,6 +40,10 @@
 ## {{completion_criteria_heading}}
 
 {{completion_criteria_markdown}}
+
+## {{work_log_heading}}
+
+{{work_log_markdown}}
 
 ## {{resolved_evidence_heading}}
 

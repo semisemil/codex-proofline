@@ -11,8 +11,9 @@ Dashboard files:
 - `.proofline/dashboard/index.html`
 - `.proofline/dashboard/style.css`
 - `.proofline/dashboard/app.js`
+- `.proofline/dashboard/VERSION`
 
-The dashboard files are static and should not be edited during normal issue registration.
+The dashboard files are static and should not be edited by hand. Proofline replaces them from its bundled assets when the bundled dashboard version is newer.
 
 ## Local view
 

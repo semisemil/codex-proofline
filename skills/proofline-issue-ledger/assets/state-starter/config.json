@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "issue_id_prefix": "PL",
-  "status_values": ["open", "doing", "blocked", "resolved", "ignored"],
-  "risk_values": ["low", "medium", "high", "critical"],
-  "source_of_truth": ".proofline/issues/*.md",
-  "dashboard_mode": "stored-directory-handle",
-  "dashboard_files_are_static": true
-}
