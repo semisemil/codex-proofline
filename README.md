@@ -32,7 +32,7 @@ Proofline은 Codex가 요청받은 범위를 끝까지 지키고, 확인한 근�
 - 완료 조건과 근거를 확인한 뒤 작업 종료
 - 대시보드에서 전체 작업과 진행 상태 확인
 
-작업 내용은 프로젝트의 `.proofline/issues/` 폴더에 저장되며, `.proofline/dashboard/index.html`에서 확인할 수 있습니다. 이전 방식으로 기록한 이슈도 그대로 사용할 수 있습니다.
+작업 내용은 프로젝트의 `.proofline/issues/` 폴더에 저장되며, `.proofline/dashboard/index.html`에서 확인할 수 있습니다. 새 대화를 시작하면 기존 대시보드는 번들 버전이 더 최신일 때 자동으로 갱신됩니다. 이전 방식으로 기록한 이슈도 그대로 사용할 수 있습니다.
 
 ### `proofline-capability-growth`
 
@@ -129,6 +129,7 @@ $proofline-capability-growth
 hooks/
   hooks.json
   load-baseline.js
+  refresh-dashboard.js
 
 skills/
   proofline-baseline-quality/

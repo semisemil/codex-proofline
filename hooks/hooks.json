@@ -2,6 +2,18 @@
   "hooks": {
     "SessionStart": [
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/refresh-dashboard.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\refresh-dashboard.js\"",
+            "timeout": 5,
+            "statusMessage": "Refreshing Proofline dashboard..."
+          }
+        ]
+      },
+      {
         "matcher": "startup|resume|clear|compact",
         "hooks": [
           {
