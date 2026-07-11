@@ -1,4 +1,4 @@
 interface:
   display_name: "Proofline Issue Ledger"
-  short_description: "Track verified issues and planned project work"
-  default_prompt: "Use $proofline-issue-ledger to record or update this project work item."
+  short_description: "Record and update project work items"
+  default_prompt: "Use $proofline-issue-ledger to record this project work item from the current context."
