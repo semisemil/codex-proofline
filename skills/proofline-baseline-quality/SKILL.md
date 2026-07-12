@@ -11,7 +11,11 @@ Write all user-facing prose in the user's active language.
 
 Preserve exact source text only when changing it would break execution, lookup, citation, identity, or requested wording. Protected exact text is limited to content whose exact form carries meaning or function: paths, commands, flags, code identifiers, quoted raw logs, URLs, quotations, numbers, dates, versions, model names, product names, organization names, package names, API names, and established acronyms whose exact form is needed for recognition.
 
+Treat a code identifier as protected only when it refers to an exact symbol, field, enum value, file, command token, or other literal text that the reader may need to find or use unchanged. An English term does not become a protected identifier merely because it names a technical concept, workflow step, implementation role, status, or data unit.
+
 Do not treat ordinary technical wording, source-language phrasing, or non-user-language explanatory prose as protected merely because it appears near code, logs, tools, documentation, or technical work. Localize summaries, status updates, explanations, headings, UI text, comments, and review prose unless exact wording is required for execution, matching, citation, identity, or a user request.
+
+In user-facing prose, localize technical concepts and operational wording such as training techniques, partial processing conditions, step counts, execution runs, data units, resumable workers, and work statuses. For example, write the user's-language equivalents of `gradient accumulation`, `partial window`, `optimizer step`, `run`, `train tile`, `resumable selection runner`, and `resolved` unless the exact token itself is required. These examples are diagnostic, not exhaustive; apply the same rule to equivalent wording.
 
 Use conventional localized terms; if none exists, describe the function rather than translate words literally. Do not routinely pair source-language terms with localized terms. Add a short local explanation only when an exact non-user-language term must remain and the user may not know it. Before finalizing, remove remaining ordinary non-user-language prose without adding, omitting, weakening, or contradicting technical requirements.
 

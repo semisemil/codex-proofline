@@ -17,7 +17,9 @@ For an update request, change the matching existing file. Change `status`, appen
 
 Store one Markdown file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/` there.
 
-Apply Proofline Baseline Quality to every issue artifact. For a new item, read existing front matter only for ids and titles, avoid only obvious title duplicates, create the next `PL-0001`-style id with `assets/templates/issue.md`, replace every `{{...}}` placeholder, and cite the id in the final report. Infer fields from the current context; use empty values or `unknown` when information is unavailable. Ask only when the item's identity or scope cannot be stated accurately.
+Before writing or updating an issue, read `../proofline-baseline-quality/SKILL.md` completely and apply it to the entire issue artifact.
+
+For a new item, read existing front matter only for ids and titles, avoid only obvious title duplicates, create the next `PL-0001`-style id with `assets/templates/issue.md`, replace every `{{...}}` placeholder, and cite the id in the final report. Infer fields from the current context; use empty values or `unknown` when information is unavailable. Ask only when the item's identity or scope cannot be stated accurately.
 
 Required new-item front matter: `id`; `type: bug | task | feature | research | documentation | maintenance`; `status: open | doing | blocked | resolved | ignored`; `title`; `discovered_while`; `description`; `evidence`; `risk`; `impact`; `suggested_next_step`; `completion_criteria`; `linked_context`; `work_log`; `resolved_evidence`; `created_at`; `updated_at`.
 
