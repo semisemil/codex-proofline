@@ -1,14 +1,21 @@
 const state = {
   issues: [],
+  directoryHandle: null,
+  directorySignature: '',
+  isLoading: false,
   filters: {
     text: '',
-    status: 'all',
+    status: 'open',
     risk: 'all'
-  }
+  },
+  expandedIssueIds: new Set(),
+  expandedEvidenceIds: new Set(),
+  collapsedStatuses: new Set()
 };
 
 const elements = {
   themeToggle: document.getElementById('theme-toggle'),
+  accentPicker: document.getElementById('accent-picker'),
   folderInput: document.getElementById('folder-input'),
   folderPicker: document.getElementById('folder-picker'),
   connectButton: document.getElementById('connect-button'),
@@ -16,10 +23,12 @@ const elements = {
   folderStatus: document.getElementById('folder-status'),
   reloadButton: document.getElementById('reload-button'),
   loadStatus: document.getElementById('load-status'),
+  autoRefreshStatus: document.getElementById('auto-refresh-status'),
   searchInput: document.getElementById('search-input'),
   statusFilter: document.getElementById('status-filter'),
   riskFilter: document.getElementById('risk-filter'),
   issueCount: document.getElementById('issue-count'),
+  issuesTitle: document.getElementById('issues-title'),
   issuesList: document.getElementById('issues-list'),
   issueGroupTemplate: document.getElementById('issue-group-template'),
   issueTemplate: document.getElementById('issue-template'),
@@ -32,11 +41,11 @@ const elements = {
 
 // 저장값은 파일 호환성을 위해 유지하고, 화면에서만 한국어로 번역합니다.
 const statusLabels = {
-  open: '열림',
-  doing: '진행 중',
-  blocked: '차단됨',
-  resolved: '해결됨',
-  ignored: '제외됨'
+  open: '대기',
+  doing: '작업 중',
+  blocked: '보류',
+  resolved: '완료',
+  ignored: '제외'
 };
 
 const riskLabels = {
@@ -47,6 +56,7 @@ const riskLabels = {
 };
 
 const themeStorageKey = 'proofline-dashboard-theme';
+const accentStorageKey = 'proofline-dashboard-accent';
 
 const riskOrder = {
   critical: 0,
@@ -56,17 +66,21 @@ const riskOrder = {
 };
 
 const statusOrder = {
-  blocked: 0,
-  open: 1,
-  doing: 2,
+  doing: 0,
+  blocked: 1,
+  open: 2,
   ignored: 3,
   resolved: 4
 };
 
+// 활성 보기는 아직 조치가 끝나지 않은 작업 중 이슈와 대기 이슈를 함께 보여줍니다.
+const openStatuses = new Set(['doing', 'open']);
+const autoRefreshIntervalMs = 30_000;
+
 const directoryStore = {
   dbName: 'proofline-dashboard',
   storeName: 'directory-handles',
-  key: 'issues-directory'
+  key: getDirectoryPickerId()
 };
 
 elements.folderInput.addEventListener('change', async (event) => {
@@ -79,6 +93,15 @@ elements.folderInput.addEventListener('change', async (event) => {
 elements.connectButton.addEventListener('click', connectIssuesDirectory);
 elements.changeFolderButton.addEventListener('click', changeIssuesDirectory);
 elements.themeToggle.addEventListener('click', toggleTheme);
+elements.accentPicker.addEventListener('input', (event) => {
+  applyAccentColor(event.target.value);
+
+  try {
+    localStorage.setItem(accentStorageKey, event.target.value);
+  } catch {
+    // 로컬 저장소가 막혀도 현재 화면의 사용자 색상은 유지합니다.
+  }
+});
 
 for (const button of elements.summaryButtons) {
   button.addEventListener('click', () => {
@@ -107,6 +130,15 @@ elements.riskFilter.addEventListener('change', (event) => {
   render();
 });
 
+// 숨겨진 탭에서는 파일 접근을 멈추고, 돌아온 순간 한 번 확인합니다.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkForIssueChanges();
+  }
+});
+
+window.setInterval(checkForIssueChanges, autoRefreshIntervalMs);
+
 function toggleTheme() {
   const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = nextTheme;
@@ -124,6 +156,24 @@ function updateThemeControl() {
   const isDark = document.documentElement.dataset.theme === 'dark';
   elements.themeToggle.textContent = isDark ? '라이트 모드' : '다크 모드';
   elements.themeToggle.setAttribute('aria-label', isDark ? '라이트 모드로 전환' : '다크 모드로 전환');
+  elements.accentPicker.value = document.documentElement.style.getPropertyValue('--accent') || (isDark ? '#fb923c' : '#c2410c');
+}
+
+function loadAccentColor() {
+  try {
+    applyAccentColor(localStorage.getItem(accentStorageKey));
+  } catch {
+    // 저장값을 읽지 못하면 테마별 기본 강조색을 사용합니다.
+  }
+}
+
+function applyAccentColor(color) {
+  if (!/^#[0-9a-f]{6}$/i.test(color || '')) {
+    return;
+  }
+
+  document.documentElement.style.setProperty('--accent', color);
+  elements.accentPicker.value = color;
 }
 
 async function loadMarkdownFiles(files) {
@@ -256,11 +306,19 @@ function hashString(value) {
   return Math.abs(hash).toString(36);
 }
 
-async function loadFromDirectoryHandle(directoryHandle) {
-  showLoadingState(`${getDirectoryLabel(directoryHandle)} 폴더를 읽는 중입니다.`);
+async function loadFromDirectoryHandle(directoryHandle, silent = false) {
+  if (state.isLoading) {
+    return;
+  }
+
+  state.isLoading = true;
+  if (!silent) {
+    showLoadingState(`${getDirectoryLabel(directoryHandle)} 폴더를 읽는 중입니다.`);
+  }
 
   const loadedIssues = [];
   const errors = [];
+  const signatureParts = [];
 
   try {
     for await (const [fileName, handle] of directoryHandle.entries()) {
@@ -271,6 +329,7 @@ async function loadFromDirectoryHandle(directoryHandle) {
       try {
         const file = await handle.getFile();
         const content = await file.text();
+        signatureParts.push(`${fileName}:${file.lastModified}:${file.size}`);
         loadedIssues.push(parseIssueMarkdown(content, fileName));
       } catch (error) {
         errors.push(`${fileName}: ${error.message}`);
@@ -278,12 +337,46 @@ async function loadFromDirectoryHandle(directoryHandle) {
     }
   } catch (error) {
     showPermissionRequired(`저장된 이슈 폴더를 읽지 못했습니다. 권한을 확인하세요. (${error.message})`);
+    state.isLoading = false;
     return;
   }
 
   state.issues = loadedIssues;
+  state.directoryHandle = directoryHandle;
+  state.directorySignature = signatureParts.sort().join('|');
+  state.isLoading = false;
   showConfiguredState(buildLoadMessage(loadedIssues.length, errors, getDirectoryLabel(directoryHandle)), errors.length ? 'warning' : 'ready');
+  setAutoRefreshStatus('변경 자동 확인 켜짐 (30초)');
   render();
+}
+
+async function checkForIssueChanges() {
+  if (!state.directoryHandle || state.isLoading || document.visibilityState !== 'visible') {
+    return;
+  }
+
+  try {
+    const nextSignature = await getDirectorySignature(state.directoryHandle);
+    if (nextSignature !== state.directorySignature) {
+      await loadFromDirectoryHandle(state.directoryHandle, true);
+    }
+  } catch {
+    // 자동 확인 실패는 기존 목록을 지우지 않고 수동 다시 읽기로 복구할 수 있게 둡니다.
+    setAutoRefreshStatus('자동 확인 실패. 다시 읽기를 사용하세요.');
+  }
+}
+
+async function getDirectorySignature(directoryHandle) {
+  const signatureParts = [];
+
+  for await (const [fileName, handle] of directoryHandle.entries()) {
+    if (handle.kind === 'file' && isIssueFileName(fileName)) {
+      const file = await handle.getFile();
+      signatureParts.push(`${fileName}:${file.lastModified}:${file.size}`);
+    }
+  }
+
+  return signatureParts.sort().join('|');
 }
 
 function showInitialSetupRequired(message) {
@@ -294,6 +387,7 @@ function showInitialSetupRequired(message) {
   elements.changeFolderButton.hidden = true;
   elements.folderPicker.hidden = true;
   setFolderStatus(message, 'needed');
+  setAutoRefreshStatus('폴더 연결 후 변경을 자동 확인합니다.');
   render();
 }
 
@@ -305,6 +399,7 @@ function showPermissionRequired(message) {
   elements.changeFolderButton.hidden = false;
   elements.folderPicker.hidden = true;
   setFolderStatus(message, 'warning');
+  setAutoRefreshStatus('권한 확인 후 자동 확인을 다시 시작합니다.');
   render();
 }
 
@@ -330,12 +425,17 @@ function showFallbackPicker(message) {
   elements.changeFolderButton.hidden = true;
   elements.folderPicker.hidden = false;
   setFolderStatus(message, 'warning');
+  setAutoRefreshStatus('이 브라우저에서는 수동 다시 읽기만 지원합니다.');
   render();
 }
 
 function setFolderStatus(message, status) {
   elements.folderStatus.dataset.status = status;
   elements.loadStatus.textContent = message;
+}
+
+function setAutoRefreshStatus(message) {
+  elements.autoRefreshStatus.textContent = message;
 }
 
 function supportsFileSystemAccess() {
@@ -492,16 +592,40 @@ function validateIssue(issue) {
 }
 
 function render() {
+  rememberDisclosureState();
   const visibleIssues = getVisibleIssues();
   renderSummary();
   renderIssueCount(visibleIssues.length);
   renderIssueList(visibleIssues);
 }
 
+function rememberDisclosureState() {
+  // 재렌더 직전에 현재 DOM만 읽어 자동 갱신과 필터 변경의 펼침 상태를 보존합니다.
+  for (const card of elements.issuesList.querySelectorAll('[data-issue-id]')) {
+    const issueId = card.dataset.issueId;
+    updateOpenSet(state.expandedIssueIds, issueId, card.querySelector('.issue-disclosure').open);
+    updateOpenSet(state.expandedEvidenceIds, issueId, card.querySelector('.issue-evidence').open);
+  }
+
+  for (const group of elements.issuesList.querySelectorAll('.issue-group[data-status]')) {
+    updateOpenSet(state.collapsedStatuses, group.dataset.status, !group.open);
+  }
+}
+
+function updateOpenSet(target, key, enabled) {
+  if (enabled) {
+    target.add(key);
+  } else {
+    target.delete(key);
+  }
+}
+
 function getVisibleIssues() {
   return state.issues
     .filter((issue) => {
-      if (state.filters.status !== 'all' && issue.status !== state.filters.status) {
+      const matchesStatus = state.filters.status === 'all'
+        || (state.filters.status === 'open' ? openStatuses.has(issue.status) : issue.status === state.filters.status);
+      if (!matchesStatus) {
         return false;
       }
 
@@ -555,7 +679,7 @@ function compareIssues(left, right) {
 
 function renderSummary() {
   const total = state.issues.length;
-  const open = state.issues.filter((issue) => issue.status === 'open').length;
+  const open = state.issues.filter((issue) => openStatuses.has(issue.status)).length;
   const blocked = state.issues.filter((issue) => issue.status === 'blocked').length;
   const resolved = state.issues.filter((issue) => issue.status === 'resolved').length;
 
@@ -570,6 +694,10 @@ function renderSummary() {
 }
 
 function renderIssueCount(count) {
+  // 목록 제목도 현재 상태 필터를 따라가 초기 화면과 선택 상태를 일치시킵니다.
+  elements.issuesTitle.textContent = state.filters.status === 'all'
+    ? '모든 이슈'
+    : (state.filters.status === 'open' ? '활성 이슈' : (statusLabels[state.filters.status] || '이슈'));
   elements.issueCount.textContent = `${count}개`;
 }
 
@@ -602,6 +730,7 @@ function renderIssueList(issues) {
 function renderIssueGroup(status, issues) {
   const group = elements.issueGroupTemplate.content.firstElementChild.cloneNode(true);
   group.dataset.status = normalizeClassName(status);
+  group.open = !state.collapsedStatuses.has(status);
   group.querySelector('.issue-group-title').textContent = statusLabels[status] || status;
   group.querySelector('.issue-group-count').textContent = String(issues.length);
 
@@ -616,6 +745,10 @@ function renderIssueGroup(status, issues) {
 function renderIssueCard(issue) {
   const card = elements.issueTemplate.content.firstElementChild.cloneNode(true);
   card.classList.add(`risk-${normalizeClassName(issue.risk)}`);
+  card.dataset.issueId = issue.id;
+
+  const disclosure = card.querySelector('.issue-disclosure');
+  disclosure.open = state.expandedIssueIds.has(issue.id);
 
   card.querySelector('.issue-id').textContent = issue.id;
   card.querySelector('.issue-title').textContent = issue.title;
@@ -627,7 +760,10 @@ function renderIssueCard(issue) {
   updated.dateTime = String(issue.updated_at ?? '');
   card.querySelector('.issue-discovered').textContent = issue.discovered_while;
   card.querySelector('.issue-next-step').textContent = issue.suggested_next_step;
-  card.querySelector('.issue-evidence').innerHTML = renderEvidence(issue.evidence);
+  const evidence = card.querySelector('.issue-evidence');
+  evidence.open = state.expandedEvidenceIds.has(issue.id);
+  card.querySelector('.issue-evidence-count').textContent = String(issue.evidence.length);
+  card.querySelector('.issue-evidence-content').innerHTML = renderEvidence(issue.evidence);
   card.querySelector('.issue-body').innerHTML = renderMarkdown(issue.body);
 
   return card;
@@ -642,7 +778,7 @@ function formatIssueDate(value) {
 
 function renderEvidence(evidenceItems) {
   if (!evidenceItems.length) {
-    return '<p>등록된 근거가 없습니다.</p>';
+    return '<p class="empty-copy">등록된 근거가 없습니다.</p>';
   }
 
   const listItems = evidenceItems
@@ -650,11 +786,11 @@ function renderEvidence(evidenceItems) {
       const kind = escapeHtml(item.kind || '근거');
       const location = escapeHtml(item.location || '위치 미상');
       const note = escapeHtml(item.note || '');
-      return `<li><strong>${kind}</strong> / <code>${location}</code>${note ? `: ${note}` : ''}</li>`;
+      return `<li><div class="evidence-heading"><strong>${kind}</strong><code>${location}</code></div>${note ? `<p>${note}</p>` : ''}</li>`;
     })
     .join('');
 
-  return `<h4>근거</h4><ul class="evidence-list">${listItems}</ul>`;
+  return `<ul class="evidence-list">${listItems}</ul>`;
 }
 
 function renderMarkdown(markdown) {
@@ -665,7 +801,9 @@ function renderMarkdown(markdown) {
   let inCodeBlock = false;
   let codeLines = [];
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+
     if (line.startsWith('```')) {
       if (inCodeBlock) {
         html.push(`<pre><code>${codeLines.join('\n')}</code></pre>`);
@@ -680,6 +818,22 @@ function renderMarkdown(markdown) {
 
     if (inCodeBlock) {
       codeLines.push(line);
+      continue;
+    }
+
+    if (isMarkdownTableRow(line) && isMarkdownTableDivider(lines[index + 1] || '')) {
+      closeList();
+      const headers = parseMarkdownTableRow(line);
+      const rows = [];
+      index += 2;
+
+      while (index < lines.length && isMarkdownTableRow(lines[index])) {
+        rows.push(parseMarkdownTableRow(lines[index]));
+        index += 1;
+      }
+
+      index -= 1;
+      html.push(renderMarkdownTable(headers, rows));
       continue;
     }
 
@@ -728,6 +882,29 @@ function renderMarkdown(markdown) {
   }
 }
 
+function isMarkdownTableRow(line) {
+  return line.includes('|') && parseMarkdownTableRow(line).length > 1;
+}
+
+function isMarkdownTableDivider(line) {
+  const cells = parseMarkdownTableRow(line);
+  return cells.length > 1 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+}
+
+function parseMarkdownTableRow(line) {
+  // ponytail: escaped pipes are intentionally unsupported; use a GFM parser if issue bodies require them.
+  return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((cell) => cell.trim());
+}
+
+function renderMarkdownTable(headers, rows) {
+  const head = headers.map((cell) => `<th scope="col">${renderInline(cell)}</th>`).join('');
+  const body = rows.map((row) => {
+    const cells = headers.map((_, index) => `<td>${renderInline(row[index] || '')}</td>`).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return `<div class="markdown-table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
 function renderInline(text) {
   return text.replace(/`([^`]+)`/g, '<code>$1</code>');
 }
@@ -745,5 +922,6 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+loadAccentColor();
 updateThemeControl();
 loadFromDefaultSources();
