@@ -4,31 +4,40 @@
   --surface: #f4efeb;
   --surface-subtle: #e7dfd8;
   --surface-hover: #ded4cc;
-  --text-strong: #2b2521;
-  --text: #3a332e;
-  --muted: #6f6258;
-  --subtle: #94867c;
+  --tuning-text-brightness: 0%;
+  --tuning-glass-opacity: 0.15;
+  --tuning-control-opacity: 0.75;
+  --tuning-backdrop-brightness: 1.06;
+  --text-strong: hsl(24 20% calc(8% + var(--tuning-text-brightness)));
+  --text: hsl(24 17% calc(12% + var(--tuning-text-brightness)));
+  --muted: hsl(24 15% calc(22% + var(--tuning-text-brightness)));
+  --subtle: hsl(24 12% calc(30% + var(--tuning-text-brightness)));
   --line: #d8cec6;
   --line-strong: #9f8f83;
   --accent: #c2410c;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --focus-ring: color-mix(in srgb, var(--accent) 30%, transparent);
-  --glass-surface: rgba(255, 255, 255, 0.1);
-  --glass-detail: rgba(255, 255, 255, 0.025);
-  --glass-border: rgba(255, 255, 255, 0.68);
-  --glass-highlight: rgba(255, 255, 255, 0.88);
-  --glass-edge: rgba(75, 48, 33, 0.12);
-  --glass-background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.1));
-  --glass-rim-shadow: inset 1px 1px 0 var(--glass-highlight), inset -1px -1px 0 var(--glass-edge);
-  --canvas-grid: rgba(75, 48, 33, 0.07);
-  --canvas-glow: color-mix(in srgb, var(--accent) 10%, transparent);
-  --canvas-start: #d5d1ce;
-  --canvas-end: #bcb4ad;
+  --glass-surface: rgb(248 244 241 / var(--tuning-glass-opacity));
+  --glass-detail: rgb(248 244 241 / calc(var(--tuning-glass-opacity) - 0.04));
+  --glass-border: rgba(83, 70, 62, 0.34);
+  --glass-background: var(--glass-surface);
+  --glass-control: rgb(248 244 241 / var(--tuning-control-opacity));
+  --glass-control-hover: rgb(248 244 241 / calc(var(--tuning-control-opacity) + 0.1));
+  --glass-rim-shadow: 0 0 0 transparent;
+  --canvas-glow: color-mix(in srgb, var(--accent) 28%, transparent);
+  --canvas-shade: rgba(83, 65, 53, 0.16);
+  --canvas-start: #ddd8d4;
+  --canvas-middle: #c9c0b9;
+  --canvas-end: #aaa39d;
+  --image-overlay: rgba(244, 239, 235, 0.16);
   --glass-shadow: rgba(62, 37, 20, 0.18);
   --critical: #cf222e;
   --high: #9a6700;
   --medium: #c2410c;
   --low: #1a7f37;
+  --status-active: #764522;
+  --status-hold: #554c65;
+  --status-done: #3f6651;
   --font-ui: "Segoe UI Variable", "Noto Sans KR", "Segoe UI", sans-serif;
   --font-code: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   --type-context: 0.875rem;
@@ -54,14 +63,14 @@
   --group-height: 2.25rem;
   --issue-row-height: 3.5rem;
   --focus-size: 0.125rem;
-  --radius-control: 0.375rem;
-  --radius-list: 0.375rem;
+  --radius-control: 0.5rem;
+  --radius-list: 0.75rem;
   --duration-fast: 120ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --detail-line-height: 1.65;
-  --glass-blur: 0.75rem;
+  --glass-blur: 1.5rem;
   --glass-saturation: 1.6;
-  --glass-brightness: 1.06;
+  --glass-brightness: var(--tuning-backdrop-brightness);
 }
 
 :root[data-theme="dark"] {
@@ -79,21 +88,26 @@
   --accent: #fb923c;
   --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
   --focus-ring: color-mix(in srgb, var(--accent) 35%, transparent);
-  --glass-surface: rgba(19, 16, 14, 0.12);
-  --glass-detail: rgba(255, 255, 255, 0.015);
-  --glass-border: rgba(255, 255, 255, 0.28);
-  --glass-highlight: rgba(255, 255, 255, 0.3);
-  --glass-edge: rgba(0, 0, 0, 0.38);
-  --glass-background: linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(19, 16, 14, 0.02) 45%, rgba(19, 16, 14, 0.14));
-  --canvas-grid: rgba(255, 255, 255, 0.03);
-  --canvas-glow: color-mix(in srgb, var(--accent) 10%, transparent);
-  --canvas-start: #181411;
-  --canvas-end: #100f0e;
+  --glass-surface: rgba(8, 11, 20, 0.28);
+  --glass-detail: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(180, 170, 162, 0.34);
+  --glass-background: var(--glass-surface);
+  --glass-control: rgba(8, 11, 20, 0.34);
+  --glass-control-hover: rgba(255, 255, 255, 0.1);
+  --canvas-glow: color-mix(in srgb, var(--accent) 20%, transparent);
+  --canvas-shade: rgba(0, 0, 0, 0.38);
+  --canvas-start: #252220;
+  --canvas-middle: #171615;
+  --canvas-end: #0c0d0f;
+  --image-overlay: rgba(7, 8, 13, 0.34);
   --glass-shadow: rgba(0, 0, 0, 0.5);
   --critical: #f85149;
   --high: #d29922;
   --medium: #fb923c;
   --low: #3fb950;
+  --status-active: #f0b67e;
+  --status-hold: #c8bdd2;
+  --status-done: #afd0ba;
   --glass-brightness: 0.92;
 }
 
@@ -109,19 +123,28 @@ body {
   min-height: 100vh;
   margin: 0;
   background-color: var(--bg);
-  /* 배경은 유리 질감만 드러낼 만큼 낮은 대비로 유지합니다. */
+  /* 테마색 광원만 유리 뒤에서 흐려지게 하고 인공적인 흰 반사는 넣지 않습니다. */
   background-image:
-    linear-gradient(var(--canvas-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--canvas-grid) 1px, transparent 1px),
-    linear-gradient(135deg, var(--canvas-glow), transparent 55%),
-    linear-gradient(135deg, var(--canvas-start), var(--canvas-end));
-  background-size: 4rem 4rem, 4rem 4rem, cover, cover;
+    radial-gradient(circle at 82% 16%, var(--canvas-glow) 0 8rem, transparent 26rem),
+    radial-gradient(circle at 50% 115%, var(--canvas-shade) 0 10rem, transparent 30rem),
+    linear-gradient(135deg, var(--canvas-start), var(--canvas-middle) 52%, var(--canvas-end));
+  background-size: cover;
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-ui);
   font-size: var(--type-body);
   line-height: 1.4286;
   text-rendering: optimizeLegibility;
+}
+
+/* 이미지 모드에서는 사진 자체가 유리 아래의 질감이 되도록 화면에 맞춰 고정합니다. */
+:root[data-background="image"] body {
+  background-image:
+    linear-gradient(var(--image-overlay), var(--image-overlay)),
+    var(--background-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 ::selection {
@@ -141,10 +164,13 @@ button,
 input[type="search"],
 select {
   min-height: var(--control-height);
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--glass-control);
+  box-shadow: var(--glass-rim-shadow), 0 var(--space-1) var(--space-3) var(--glass-shadow);
   color: var(--text);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness));
   transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
 }
 
@@ -161,7 +187,7 @@ button:not(:disabled):hover,
 input[type="search"]:hover,
 select:hover {
   border-color: var(--line-strong);
-  background: var(--surface-hover);
+  background: var(--glass-control-hover);
 }
 
 button:focus-visible,
@@ -263,15 +289,27 @@ code {
 
 .app-context-actions .folder-actions { gap: var(--space-1); }
 
+/* 배경, 강조색, 테마는 하나의 외형 조작 그룹으로 유지합니다. */
+.appearance-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.background-mode { flex: 0 0 7.75rem; }
+.background-image-picker { white-space: nowrap; }
+
 .accent-picker {
   display: inline-flex;
   width: var(--space-8);
   height: var(--space-8);
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-control);
-  background: var(--surface);
+  background: var(--glass-control);
+  box-shadow: var(--glass-rim-shadow), 0 var(--space-1) var(--space-3) var(--glass-shadow);
   cursor: pointer;
 }
 
@@ -289,6 +327,61 @@ code {
   background: transparent;
   padding: 0 var(--space-2);
 }
+
+/* 상단 조작은 툴팁과 접근성 이름을 유지한 고정 크기 아이콘 버튼으로 통일합니다. */
+.icon-action {
+  width: var(--control-height);
+  min-width: var(--control-height);
+  padding: 0;
+  font-size: 0;
+}
+
+.icon-action::before {
+  content: attr(data-icon);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* 숨김을 해제하면 현재 고정값에서 바로 다시 조절할 수 있습니다. */
+.tuning-panel {
+  position: fixed;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 20;
+  width: min(18rem, calc(100vw - var(--space-6)));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-control);
+  background: var(--glass-control);
+  box-shadow: var(--glass-rim-shadow), 0 var(--space-2) var(--space-6) var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+}
+
+.tuning-panel > summary {
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  font-size: var(--type-label);
+  font-weight: 600;
+}
+
+.tuning-controls {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.tuning-controls label,
+.tuning-controls label > span {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.tuning-controls label > span {
+  grid-template-columns: 1fr auto;
+  color: var(--text);
+  font-size: var(--type-meta);
+}
+
+.tuning-controls input { width: 100%; }
 
 .issue-workspace {
   width: min(100%, var(--layout-max));
@@ -380,26 +473,37 @@ code {
 
 .file-button input { display: none; }
 
+/* 상태 보기와 필터는 데스크톱에서 하나의 수평 도구막대를 공유합니다. */
+.view-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 var(--space-4);
+}
+
 .issue-tabs {
   display: flex;
+  flex: 0 0 auto;
   min-height: var(--tabs-height);
   align-items: stretch;
   gap: var(--space-2);
   overflow-x: auto;
-  padding: var(--space-2) 0;
+  padding: 0;
   scrollbar-width: none;
 }
 
 .issue-tabs::-webkit-scrollbar { display: none; }
 
 .issue-tab {
+  --tab-color: var(--muted);
   position: relative;
   display: inline-flex;
   min-height: var(--tabs-height);
   align-items: center;
   gap: var(--space-2);
   border: 1px solid var(--glass-border);
-  border-color: var(--glass-highlight) var(--glass-border) var(--glass-border) var(--glass-border);
   border-radius: var(--radius-control);
   background: var(--glass-background);
   box-shadow: var(--glass-rim-shadow), 0 var(--space-1) var(--space-4) var(--glass-shadow);
@@ -415,9 +519,31 @@ code {
 }
 
 .issue-tab[aria-pressed="true"] {
-  border-color: var(--accent);
-  box-shadow: var(--glass-rim-shadow), inset 0 0 0 1px var(--accent), 0 var(--space-1) var(--space-4) var(--glass-shadow);
+  border-color: var(--tab-color);
+  box-shadow: var(--glass-rim-shadow), inset 0 0 0 1px var(--tab-color), 0 var(--space-1) var(--space-4) var(--glass-shadow);
   color: var(--text-strong);
+}
+
+.issue-tab[data-status-filter="open"] { --tab-color: var(--status-active); }
+.issue-tab[data-status-filter="blocked"] { --tab-color: var(--status-hold); }
+.issue-tab[data-status-filter="resolved"] { --tab-color: var(--status-done); }
+
+/* 같은 SVG 선 규칙 안에서 세 저채도 상태색만 반복해 탭과 목록의 언어를 맞춥니다. */
+.tab-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--tab-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.25;
+}
+
+.tab-icon-grid rect,
+.tab-icon-fill rect {
+  fill: var(--tab-color);
+  stroke: none;
 }
 
 .issue-tab strong {
@@ -429,10 +555,10 @@ code {
 
 .query-toolbar {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 8.5rem));
+  grid-template-columns: repeat(3, minmax(0, 10rem));
   justify-content: end;
   gap: var(--space-2);
-  margin: var(--space-2) 0 var(--space-4);
+  margin: 0;
 }
 
 .filter-control { min-width: 0; }
@@ -447,28 +573,6 @@ select {
 }
 
 input[type="search"]::placeholder { color: var(--subtle); }
-
-.list-heading {
-  display: flex;
-  min-height: var(--space-8);
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.list-heading h2,
-.list-heading p {
-  margin: 0;
-  font-size: var(--type-label);
-  line-height: 1.5385;
-}
-
-.list-heading h2 { font-weight: 600; }
-
-.list-heading p {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
 
 .issue-groups {
   display: grid;
@@ -490,7 +594,6 @@ input[type="search"]::placeholder { color: var(--subtle); }
   gap: var(--space-2);
   padding: 0 var(--space-3);
   border: 1px solid var(--glass-border);
-  border-color: var(--glass-highlight) var(--glass-border) var(--glass-border) var(--glass-border);
   border-radius: var(--radius-list);
   background: var(--glass-background);
   box-shadow: var(--glass-rim-shadow), 0 var(--space-1) var(--space-4) var(--glass-shadow);
@@ -500,7 +603,13 @@ input[type="search"]::placeholder { color: var(--subtle); }
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness));
 }
 
-.issue-group-header:hover { background: var(--surface-hover); }
+.issue-group-header:hover { background: var(--glass-control-hover); }
+
+/* 상태색은 제목에만 사용해 별도 인디케이터 없이도 분류를 구분합니다. */
+.issue-group[data-status="doing"] .issue-group-title { color: var(--status-active); }
+.issue-group[data-status="open"] .issue-group-title,
+.issue-group[data-status="blocked"] .issue-group-title { color: var(--status-hold); }
+.issue-group[data-status="resolved"] .issue-group-title { color: var(--status-done); }
 
 .issue-group-title,
 .issue-group-count {
@@ -546,7 +655,6 @@ input[type="search"]::placeholder { color: var(--subtle); }
 .issue-row {
   overflow: hidden;
   border: 1px solid var(--glass-border);
-  border-color: var(--glass-highlight) var(--glass-border) var(--glass-border) var(--glass-border);
   border-radius: var(--radius-list);
   background: var(--glass-background);
   box-shadow: var(--glass-rim-shadow), 0 var(--space-2) var(--space-6) var(--glass-shadow);
@@ -644,7 +752,7 @@ input[type="search"]::placeholder { color: var(--subtle); }
   padding: var(--space-6);
   border-top: 1px solid var(--glass-border);
   background: linear-gradient(135deg, var(--glass-detail), transparent 60%);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  box-shadow: none;
 }
 
 .issue-detail > * {
@@ -820,7 +928,13 @@ input[type="search"]::placeholder { color: var(--subtle); }
 .empty-state {
   min-height: 9rem;
   padding: var(--space-8) var(--space-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-list);
+  background: var(--glass-background);
+  box-shadow: var(--glass-rim-shadow), 0 var(--space-2) var(--space-6) var(--glass-shadow);
   text-align: center;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation)) brightness(var(--glass-brightness));
 }
 
 .empty-state h3 {
@@ -854,26 +968,23 @@ input[type="search"]::placeholder { color: var(--subtle); }
 
 @media (max-width: 48rem) {
   .app-context {
-    grid-template-columns: 1fr;
     padding-right: var(--layout-gutter-mobile);
     padding-left: var(--layout-gutter-mobile);
   }
 
-  .app-title { grid-row: 1; }
-
-  .global-search {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
   .app-context-actions {
-    grid-column: 1;
-    grid-row: 3;
-    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
   }
 
-  .app-context-actions { justify-content: space-between; }
-  .theme-toggle { margin-left: auto; white-space: nowrap; }
+  .folder-actions,
+  .appearance-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .theme-toggle { margin-left: 0; white-space: nowrap; }
 
   .issue-workspace {
     padding-right: var(--layout-gutter-mobile);
@@ -895,7 +1006,46 @@ input[type="search"]::placeholder { color: var(--subtle); }
   .status-message { white-space: normal; }
   .folder-actions { justify-content: flex-start; }
 
-  .query-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 탭은 읽을 수 있는 내용 폭만 쓰고 필터가 남은 가로 공간을 끝까지 나눠 씁니다. */
+  .view-toolbar {
+    width: 100%;
+    justify-content: flex-start;
+    gap: var(--space-1);
+  }
+
+  .issue-tabs { gap: var(--space-1); overflow: visible; }
+
+  .issue-tab {
+    min-width: 0;
+    gap: var(--space-1);
+    padding: 0 var(--space-1);
+  }
+
+  .query-toolbar {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-1);
+  }
+
+  /* 작은 화살표를 직접 배치해 네이티브 화살표가 텍스트 폭을 과하게 차지하지 않게 합니다. */
+  .query-toolbar .filter-control { position: relative; }
+
+  .query-toolbar .filter-control::after {
+    position: absolute;
+    top: 50%;
+    right: var(--space-1);
+    color: var(--muted);
+    content: "⌄";
+    pointer-events: none;
+    transform: translateY(-55%);
+  }
+
+  .query-toolbar select {
+    appearance: none;
+    padding: 0 var(--space-4) 0 var(--space-1);
+    font-size: var(--type-meta);
+  }
 
   .issue-summary {
     grid-template-columns: 4.5rem minmax(0, 1fr) auto 1.5rem;
@@ -939,14 +1089,23 @@ input[type="search"]::placeholder { color: var(--subtle); }
   }
 }
 
-@media (max-width: 26rem) {
-  .folder-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 30rem) {
+  .app-context { grid-template-columns: 1fr; }
+
+  .app-title { grid-row: 1; }
+
+  .global-search {
+    grid-column: 1;
+    grid-row: 2;
   }
 
-  .folder-actions button,
-  .file-button { width: 100%; }
+  .app-context-actions {
+    grid-column: 1;
+    grid-row: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-self: start;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

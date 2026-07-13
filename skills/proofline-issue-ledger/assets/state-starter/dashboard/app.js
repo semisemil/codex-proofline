@@ -8,6 +8,7 @@ const state = {
     status: 'open',
     risk: 'all'
   },
+  sort: 'priority-asc',
   expandedIssueIds: new Set(),
   expandedEvidenceIds: new Set(),
   collapsedStatuses: new Set()
@@ -16,6 +17,10 @@ const state = {
 const elements = {
   themeToggle: document.getElementById('theme-toggle'),
   accentPicker: document.getElementById('accent-picker'),
+  backgroundMode: document.getElementById('background-mode'),
+  backgroundImagePicker: document.getElementById('background-image-picker'),
+  backgroundImageInput: document.getElementById('background-image-input'),
+  tuningPanel: document.getElementById('tuning-panel'),
   folderInput: document.getElementById('folder-input'),
   folderPicker: document.getElementById('folder-picker'),
   connectButton: document.getElementById('connect-button'),
@@ -27,8 +32,7 @@ const elements = {
   searchInput: document.getElementById('search-input'),
   statusFilter: document.getElementById('status-filter'),
   riskFilter: document.getElementById('risk-filter'),
-  issueCount: document.getElementById('issue-count'),
-  issuesTitle: document.getElementById('issues-title'),
+  sortOrder: document.getElementById('sort-order'),
   issuesList: document.getElementById('issues-list'),
   issueGroupTemplate: document.getElementById('issue-group-template'),
   issueTemplate: document.getElementById('issue-template'),
@@ -82,6 +86,9 @@ const directoryStore = {
   storeName: 'directory-handles',
   key: getDirectoryPickerId()
 };
+const backgroundModeStorageKey = `${directoryStore.key}-background-mode`;
+const backgroundImageStoreKey = `${directoryStore.key}-background-image`;
+let backgroundImageUrl = '';
 
 elements.folderInput.addEventListener('change', async (event) => {
   const files = Array.from(event.target.files || [])
@@ -101,6 +108,39 @@ elements.accentPicker.addEventListener('input', (event) => {
   } catch {
     // 로컬 저장소가 막혀도 현재 화면의 사용자 색상은 유지합니다.
   }
+});
+
+// 이미지 모드는 저장된 사진을 재사용하고, 처음 선택할 때만 파일 창을 엽니다.
+elements.backgroundMode.addEventListener('change', async (event) => {
+  clearBackgroundError();
+
+  if (event.target.value === 'color') {
+    applyColorBackground();
+    return;
+  }
+
+  await selectImageBackground();
+});
+
+// 선택한 파일은 현재 대시보드 주소에만 연결해 다른 원장의 배경과 섞이지 않게 합니다.
+elements.backgroundImageInput.addEventListener('change', async (event) => {
+  const [file] = Array.from(event.target.files || []);
+
+  if (file) {
+    await saveBackgroundImage(file);
+  }
+
+  event.target.value = '';
+});
+
+// 조정값은 테스트 중인 탭에만 적용하고 저장하지 않아 최종 설정과 섞이지 않게 합니다.
+elements.tuningPanel.addEventListener('input', (event) => {
+  const input = event.target;
+  document.documentElement.style.setProperty(
+    input.dataset.tuningVariable,
+    `${input.value}${input.dataset.unit || ''}`
+  );
+  input.closest('label').querySelector('output').value = input.value;
 });
 
 for (const button of elements.summaryButtons) {
@@ -130,6 +170,11 @@ elements.riskFilter.addEventListener('change', (event) => {
   render();
 });
 
+elements.sortOrder.addEventListener('change', (event) => {
+  state.sort = event.target.value;
+  render();
+});
+
 // 숨겨진 탭에서는 파일 접근을 멈추고, 돌아온 순간 한 번 확인합니다.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
@@ -154,8 +199,11 @@ function toggleTheme() {
 
 function updateThemeControl() {
   const isDark = document.documentElement.dataset.theme === 'dark';
+  // 아이콘 버튼의 툴팁과 접근성 이름이 현재 전환 동작을 함께 설명하게 합니다.
+  const actionLabel = isDark ? '라이트 모드로 전환' : '다크 모드로 전환';
   elements.themeToggle.textContent = isDark ? '라이트 모드' : '다크 모드';
-  elements.themeToggle.setAttribute('aria-label', isDark ? '라이트 모드로 전환' : '다크 모드로 전환');
+  elements.themeToggle.setAttribute('aria-label', actionLabel);
+  elements.themeToggle.title = actionLabel;
   elements.accentPicker.value = document.documentElement.style.getPropertyValue('--accent') || (isDark ? '#fb923c' : '#c2410c');
 }
 
@@ -174,6 +222,144 @@ function applyAccentColor(color) {
 
   document.documentElement.style.setProperty('--accent', color);
   elements.accentPicker.value = color;
+}
+
+// 저장 모드와 이미지가 모두 유효할 때만 이미지 배경을 복원합니다.
+async function loadBackground() {
+  let mode = 'color';
+
+  try {
+    mode = localStorage.getItem(backgroundModeStorageKey) || 'color';
+  } catch {
+    // 저장소를 읽지 못하면 안정적인 기본 컬러 배경을 사용합니다.
+  }
+
+  if (mode !== 'image') {
+    applyColorBackground(false);
+    return;
+  }
+
+  try {
+    const image = await getStoredBackgroundImage();
+
+    if (image instanceof Blob) {
+      applyImageBackground(image, false);
+      return;
+    }
+  } catch {
+    // 손상되거나 접근할 수 없는 저장값은 컬러 배경으로 되돌립니다.
+  }
+
+  applyColorBackground(false);
+}
+
+// 저장된 이미지가 없으면 네이티브 파일 선택기를 통해 최초 이미지를 받습니다.
+async function selectImageBackground() {
+  try {
+    const image = await getStoredBackgroundImage();
+
+    if (image instanceof Blob) {
+      applyImageBackground(image);
+      return;
+    }
+  } catch {
+    applyColorBackground(false);
+    showBackgroundError('저장된 배경 이미지를 읽지 못했습니다.');
+    return;
+  }
+
+  elements.backgroundMode.value = 'color';
+  elements.backgroundImageInput.click();
+}
+
+// 브라우저가 이미지로 식별한 파일만 기존 IndexedDB에 보관합니다.
+async function saveBackgroundImage(file) {
+  clearBackgroundError();
+
+  if (!file.type.startsWith('image/')) {
+    showBackgroundError('이미지 파일만 선택할 수 있습니다.');
+    elements.backgroundMode.value = backgroundImageUrl ? 'image' : 'color';
+    return;
+  }
+
+  let db;
+
+  try {
+    db = await openDirectoryDb();
+    await putInStore(db, backgroundImageStoreKey, file);
+    applyImageBackground(file);
+  } catch {
+    showBackgroundError('배경 이미지를 저장하지 못했습니다.');
+  } finally {
+    db?.close();
+  }
+}
+
+// 폴더 핸들과 같은 대시보드 전용 저장소에서 이미지 Blob을 읽습니다.
+async function getStoredBackgroundImage() {
+  if (!('indexedDB' in window)) {
+    throw new Error('IndexedDB is unavailable.');
+  }
+
+  const db = await openDirectoryDb();
+
+  try {
+    return await getFromStore(db, backgroundImageStoreKey);
+  } finally {
+    db.close();
+  }
+}
+
+// Object URL은 현재 화면에서만 유지하고 교체 시 즉시 해제합니다.
+function applyImageBackground(image, persist = true) {
+  if (backgroundImageUrl) {
+    URL.revokeObjectURL(backgroundImageUrl);
+  }
+
+  backgroundImageUrl = URL.createObjectURL(image);
+  document.documentElement.dataset.background = 'image';
+  document.documentElement.style.setProperty('--background-image', `url("${backgroundImageUrl}")`);
+  elements.backgroundMode.value = 'image';
+  elements.backgroundImagePicker.hidden = false;
+
+  if (persist) {
+    try {
+      localStorage.setItem(backgroundModeStorageKey, 'image');
+    } catch {
+      // 저장이 막혀도 현재 화면의 이미지 배경은 유지합니다.
+    }
+  }
+}
+
+// 컬러 모드로 돌아가도 저장된 사진은 남겨 다음 전환 때 다시 사용합니다.
+function applyColorBackground(persist = true) {
+  if (backgroundImageUrl) {
+    URL.revokeObjectURL(backgroundImageUrl);
+  }
+
+  backgroundImageUrl = '';
+  document.documentElement.dataset.background = 'color';
+  document.documentElement.style.removeProperty('--background-image');
+  elements.backgroundMode.value = 'color';
+  elements.backgroundImagePicker.hidden = true;
+
+  if (persist) {
+    try {
+      localStorage.setItem(backgroundModeStorageKey, 'color');
+    } catch {
+      // 저장이 막혀도 현재 화면의 컬러 배경은 유지합니다.
+    }
+  }
+}
+
+// 네이티브 유효성 UI를 재사용해 별도 알림 컴포넌트를 만들지 않습니다.
+function showBackgroundError(message) {
+  elements.backgroundMode.setCustomValidity(message);
+  elements.backgroundMode.reportValidity();
+}
+
+function clearBackgroundError() {
+  elements.backgroundMode.setCustomValidity('');
 }
 
 async function loadMarkdownFiles(files) {
@@ -555,11 +741,17 @@ function parseIssueMarkdown(content, fileName) {
   const issue = {
     fileName,
     body,
-    ...metadata
+    ...metadata,
+    status: normalizeStatus(metadata.status)
   };
 
   validateIssue(issue);
   return issue;
+}
+
+function normalizeStatus(status) {
+  // 이전 원장에서 사용한 상태명은 현재 스키마의 정식 상태로 한 번만 정규화합니다.
+  return status === 'in_progress' ? 'doing' : status;
 }
 
 function validateIssue(issue) {
@@ -595,7 +787,6 @@ function render() {
   rememberDisclosureState();
   const visibleIssues = getVisibleIssues();
   renderSummary();
-  renderIssueCount(visibleIssues.length);
   renderIssueList(visibleIssues);
 }
 
@@ -662,19 +853,29 @@ function buildSearchText(issue) {
 }
 
 function compareIssues(left, right) {
+  // 상태 그룹의 위치는 사용자가 고른 항목 정렬과 무관하게 고정합니다.
   const leftStatus = statusOrder[left.status] ?? 99;
   const rightStatus = statusOrder[right.status] ?? 99;
   if (leftStatus !== rightStatus) {
     return leftStatus - rightStatus;
   }
 
-  const leftRisk = riskOrder[left.risk] ?? 99;
-  const rightRisk = riskOrder[right.risk] ?? 99;
-  if (leftRisk !== rightRisk) {
-    return leftRisk - rightRisk;
+  const [field, direction] = state.sort.split('-');
+  let difference;
+
+  if (field === 'priority') {
+    difference = (riskOrder[left.risk] ?? 99) - (riskOrder[right.risk] ?? 99);
+  } else {
+    const key = field === 'number' ? 'id' : 'updated_at';
+    difference = String(left[key]).localeCompare(String(right[key]), undefined, {
+      numeric: field === 'number'
+    });
   }
 
-  return String(right.updated_at).localeCompare(String(left.updated_at));
+  const orderedDifference = direction === 'desc' ? -difference : difference;
+  return orderedDifference
+    || String(right.updated_at).localeCompare(String(left.updated_at))
+    || String(left.id).localeCompare(String(right.id), undefined, { numeric: true });
 }
 
 function renderSummary() {
@@ -691,14 +892,6 @@ function renderSummary() {
   for (const button of elements.summaryButtons) {
     button.setAttribute('aria-pressed', String(button.dataset.statusFilter === state.filters.status));
   }
-}
-
-function renderIssueCount(count) {
-  // 목록 제목도 현재 상태 필터를 따라가 초기 화면과 선택 상태를 일치시킵니다.
-  elements.issuesTitle.textContent = state.filters.status === 'all'
-    ? '모든 이슈'
-    : (state.filters.status === 'open' ? '활성 이슈' : (statusLabels[state.filters.status] || '이슈'));
-  elements.issueCount.textContent = `${count}개`;
 }
 
 function renderIssueList(issues) {
@@ -924,4 +1117,5 @@ function escapeHtml(value) {
 
 loadAccentColor();
 updateThemeControl();
+loadBackground();
 loadFromDefaultSources();
