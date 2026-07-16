@@ -1,190 +1,131 @@
-# Codex Proofline
+# Proofline
 
-## 개요
+Proofline은 Codex가 처음 요청받은 작업 범위를 놓치지 않고 실제로 확인한 결과만 완료로 보고하도록 돕는 플러그인입니다.
 
-Proofline은 Codex가 요청받은 범위를 끝까지 지키고, 확인한 근거로 작업 결과를 보고하도록 돕는 플러그인입니다. 대화 중 발견한 문제와 앞으로 할 작업도 프로젝트 안에 남겨 다음 작업에서 이어갈 수 있습니다.
+작업이 길어지고 대화가 쌓이면 Codex가 처음 요청의 세부 조건을 빠뜨리기 쉽습니다.
+확인하지 않은 작업까지 끝났다고 보고하거나, 작업 중 발견한 후속 문제를 대화에 남겨둔 채 넘어가기도 합니다.
+Proofline은 이런 누락을 줄이기 위해 `proofline-baseline-quality`를 세션마다 불러오고 작업 성격에 맞는 스킬을 제공합니다.
 
-## 구성
 
-### `proofline-baseline-quality`
+## ✨ Proofline을 설치하면
+- 새 세션을 시작하거나 기존 세션을 다시 열 때 `proofline-baseline-quality`가 자동으로 적용됩니다.
+- 큰 작업과 리팩터링, 정확한 이식, 작업 완료 보고에는 작업별 스킬을 사용해 정확도를 향상시키고, 시키지 않은 작업을 수행하지 않도록 막아줍니다.
+- 대화에서 발견한 버그와 후속 작업을 프로젝트 안에 남겨 다음 세션에서 이어갈 수 있습니다.
 
-`proofline-baseline-quality`는 대화를 시작할 때 자동으로 적용됩니다. 이전 대화를 다시 열거나 대화 내용을 정리한 뒤에도 다시 적용됩니다.
+## 📦 설치
+### Codex CLI에서 설치
 
-- 사용자의 언어로 자연스럽고 이해하기 쉽게 작성
-- 요청과 관계없는 설명이나 작업 과정이 결과물에 섞이지 않게 정리
-- 검토 결과와 기술 판단을 결론부터 명확하게 전달
-
-### 필요할 때 사용하는 스킬
-
-작업 성격에 맞는 스킬을 직접 호출해 사용합니다.
-
-- `proofline-scope-integrity`: 크거나 위험하거나 여러 단계인 작업, 범위가 줄어들기 쉬운 작업
-- `proofline-completion-evidence`: 완료 보고, 막힌 작업, 생략되거나 실패한 확인
-- `proofline-refactor-proof`: 리팩터링, 의존 정리, 책임 분리, 상태·데이터 흐름 변경
-- `proofline-exact-port`: 정확한 이식, 마이그레이션, 동작 보존 복사, 재작성 금지 작업
-
-### `proofline-issue-ledger`
-
-대화 중 발견한 문제나 나중에 구현할 기능을 프로젝트 작업 원장에 남깁니다. 각 항목에는 현재 상태, 다음에 할 일, 완료 조건, 판단 근거와 진행 내역이 함께 기록됩니다.
-
-- 버그, 일반 작업, 기능, 조사, 문서화, 유지보수 작업 관리
-- 등록한 작업의 진행 상황과 근거 갱신
-- 완료 조건과 근거를 확인한 뒤 작업 종료
-- 대시보드에서 전체 작업과 진행 상태 확인
-
-작업 내용은 프로젝트의 `.proofline/issues/` 폴더에 저장되며, `.proofline/dashboard/index.html`에서 확인할 수 있습니다. 새 대화를 시작하면 기존 대시보드는 번들 버전이 더 최신일 때 자동으로 갱신됩니다. 이전 방식으로 기록한 이슈도 그대로 사용할 수 있습니다.
-
-### `proofline-capability-growth`
-
-반복되는 수작업이 자동화 후보인지 확인할 때 씁니다.
-
-- 반복 수작업 확인
-- 기존 도구, 테스트, CI, 훅, 스킬 확인
-- 자동화 후보 목록 작성
-- 근거가 약하거나 너무 넓은 후보 제외
-- 사용자 승인 뒤 자동화 등록 준비
-
-## 설치
+Proofline 마켓플레이스를 추가한 다음 플러그인을 설치합니다.
 
 ```bash
 codex plugin marketplace add semisemil/codex-proofline
+codex plugin add proofline@proofline
 codex
 ```
 
-`SessionStart` 훅 실행에는 `node` 명령이 필요합니다.
+Codex가 열리면 다음 순서로 마무리합니다.
 
-1. `/plugins`를 엽니다.
-2. Proofline 마켓플레이스에서 `Proofline`을 선택합니다.
-3. `Install plugin`을 선택합니다.
-4. `/hooks`를 열고 Proofline의 `SessionStart` 훅을 확인한 뒤 승인합니다.
-5. 새 대화를 시작합니다.
+1. `/hooks`를 엽니다.
+2. Proofline의 `SessionStart` 훅을 확인하고 승인합니다.
+3. 새 세션을 시작합니다.
 
-훅 실행이 실패하면 상세 오류는 `~/.codex/log/proofline-hook.log`에 JSON Lines 형식으로 기록됩니다.
+## 🚀 빠르게 사용하기
 
-## 업그레이드
+### `proofline-baseline-quality`
 
-### Codex App
+`proofline-baseline-quality`는 따로 호출하지 않아도 적용됩니다. 새 세션을 시작하거나 기존 세션을 다시 열 때, `/clear` 또는 `/compact`로 대화를 정리한 뒤에도 `SessionStart` 훅이 이 스킬을 다시 불러옵니다.
 
-프로그램을 완전히 종료한 뒤 다시 실행합니다.
+특정 요청에 이 기준을 확실히 적용하고 싶다면 프롬프트 첫 줄에 스킬 이름을 적으세요.
+```text
+$proofline:proofline-baseline-quality
+이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐줘.
+```
 
-### Codex CLI
+### 작업에 맞는 스킬 직접 부르기
+
+Codex는 설치된 스킬 중 작업에 맞는 것을 필요할 때 불러옵니다. 중요한 작업에서 적용 기준을 분명히 하고 싶다면 스킬 이름을 직접 적으세요.
+책임과 호출 경로를 실제로 바꾸는 리팩터링에는 `proofline-refactor-proof`를 사용합니다.
+
+```text
+$proofline:proofline-refactor-proof
+사용자 설정 저장 책임을 서비스 계층으로 옮겨줘.
+```
+
+원본 동작을 바꾸지 않고 그대로 옮겨야 한다면 `proofline-exact-port`를 사용합니다.
+
+```text
+$proofline:proofline-exact-port
+이 원본 구현을 대상 프로젝트로 동작 변경 없이 이식해줘.
+```
+
+## 🧩 포함된 스킬
+
+| 스킬 | 사용시점       |  개선사항|
+| --- | --- | --- |
+| `$proofline:proofline-baseline-quality` | 모든 대화와 결과물 | 대상 독자에 맞는 언어, 자연스러운 문장, 수정 권한, 근거가 있는 판단 |
+| `$proofline:proofline-scope-integrity` | 크거나 위험하고 여러 단계로 이어지는 작업 | 처음 합의한 목표, 필수 조건, 중간 점검, 검증 계획, 범위 변경 승인 |
+| `$proofline:proofline-completion-evidence` | 완료 결과나 막힌 상황을 보고할 때 | 완료한 일과 검증 결과의 분리, 통과·실패·미실행 검사, 막힌 이유, 다음 조치 |
+| `$proofline:proofline-refactor-proof` | 책임, 의존 방향, 호출 경로, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경, 남은 기존 결합, 동작 보존 범위, 검증 근거 |
+| `$proofline:proofline-exact-port` | 원본 동작을 그대로 옮겨야 하는 이식 | 원본과 대상의 대응 관계, 승인된 차이, 독립 비교 결과, 확인하지 못한 부분 |
+| `$proofline:proofline-issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 이슈 상태, 위험도, 다음 조치, 완료 조건, 작업 기록과 해결 근거 |
+| `$proofline:proofline-capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
+
+## 🗂️ `proofline-issue-ledger`로 이슈 남기기
+
+대화 중 발견한 버그나 나중에 할 작업은 세션이 끝나면 다시 찾기 어렵습니다. `proofline-issue-ledger`는 이런 작업을 프로젝트의 `.proofline/` 폴더에 저장합니다. 버그뿐 아니라 일반 작업, 기능, 조사, 문서화, 유지보수 항목도 기록할 수 있습니다.
+
+```text
+$proofline:proofline-issue-ledger
+설정 파일 호환성 문제를 이슈로 등록해줘.
+```
+
+```text
+$proofline:proofline-issue-ledger
+PL-0012의 진행 상황과 확인 근거를 갱신해줘.
+```
+
+처음 이슈를 등록하면 다음 구조가 만들어집니다.
+
+```text
+.proofline/
+  STATE.md
+  issues/
+    PL-0001-....md
+  dashboard/
+    index.html
+```
+
+각 이슈는 Markdown 파일 하나로 저장됩니다. 상태, 위험도, 영향, 다음 조치, 완료 조건, 작업 기록과 해결 근거가 한 파일에 함께 남습니다.
+
+대시보드를 보려면 `.proofline/dashboard/index.html`을 열고 `.proofline/issues/` 폴더를 한 번 연결하세요. 브라우저가 연결한 폴더를 기억하므로 이후에는 바로 이슈를 읽을 수 있습니다. Proofline 원장이 없는 프로젝트에는 대시보드 파일을 만들지 않습니다. 원장이 있는 프로젝트에서는 새 세션을 시작할 때 더 최신인 번들 대시보드로 갱신합니다.
+
+## 🔄 업데이트
+
+설정된 Proofline 마켓플레이스 정보를 갱신합니다.
 
 ```bash
 codex plugin marketplace upgrade proofline
 ```
 
-## 사용 예시
+갱신이 끝나면 Codex를 완전히 종료한 뒤 다시 실행하고 새 세션을 시작하세요.
 
-### `proofline-baseline-quality`
+## 🛠️ 문제가 생겼을 때
 
-새 대화에서는 자동으로 적용됩니다.
-현재 대화에서 다시 적용하려면 직접 호출합니다.
+### `proofline-baseline-quality`가 적용되지 않을 때
 
-```text
-$proofline-baseline-quality
-[요청 사항]
-```
+1. 플러그인 설치 뒤 새 세션을 시작했는지 확인합니다.
+2. `/hooks`에서 Proofline의 `SessionStart` 훅이 승인되어 있는지 확인합니다.
+3. 터미널에서 `node --version`이 실행되는지 확인합니다.
 
-### 작업별 스킬
+### 훅 실행에 실패할 때
 
-```text
-$proofline-refactor-proof
-이 모듈을 리팩터링해줘.
-```
+상세 오류는 `~/.codex/log/proofline-hook.log`에 JSON Lines 형식으로 기록됩니다.
 
-```text
-$proofline-exact-port
-이 원본 구현을 대상 프로젝트로 그대로 이식해줘.
-```
+### 대시보드에 이슈가 표시되지 않을 때
 
-### `proofline-issue-ledger`
+대시보드에서 `.proofline/issues/` 폴더를 연결했는지 확인한 뒤 다시 읽기를 누르세요. 아직 이슈 원장을 만들지 않았다면 먼저 `proofline-issue-ledger`로 이슈를 하나 등록해야 합니다.
 
-```text
-$proofline-issue-ledger
-이 기능 구현 계획을 프로젝트 작업 원장에 등록해줘.
-```
 
-```text
-$proofline-issue-ledger
-PL-0012의 진행 상황과 근거를 갱신해줘.
-```
+## 라이선스
 
-### `proofline-capability-growth`
-
-```text
-$proofline-capability-growth
-최근 반복되는 수작업을 살펴보고 자동화 후보를 제안해줘.
-```
-
-## 프로젝트 구조
-
-```text
-.agents/
-  plugins/
-    marketplace.json
-
-.codex-plugin/
-  plugin.json
-
-hooks/
-  hooks.json
-  load-baseline.js
-  refresh-dashboard.js
-
-skills/
-  proofline-baseline-quality/
-    SKILL.md
-    agents/
-      openai.yaml
-
-  proofline-scope-integrity/
-    SKILL.md
-    agents/
-      openai.yaml
-    assets/
-      templates/
-
-  proofline-completion-evidence/
-    SKILL.md
-    agents/
-      openai.yaml
-    assets/
-      templates/
-
-  proofline-refactor-proof/
-    SKILL.md
-    agents/
-      openai.yaml
-    assets/
-      templates/
-
-  proofline-exact-port/
-    SKILL.md
-    agents/
-      openai.yaml
-    assets/
-      templates/
-
-  proofline-issue-ledger/
-    SKILL.md
-    agents/
-      openai.yaml
-    assets/
-      templates/
-      state-starter/
-        STATE.md
-        issues/
-          PL-0000.example.md
-        dashboard/
-          VERSION
-          index.html
-          style.css
-          app.js
-
-  proofline-capability-growth/
-    SKILL.md
-    assets/
-      protocols/
-      prompts/
-      templates/
-```
+[MIT](LICENSE)
