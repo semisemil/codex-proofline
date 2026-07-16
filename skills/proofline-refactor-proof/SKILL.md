@@ -15,6 +15,8 @@ State current -> intended responsibility owner, call path, dependency direction,
 
 Complete only when every non-`N/A` intended structure is implemented and evidenced.
 
+Preserve observable behavior. Do not add validation, coercion, defaults, normalization, or error changes unless the source already requires them or the user explicitly approves the deviation.
+
 Evidence must include at least one real structure change:
 
 - call path changed
@@ -23,7 +25,9 @@ Evidence must include at least one real structure change:
 - state/data owner changed
 - old coupling was removed or reduced
 
-Check old imports, paths, names, or direct calls that should be gone. Check every non-`N/A` new call path and dependency direction. Run relevant tests, build, typecheck, or lint. If a check cannot run, report not verified.
+Check old imports, paths, names, or direct calls that should be gone. Check every non-`N/A` new call path and dependency direction. Run relevant tests, build, typecheck, or lint. Treat each result as evidence only for its known coverage; do not claim whole-behavior preservation from an unspecified passing suite. If a check cannot run, report not verified.
+
+If the refactor is incomplete, report the old owner or coupling that remains, the intended owner or path, the required structural change, and the next proof check.
 
 ## Never
 

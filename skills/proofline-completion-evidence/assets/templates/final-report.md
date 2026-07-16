@@ -1,21 +1,33 @@
 # Final Report
 
-## Completed
+## Status
 
-- 
+-
 
-## Verified
+## Completed work
 
-- 
+-
 
-## Not verified
+## Passed checks
 
-- 
+-
 
-## Issues recorded
+## Failed checks
 
-- None.
+-
+
+## Not run or unverified
+
+-
 
 ## Blocked
 
-- None.
+-
+
+## Issues recorded
+
+-
+
+## Next action or decision needed
+
+-

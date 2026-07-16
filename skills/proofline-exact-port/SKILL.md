@@ -17,13 +17,20 @@ Track source-target mapping and every approved deviation with reason, approval, 
 
 ## Complete
 
-Do not claim equivalence without comparison evidence.
+Treat equivalence as a gated claim.
+
+Count a command-based check as passed only when current-task tool evidence shows that it completed with exit code `0`. Treat `declined`, blocked, interrupted, not run, failed, or nonzero-exit checks as not verified or failed. A planned command, expected output, reasoning, or unrecorded run is not observed evidence and must not be reported as `PASS` or counted as passed.
+
+Behavior evidence must independently exercise or compare the authoritative source and the actual target artifact. Defining both implementations from the same copied logic in a temporary check does not verify the port. User-provided comparison results support only the cases they explicitly cover. If either artifact cannot be inspected or a required comparison cannot run, report equivalence as not verified.
+
+Do not claim equivalence while a required check is failed or not verified, or while an unapproved deviation remains.
 
 Report:
 
-1. confirmed equivalent parts
-2. deviations
-3. not verified parts
-4. checks run
+1. overall equivalence status
+2. confirmed equivalent parts
+3. deviations
+4. not verified parts
+5. checks and their observed status, exit code, and result
 
-Evidence can include same-input/output tests, fixture/API/snapshot comparison, search for missing source parts, and typecheck/build/test results.
+Evidence can include independently run same-input/output tests, fixture/API/snapshot comparison, search for missing source parts, and typecheck/build/test results.

@@ -1,5 +1,10 @@
 # Exact Port Report
 
+## Equivalence status
+
+- Status: not verified
+- Basis:
+
 ## Confirmed equivalent
 
 | Source | Target | Evidence |
@@ -18,9 +23,11 @@
 |---|---|
 |  |  |
 
-## Checks run
+## Checks
 
-- `command`: result
+| Check | Status | Exit code | Observed evidence |
+|---|---|---:|---|
+|  | not run | n/a |  |
 
 ## Issues recorded
 

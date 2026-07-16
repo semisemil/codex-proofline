@@ -24,6 +24,13 @@
 - State/data owner now:
 - Evidence:
 
+## Remaining structural work
+
+- Current owner/coupling:
+- Intended owner/path:
+- Required change:
+- Next proof check:
+
 ## Checks run
 
 - `command`: result
