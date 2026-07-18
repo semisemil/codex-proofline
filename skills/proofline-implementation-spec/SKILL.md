@@ -1,188 +1,57 @@
 ---
 name: proofline-implementation-spec
-description: Create, revise, complete, cancel, or supersede durable implementation PRDs under .proofline/prds without implementing them. Use when the user asks for an implementation specification or explicitly names this skill.
+description: Create, revise, complete, cancel, or supersede durable implementation PRDs under .proofline/prds without implementing them. Use for implementation specifications, durable multi-task plans, or explicit invocation.
 ---
 
 # Proofline Implementation Spec
 
-Create the canonical product contract for an implementation request. A new Codex task must be able to understand the required behavior, scope, and completion conditions from the PRD without the conversation in which it was written.
+Create a canonical product contract that lets a new task recover behavior, scope, and completion conditions without the originating conversation. Keep intent in the PRD, implementation activity in one native top-level task, and independent reviews in fresh subagents; create no project-local execution ledger or report copy.
 
-The PRD stores durable product intent. One top-level Codex task stores implementation activity, and fresh review subagents store independent review activity. Do not add project-local execution ledgers or copies of task or subagent reports.
+Before reading or writing a PRD, read and apply `../proofline-baseline-quality/SKILL.md` completely. Do not auto-apply this skill to trivial wording, an obvious low-risk one-file change, or work without durable planning value; explicit invocation wins.
 
-Before reading or writing a PRD, read `../proofline-baseline-quality/SKILL.md` completely and apply it to the investigation, artifact, and final report.
+## Limits and target
 
-## Use and boundaries
+Write PRD artifacts only under `.proofline/prds/`. Create no issue ledger, `STATE.md`, dashboard, execution state, or task-report file; modify no product code, tests, build files, or implementation documentation. Never promote assumptions without evidence, mark `ready` with a blocking decision, or delete, move, or rewrite a terminal PRD's product body.
 
-Use this skill when the user asks to:
+Inspect enough `.proofline/prds/` front matter and bodies to identify IDs, goals, revisions, and statuses, then choose create, revise, operational edit, complete, cancel, or supersede. Prefer the same-goal active PRD (`draft | ready | blocked`) over duplication. Treat `completed | cancelled | superseded` as terminal; product changes after one require a new PRD. Link supersession only when replacing the old contract. Report non-unique targets without editing.
 
-- create an implementation PRD
-- document work that will span multiple tasks
-- revise, complete, cancel, or supersede a Proofline PRD
-- apply `proofline-implementation-spec`
+Use `.proofline/prds/<PRD-ID>-<slug>/PRD.md`. Allocate `PRD-0001` upward from the largest number in directory names and front matter; re-read the directory immediately before writing and never overwrite a collision. Use a short filesystem-safe kebab-case slug; fix the directory name and ID after creation. Store snapshots at `revisions/REV-<revision>.md`, create no global index, and use ISO 8601 timestamps with explicit UTC offsets.
 
-Do not apply automatically to a trivial wording edit, an obvious low-risk one-file change, or work with no durable planning value. Explicit invocation always wins.
+## Contract
 
-While using this skill:
+Create from `assets/templates/prd.md`; preserve its section order and replace every `{{...}}` placeholder. Serialize and parse the JSON front matter instead of inserting raw strings; escape quotes, backslashes, control characters, and line breaks.
 
-- write PRD artifacts only under `.proofline/prds/`
-- do not create the issue ledger, `STATE.md`, a dashboard, execution state, or task-report files
-- do not modify product code, tests, build files, or implementation documentation
-- do not turn assumptions into decisions without evidence
-- do not mark a PRD `ready` while a blocking decision remains
-- do not delete, move, or rewrite the product body of a terminal PRD
+Require integer `schema_version: 1`; `PRD-0001`-form `id`; stable human-readable `title`; `kind: feature | bug | refactor | exact_port | maintenance`; `status: draft | ready | blocked | completed | cancelled | superseded`; positive `revision` starting at `1`; `created_at`; `updated_at`; terminal timestamp or `null` in `archived_at`; PRD-ID array `supersedes`; replacing ID or `null` in `superseded_by`; and issue-ID array `related_issues`. Preserve unknown valid metadata on update; do not migrate solely for a missing newer optional convention.
 
-## Resolve the target
+Interpret statuses exactly: `draft` is incomplete or awaits a product decision; `ready` is executable and persists during implementation; `blocked` means a durable product decision, permission, or external prerequisite, never a temporary task/tool failure; `completed` means the current revision passed validation and independent review; `cancelled` means the user cancelled the contract; `superseded` means another PRD replaced it.
 
-1. Resolve the repository root and inspect existing `.proofline/prds/` entries.
-2. Read enough front matter and body content to identify IDs, goals, revisions, and statuses.
-3. Decide whether to create, revise, make an operational edit, complete, cancel, or supersede.
-4. Prefer revising an active PRD with the same goal over creating a duplicate.
-5. Treat `draft`, `ready`, and `blocked` as active. Treat `completed`, `cancelled`, and `superseded` as terminal.
-6. Create a new PRD for product changes after a terminal PRD. Link supersession only when the new contract replaces the old one.
+Use stable `REQ-001` and `AC-001` IDs; each acceptance criterion names the requirements it verifies.
 
-If the target is not unique, report the ambiguity without editing.
+## Authoring
 
-## Path, ID, and metadata
+- Inspect enough code, tests, configuration, and documentation to separate confirmed facts, assumptions, confirmed decisions, and open decisions. Claim no file, module, API, command, or behavior without inspection; cite stable repository evidence as `path:line`.
+- State problem, observable behavior, goals, requirements, in/out scope, acceptance, validation, and completion evidence. Leave technical design open unless confirmed as a product constraint.
+- Cover relevant errors, empty states, boundaries, compatibility, data, security, migration, and rollback. Make required validation executable in-project or explain why no check can yet be defined.
+- Use the user's language while preserving exact identifiers, paths, commands, model names, status values, and schema keys.
+- Before recommending model and reasoning effort, read and apply `../proofline-start-implementation/assets/model-routing.md` completely. Record a concrete rationale; later explicit user choice prevails.
 
-Canonical path:
+## Operations
 
-```text
-.proofline/prds/<PRD-ID>-<slug>/PRD.md
-```
+**Create:** Investigate only enough for an executable contract; resolve facts, assumptions, decisions, scope, requirements, acceptance, and validation. Allocate the fixed ID/directory and write `revision: 1`. Use `ready` only after the ready gate; otherwise use `draft` or `blocked`. Report ID, path, revision, status, and remaining decisions, then stop without implementing.
 
-- Allocate IDs from `PRD-0001` upward using the largest number found in directory names and front matter.
-- Re-read the directory immediately before writing. Never overwrite a colliding path.
-- Use a short filesystem-safe kebab-case slug.
-- Keep the directory name and PRD ID fixed after creation.
-- Store snapshots under `revisions/REV-<revision>.md`.
-- Do not create a global index.
-- Use ISO 8601 timestamps with an explicit UTC offset.
+**Major revision:** Treat changes to goal, user-visible behavior, requirement meaning, scope, acceptance/validation, compatibility/safety policy, or a blocker-resolving product decision as major. First copy the complete current PRD to `revisions/REV-<current revision>.md`; never overwrite a snapshot, and stop unchanged if it contains different content. Increment exactly once, apply the change, update `updated_at`, and recompute active status. Invalidate old-revision implementation/review evidence; send its tasks no further instructions and start a new chain only when authorized.
 
-Create PRDs from `assets/templates/prd.md` and replace every `{{...}}` placeholder before saving. Populate JSON front matter through valid JSON serialization rather than raw string insertion. Escape quotes, backslashes, control characters, and line breaks, then parse the completed front matter as JSON before saving.
+Do not increment revision for non-semantic typo/formatting, link or evidence-reference correction, related-issue or supersession linkage, timestamp, or lifecycle update; touch only affected content.
 
-Required JSON front matter:
+**Lifecycle:**
 
-- `schema_version`: integer; currently `1`
-- `id`: `PRD-0001` style identifier
-- `title`: stable human-readable title
-- `kind`: `feature | bug | refactor | exact_port | maintenance`
-- `status`: `draft | ready | blocked | completed | cancelled | superseded`
-- `revision`: positive integer beginning at `1`
-- `created_at`, `updated_at`: timestamps
-- `archived_at`: terminal-state timestamp or `null`
-- `supersedes`: array of PRD IDs
-- `superseded_by`: replacing PRD ID or `null`
-- `related_issues`: array of issue IDs
+- Set `ready` only after its gate and `blocked` only for a durable product prerequisite. Resolve a blocker without revision when only evidence changes; revise when the contract changes.
+- Set `completed` only when current project evidence and native history prove, for the same revision: every mandatory requirement and acceptance criterion is implemented; all required validation ran without required failure or omission; a fresh post-review subagent passed the latest implementation report sequence; and `proofline-completion-evidence` can report it. Then update `updated_at` and `archived_at`, freeze the body, and add no transcript.
+- Set `cancelled` only when the user cancels the product contract, not one workflow; update `updated_at` and `archived_at` and preserve content.
+- To supersede, add the old ID to the new `supersedes`; set the old `superseded_by`, status, `updated_at`, and `archived_at`; preserve its body and location.
 
-Status meaning:
+## Ready and report
 
-- `draft`: the contract is incomplete or still needs a product decision.
-- `ready`: the contract is executable. It remains `ready` while native implementation tasks run.
-- `blocked`: a durable product decision, permission, or external prerequisite prevents implementation. Temporary task or tool failures do not change PRD status.
-- `completed`: the current revision passed validation and independent review.
-- `cancelled`: the user cancelled the product contract.
-- `superseded`: another PRD replaced the contract.
+Set `ready` only when project and intended behavior are identifiable; requirements are consistent; every mandatory requirement has acceptance coverage; in/out scope is explicit; material errors and boundaries are covered; no open decision awaits user, permission, or external state; validation can run in-project; and known repository constraints are accurate.
 
-Preserve unknown valid metadata fields on update. Do not perform migration only because an older PRD lacks a newer optional convention.
-
-## Body contract
-
-Keep these sections in order:
-
-1. Problem and Context
-2. Confirmed Facts, Assumptions, and Decisions
-3. Goals
-4. Users and Usage Scenarios
-5. Requirements
-6. In Scope
-7. Out of Scope
-8. Constraints and Compatibility
-9. Errors, Empty States, and Edge Cases
-10. Acceptance Criteria
-11. Verification Plan
-12. Open Decisions
-13. Recommended Implementation Settings
-14. Repository Evidence and Related Items
-
-Use stable `REQ-001` requirement IDs and `AC-001` acceptance IDs. Each acceptance criterion must identify the requirements it verifies.
-
-## Investigation and writing
-
-- Inspect enough code, tests, configuration, and documentation to separate facts from assumptions.
-- Record repository evidence as `path:line` when stable references are available.
-- Separate confirmed facts, assumptions, confirmed decisions, and open decisions.
-- State the problem, observable behavior, included and excluded scope, and completion evidence.
-- Keep technical design open unless a choice is a confirmed product constraint.
-- Do not claim a file, module, API, command, or behavior exists unless inspected.
-- Cover errors, empty states, boundaries, compatibility, data, security, migration, and rollback when relevant.
-- Make required validation executable in the project or state why a check cannot yet be defined.
-- Use the user's language for prose while preserving exact identifiers, paths, commands, model names, status values, and schema keys.
-- Before recommending a model and reasoning effort, read `../proofline-start-implementation/assets/model-routing.md` completely and apply it as the source of truth.
-- Treat the recommendation as guidance; a later explicit user choice takes precedence.
-
-## Create
-
-1. Investigate only as much as needed for an executable contract.
-2. Resolve facts, assumptions, decisions, scope, requirements, acceptance criteria, and validation.
-3. Allocate the ID and fixed directory.
-4. Write `PRD.md` with `revision: 1`.
-5. Set `ready` only when the ready gate passes. Otherwise use `draft` or `blocked` according to the status definitions.
-6. Report the ID, path, revision, status, and remaining decisions.
-7. Stop without implementing.
-
-## Revise
-
-A major revision changes the goal, user-visible behavior, requirement meaning, scope, acceptance or validation, compatibility or safety policy, or the product decision used to resolve a blocker.
-
-For a major revision:
-
-1. Copy the complete current `PRD.md` to `revisions/REV-<current revision>.md` before editing.
-2. Never overwrite a snapshot. If the path exists with different content, stop without changing the PRD.
-3. Increment `revision` by exactly one.
-4. Apply the change, update `updated_at`, and recompute `draft`, `ready`, or `blocked`.
-5. Treat implementation and review evidence for the old revision as invalid for the new revision.
-6. Send no further implementation or review instructions to tasks bound to the old revision. Start the new revision under a new chain only when authorized.
-
-Do not increment revision for a non-semantic typo or formatting correction, link correction, related-issue linkage, timestamp or lifecycle update, evidence-reference correction, or supersession linkage. Change only the affected fields or text.
-
-## Lifecycle
-
-### Ready and blocked
-
-Set `ready` when the ready gate passes. Set `blocked` only for a durable product prerequisite. If a blocker is resolved without changing the contract, update its evidence and set `ready` without a revision. If the resolution changes the contract, perform a major revision.
-
-### Complete
-
-Set `completed` only when current project evidence and native task history establish, for the same revision, that:
-
-- every mandatory requirement and acceptance criterion is implemented
-- every required validation ran and no required failure or omission remains
-- a fresh post-implementation review subagent gave the latest implementation report sequence `pass`
-- the result can be reported under `proofline-completion-evidence`
-
-Then update `updated_at` and `archived_at` and freeze the body. Do not copy task transcripts into the PRD.
-
-### Cancel and supersede
-
-Set `cancelled` only when the user cancels the product contract; ending one implementation workflow is not enough. Update `updated_at` and `archived_at` and preserve the content.
-
-When a new PRD replaces an old one, add the old ID to the new `supersedes`, set the old `superseded_by`, mark the old PRD `superseded`, update its timestamps, and preserve its body and location.
-
-## Ready gate
-
-A PRD may be `ready` only when:
-
-- the target project and intended behavior are identifiable
-- requirements do not contradict one another
-- every mandatory requirement has acceptance coverage
-- included and excluded scope are explicit
-- material errors and boundary conditions are addressed
-- no open decision requires a user, permission, or external state before implementation
-- the validation plan can run in the project
-- known repository constraints are represented accurately
-
-If only a stale status or non-semantic detail prevents readiness, update it. If readiness requires a product decision or contract change, write that change through the revision rules. Do not ask for implementation approval; this skill does not start implementation.
-
-## Final report
-
-Report the operation, PRD ID and title, canonical path, revision, status, any snapshot created, confirmed decisions, remaining blockers, and that no implementation was performed.
+Update a stale status or non-semantic detail directly; revise for a product decision or contract change. Never ask for implementation approval or implement. Finally report the operation; PRD ID, title, path, revision, and status; snapshot; confirmed decisions; remaining blockers; and that no implementation occurred.

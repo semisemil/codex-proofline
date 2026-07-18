@@ -5,64 +5,32 @@ description: Start or resume implementation of a Proofline PRD through one persi
 
 # Proofline Start Implementation
 
-Coordinate one canonical Proofline PRD through a hybrid topology. The current task is the coordinator; one persistent writable top-level task implements the exact PRD revision, and fresh read-only subagents review it before and after implementation.
-
-The PRD stores product intent. Native Codex task history stores execution and review reports. Do not duplicate task transcripts in project files.
-
-Before coordinating, read `../proofline-baseline-quality/SKILL.md` and `assets/model-routing.md` completely. Before the final report, also read `../proofline-completion-evidence/SKILL.md` completely.
-
-An explicit request to implement a PRD authorizes that exact revision. Do not ask for the same approval again.
-
-## Topology
+Coordinate one exact PRD revision through:
 
 ```text
-coordinator -> fresh pre-review subagent -> coordinator -> top-level implementation task -> coordinator -> fresh post-review subagent -> coordinator
+fresh pre-review -> one persistent writable implementation task -> fresh post-review
+changes_required -> same implementation task -> new post-review
 ```
 
-On `changes_required`:
+Keep intent in the PRD and reports in native task history; create no project-local transcript, report copy, or execution ledger. Read `../proofline-baseline-quality/SKILL.md` and `assets/model-routing.md` completely before coordination, and `../proofline-completion-evidence/SKILL.md` before the final report. An explicit request to implement a PRD authorizes that revision; do not ask again.
 
-```text
-post-review subagent -> coordinator -> same implementation task -> coordinator -> new post-review subagent
-```
+## Roles
 
-Only the coordinator creates the implementation task, spawns review subagents, and sends follow-ups. Review subagents never control or message the implementation task.
+- Act only as coordinator: modify no product code/tests and supply no substitute verdict. Only the coordinator creates the implementation task, spawns reviewers, and follows up; reviewers never control or message the implementation task.
+- Use one native top-level implementation task per revision for all work and corrections, plus native review subagents. Never simulate roles, run local subprocess agents, or create top-level review tasks.
+- Spawn each reviewer fresh, read-only, and without conversation history. Pass only its compact role contract, exact paths, constraints, explicit model/effort, and—for post-review—the latest complete implementation report exactly once. Identity alone does not make that report readable. Never reuse a reviewer after verdict.
+- If task creation, subagent spawn, model selection, history, or follow-up is unavailable, stop and report the workflow blocked without changing PRD status.
 
-## Boundaries
+## Resolve and resume
 
-- The coordinator does not modify product code or tests and does not replace independent review with its own verdict.
-- Use one native top-level Codex task for implementation and native subagents for review. Do not simulate either role, use local subprocess agents, or create top-level review tasks.
-- Use one implementation task for one PRD revision. Reuse it for every correction.
-- Spawn every review subagent with no forked conversation history. Give it only its compact role contract, exact paths, current constraints, selected model, and reasoning effort. For post-review, also include the latest complete implementation report exactly once; a task ID is identity evidence but may not be readable from a subagent.
-- Spawn a fresh subagent for every post-review attempt. Never reuse a reviewer after it returns a verdict.
-- Keep implementation and review reports in native task and subagent responses. Do not create project-local report copies or execution ledgers.
-- If implementation-task creation, subagent spawning, model selection, task history, or follow-up messaging is unavailable, stop and report the workflow as blocked.
+Accept a canonical path or resolve an ID to exactly one `.proofline/prds/<PRD-ID>-*/PRD.md`. Confirm path/front-matter ID agreement, project identity, supported `schema_version`, positive revision, required sections, valid status, and inspectable project files and validation entry points.
 
-## Resolve and gate the PRD
+- `ready`: proceed and retain it while tasks run.
+- `draft`: set `ready` only when the unchanged contract already passes the ready gate and status alone is stale; otherwise use `proofline-implementation-spec`.
+- `blocked`: verify the blocker; set `ready` only after an external prerequisite resolves without contract change. Revise first if requirements, scope, acceptance, validation, or policy changes.
+- `completed | cancelled | superseded`: do not start.
 
-Accept a canonical path or resolve an ID to exactly one:
-
-```text
-.proofline/prds/<PRD-ID>-*/PRD.md
-```
-
-Confirm path/front-matter ID agreement, project identity, supported `schema_version`, positive `revision`, required sections, and a valid status.
-
-- `ready`: proceed.
-- `draft`: set `ready` only when the existing contract already passes the ready gate and only the status is stale. Otherwise use `proofline-implementation-spec` first.
-- `blocked`: verify the blocker. Set `ready` only when an external prerequisite was resolved without changing the contract. Revise the PRD first when requirements, scope, acceptance, validation, or policy changes.
-- `completed`, `cancelled`, or `superseded`: do not start.
-
-The PRD remains `ready` while tasks run. Confirm required project files and validation entry points are inspectable before creating a task.
-
-## Identity and resumption
-
-Use this chain key for the exact revision:
-
-```text
-proofline_<normalized_prd_id>_r<revision>
-```
-
-Lowercase the PRD ID and replace hyphens with underscores. Use these exact keys as the first prompt line and task or subagent name:
+Form `proofline_<lowercase_prd_id_with_hyphens_as_underscores>_r<revision>` and use these exact session keys as prompt line one and task/subagent name:
 
 ```text
 <chain_key>_pre_review_<two-digit attempt>
@@ -70,74 +38,36 @@ Lowercase the PRD ID and replace hyphens with underscores. Use these exact keys 
 <chain_key>_post_review_<two-digit attempt>
 ```
 
-Inspect native task history and the coordinator's prior subagent results before creating anything.
+Inspect native task history and prior coordinator subagent results first. Never create a second implementation task for the revision. Reuse pre-review `pass` only while revision and inspected facts remain current; number a fresh subagent for every post-review. Stop if multiple implementation tasks leave authority unclear; ignore other revisions. Resume the first incomplete step: current pre-review pass, implementation report, post-review of its latest sequence, correction, or completion.
 
-- Never create a second implementation task for the same revision.
-- Reuse a prior pre-review subagent `pass` only while its revision and inspected project facts remain current.
-- Use a new post-review subagent and the next attempt number for every review.
-- If multiple implementation tasks exist and authority is unclear, stop and report the conflict.
-- Ignore results from another revision.
+## Settings and prompts
 
-Resume the first incomplete step: valid pre-review `pass`, implementation report, post-review of the latest report, correction when required, then completion.
+Apply `assets/model-routing.md`; select implementation and every review independently. Explicitly set each reviewer's model and effort. Include each chosen setting and short rationale without copying the routing table.
 
-## Model routing
+Immediately before creating a role, read only its reference, fill every placeholder, and send it without duplicated instructions:
 
-Use `assets/model-routing.md` as the source of truth. Select implementation and each review independently. Explicitly set the model and reasoning effort when spawning each review subagent; do not inherit the coordinator's model accidentally. Put the selected setting and short rationale in the task or subagent input without repeating the routing table.
+- `references/pre-review-prompt.md`
+- `references/implementation-prompt.md`
+- `references/post-review-prompt.md`
 
-## Compact task prompts
+Spawn reviewers with no history and pass paths, not copied PRD/coordinator context. Put the latest implementation response once in post-review's `<implementation_report_text>`. Use the user's language for `<output_language>` and remove inapplicable optional values.
 
-Read only the reference for the task or subagent being created, fill every placeholder, and send the filled prompt without extra duplicated instructions:
+## Chain
 
-- pre-review: `references/pre-review-prompt.md`
-- implementation: `references/implementation-prompt.md`
-- post-review: `references/post-review-prompt.md`
+**Pre-review:** On `pass`, continue. On `block`, create no implementation task; use `proofline-implementation-spec` when the contract needs revision and set PRD `blocked` only for a durable user decision, permission, or external prerequisite. With no verdict, create no task, report unavailable material and next action, and do not change `ready` merely for insufficient review access.
 
-For review subagents, use a no-history spawn. Pass paths instead of copying the PRD or coordinator conversation. For post-review, read the latest implementation-task response and include that complete report exactly once in `<implementation_report_text>`; do not assume the subagent can read another top-level task. Use the user's language as `<output_language>`. Remove inapplicable optional values rather than leaving placeholders. The prompt contracts preserve required identity, permissions, verdict rules, evidence, and report fields while avoiding repeated content.
+**Implementation:** Create/resume the chain task. Always apply `proofline-baseline-quality`; add `proofline-scope-integrity` for large/risky work, `proofline-refactor-proof` for `refactor`, `proofline-exact-port` for `exact_port`, and `proofline-issue-ledger` only for durable out-of-scope work. Before post-review, require exact revision and report sequence, every changed path, file-level behavior, and passed/failed/unrun checks. If incomplete, send one corrective follow-up to the same task; stop if evidence remains inadequate.
 
-## Pre-review result
+**Post-review:** Review only the latest report sequence. On `pass`, evaluate completion. On `changes_required`, send blocker and major plus relevant minor findings to the same implementation task; require verification, valid fixes, rerun affected checks, and the next complete sequence, then spawn a new reviewer. With no verdict, count the attempt, report missing evidence, and do not complete.
 
-- `pass`: continue.
-- `block`: create no implementation task. Use `proofline-implementation-spec` when the contract needs revision. Set PRD status `blocked` only for a durable user decision, permission, or external prerequisite.
-- no verdict: create no implementation task. Report unavailable material and the next action. Do not change a `ready` PRD solely because review access was insufficient.
+Allow at most three automatic post-review attempts, counting verdict and no-verdict reports. A spawn failure consumes none but blocks the workflow. After three without `pass`, stop with unresolved findings and observed validation; resume only explicitly, with the same implementation task.
 
-## Implementation report
+## Failure and finish
 
-Create or resume the chain's implementation task. Apply `proofline-baseline-quality` always, `proofline-scope-integrity` for large or risky work, `proofline-refactor-proof` for `kind: refactor`, `proofline-exact-port` for `kind: exact_port`, and `proofline-issue-ledger` only for durable out-of-scope work.
+Never auto-rollback after implementation, validation, or review failure. Keep changes and use the same task for in-scope corrections. On stop, report changed paths, failed/unrun checks, unresolved findings, and next action. Roll back only by explicit user request or approved PRD procedure, only that task's changes, never unrelated work.
 
-Before post-review, confirm the report names the exact PRD revision and sequence, lists every changed path, explains file-level behavior, and reports passed, failed, and unrun checks. If incomplete, send one corrective follow-up to the same task. Stop if adequate evidence still cannot be obtained.
+Complete the exact revision only when every mandatory requirement and acceptance criterion is implemented; every required validation ran without required failure or omission; a fresh post-review passed the latest report sequence; the implementation task and all chain reviewers still name that revision; and `proofline-completion-evidence` can report it. Then set `completed`, update `updated_at` and `archived_at`, freeze the body, and report settings, task references, changed files, validation, omissions, and verdict without copying transcripts.
 
-## Post-review and corrections
+If revision changes, stop the old chain: no further task instructions, reviewers, or reused reports. Start the new revision only when the current request authorizes it. Transient orchestration failure does not alter PRD status; reserve `blocked` for a durable product decision, permission, or external prerequisite, and revise through `proofline-implementation-spec` when resolution changes the contract.
 
-Review only the latest implementation report sequence.
-
-- `pass`: evaluate the completion gate.
-- `changes_required`: send blocker and major findings plus relevant minor findings to the same implementation task. Require it to verify findings, fix valid issues, rerun affected checks, and return the next complete report sequence. Then spawn a new post-review subagent.
-- no verdict: count the attempt, report unavailable evidence, and do not complete.
-
-Spawn at most three post-review subagents automatically, counting verdict and no-verdict reports. A spawn failure does not consume an attempt but blocks the workflow. After three attempts without `pass`, stop and report unresolved findings and observed validation. Continue later only on an explicit user request, using the same implementation task.
-
-## Failure and rollback policy
-
-Do not roll back automatically when implementation, validation, or review fails. Keep the current changes and use the same implementation task for in-scope corrections. When the workflow stops, report changed paths, failed or unrun checks, unresolved findings, and the next action.
-
-Rollback requires an explicit user request or a rollback procedure already approved in the PRD. Limit rollback to changes made by the implementation task and never discard unrelated user work.
-
-## Completion
-
-Complete only when, for the exact current revision:
-
-1. every mandatory requirement and acceptance criterion is implemented;
-2. every required validation ran with no required failure or omission;
-3. the latest implementation report sequence has `pass` from a fresh post-review subagent;
-4. the implementation task and every review subagent in the chain still name the same revision;
-5. the result can be reported under `proofline-completion-evidence`.
-
-Then set PRD status `completed`, update `updated_at` and `archived_at`, freeze the body, and report the selected settings, task references, changed files, validation, omissions, and final verdict. Do not copy task transcripts into the PRD.
-
-## Revision, blocking, and cancellation
-
-If the PRD revision changes, stop the old chain. Do not send further instructions to its implementation task, spawn more review subagents, or reuse its reports. Start the new revision only when the current user request authorizes it.
-
-A transient orchestration failure does not change PRD status. Set `blocked` only for a durable product decision, permission, or external prerequisite; revise through `proofline-implementation-spec` when resolving it changes the contract.
-
-On explicit workflow cancellation, create no task or subagent and send no follow-up. Report existing changes and validation. Leave the PRD `ready` or `blocked` according to its contract. Set `cancelled` only when the user also cancels the product contract.
+On explicit workflow cancellation, create no task/subagent or follow-up; report existing changes and validation. Leave the PRD `ready` or `blocked` by its contract. Set `cancelled` only if the user also cancels the product contract.
