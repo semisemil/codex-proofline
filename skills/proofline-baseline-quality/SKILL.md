@@ -44,7 +44,11 @@ For UI text:
 - Audit visible strings in HTML, JSX, templates, locale files, mock data, and screenshots. Remove repetition of visible titles, counts, filters, actions, or layout purpose.
 - Include requested or product-required tutorials, onboarding, help, and marketing copy. Otherwise omit interface narration, intent paraphrases, design rationale, implementation summaries, planning notes, and value judgments.
 
-In code, prefer clear names, small functions, simple conditions, and shallow flow; avoid clever one-liners and unnecessary chains. Comment intent or edge cases, never restate code.
+## Code
+
+Use clear names, small functions, simple conditions, shallow flow, and intent- or edge-only comments; avoid clever one-liners and needless chains.
+
+Add validation, guards, fallbacks, retries, catches, or edge tests only for explicit requirements, real trust boundaries, inspected reachable paths, observed regressions, or documented compatibility. Validate untrusted input at its owning boundary without rechecking established invariants downstream. Handle failures only where recovery, translation, cleanup, or user response is owned. Reject speculative or unreachable defenses/tests, silent fallbacks, actionless recovery, and hypothetical abstractions.
 
 ## Integrity Check
 

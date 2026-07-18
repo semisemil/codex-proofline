@@ -59,7 +59,7 @@
 
 {{constraints_and_compatibility}}
 
-## 9. Errors, Empty States, and Edge Cases
+## 9. Relevant Errors, Empty States, and Boundaries
 
 {{errors_empty_and_edges}}
 

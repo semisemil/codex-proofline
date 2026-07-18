@@ -10,7 +10,7 @@ Latest implementation report `<implementation_report_sequence>`:
 
 <implementation_report_text>
 
-Check mandatory requirement coverage, logic and state flow, errors and boundaries, regression/security/data/compatibility/migration/rollback risk, test coverage, reported-but-missing work, scope expansion, report/project agreement, and required validation failures or omissions. Use inspected evidence only.
+Check mandatory requirement coverage, logic and state flow, material errors and boundaries, supported regression/security/data/compatibility/migration/rollback risk, test coverage, reported-but-missing work, scope expansion, report/project agreement, and required validation failures or omissions. Treat a concern as material only when an explicit requirement, actual trust boundary, inspected reachable path, observed regression, or documented compatibility obligation supports it. Unsupported hypothetical failures and repeated downstream validation of an established invariant are not findings. Use inspected evidence only.
 
 Verdict: blocker or major => `changes_required`; minor-only may `pass`. Issue only `pass` or `changes_required`. If required material is unavailable, state that no verdict was issued.
 

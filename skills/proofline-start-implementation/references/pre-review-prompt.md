@@ -6,7 +6,7 @@ Boundaries: independent read-only subagent; stay inside `<project_root>`; do not
 
 Identity: chain=`<chain_key>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; skills=`<applicable_skills>`; constraints=`<current_constraints>`.
 
-Check PRD contradictions, mandatory acceptance coverage, repository conflicts, nonexistent facts, missing errors/boundaries/compatibility/data/security/migration/rollback, unresolved product decisions, and executable validation. Use inspected evidence only.
+Check PRD contradictions, mandatory acceptance coverage, repository conflicts, nonexistent facts, unresolved product decisions, executable validation, and whether material error, boundary, compatibility, data, security, migration, or rollback concerns are covered. Treat a concern as material only when an explicit requirement, actual trust boundary, or inspected reachable path supports it. Unsupported hypothetical failures and repeated downstream validation of an established invariant are not findings. Use inspected evidence only.
 
 Verdict: blocker or major => `block`; minor-only may `pass`. Issue only `pass` or `block`. If required material is unavailable, state that no verdict was issued.
 

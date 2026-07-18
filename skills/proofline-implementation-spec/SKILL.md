@@ -31,7 +31,7 @@ Use stable `REQ-001` and `AC-001` IDs; each acceptance criterion names the requi
 
 - Inspect enough code, tests, configuration, and documentation to separate confirmed facts, assumptions, confirmed decisions, and open decisions. Claim no file, module, API, command, or behavior without inspection; cite stable repository evidence as `path:line`.
 - State problem, observable behavior, goals, requirements, in/out scope, acceptance, validation, and completion evidence. Leave technical design open unless confirmed as a product constraint.
-- Cover relevant errors, empty states, boundaries, compatibility, data, security, migration, and rollback. Make required validation executable in-project or explain why no check can yet be defined.
+- Cover only material errors, empty states, and boundaries justified by explicit requirements, actual trust boundaries, or reachable paths in the inspected system. Address compatibility, data, security, migration, and rollback only when the change affects them. Use `N/A` instead of inventing requirements, and do not require downstream validation for an invariant already enforced by its owning boundary. Make required validation executable in-project or explain why no check can yet be defined.
 - Use the user's language while preserving exact identifiers, paths, commands, model names, status values, and schema keys.
 - Before recommending model and reasoning effort, read and apply `../proofline-start-implementation/assets/model-routing.md` completely. Record a concrete rationale; later explicit user choice prevails.
 

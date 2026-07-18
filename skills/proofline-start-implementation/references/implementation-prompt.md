@@ -6,6 +6,6 @@ Boundaries: stay inside `<project_root>`; do not delegate or create another impl
 
 Refs: pre-review subagent=`<pre_review_agent>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; skills=`<applicable_skills>`; constraints=`<current_constraints>`.
 
-Work: read the PRD, referenced task, and listed skills; inspect before editing; implement every in-scope requirement; preserve excluded behavior; update tests; run required validation; inspect the actual diff and changed paths. On review findings, verify them, fix valid issues in this same task, rerun affected checks, and increment the report sequence.
+Work: read the PRD, referenced task, and listed skills; inspect before editing; implement every in-scope requirement; preserve excluded behavior; apply the baseline evidence threshold to every added guard, fallback, retry, catch, abstraction, and edge-case test; update tests; run required validation; inspect the actual diff and changed paths. On review findings, verify them, fix valid issues in this same task, rerun affected checks, and increment the report sequence.
 
 Report in `<output_language>`: identity and report sequence; summary; every changed path; file-level behavior; checks with observed result and exit code; failed checks; relevant unrun checks and reasons; limitations and durable out-of-scope findings. Use the target language's equivalent of `none` for empty sections and preserve exact identifiers and commands.
