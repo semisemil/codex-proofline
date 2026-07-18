@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline Start Implementation"
+  short_description: "Implement a PRD with one task and review subagents"
+  default_prompt: "Use $proofline-start-implementation to start or resume the specified PRD through one persistent implementation task and fresh independent review subagents."
+
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline Implementation Spec"
+  short_description: "Create and revise durable implementation PRDs"
+  default_prompt: "Use $proofline-implementation-spec to create or revise the requested project PRD without implementing it."
+
+policy:
+  allow_implicit_invocation: false
