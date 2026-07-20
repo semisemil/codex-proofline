@@ -1,0 +1,4 @@
+Use $proofline-baseline-quality.
+Before doing any task work, read the full SKILL.md at `.agents/skills/proofline-baseline-quality/SKILL.md` directly and follow it. If that file cannot be read, stop and report that instead of doing the task.
+
+{{request}}

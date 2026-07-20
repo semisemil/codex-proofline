@@ -1,0 +1,8 @@
+{
+  "name": "session-state-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}

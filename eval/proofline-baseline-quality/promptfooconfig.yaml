@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: proofline-baseline-quality 스킬 미적용/적용 비교
+sharing: false
+
+extensions:
+  - file://extensions/isolate-workspace.mjs:extensionHook
+
+prompts:
+  - id: file://prompts/skill-disabled.txt
+    label: 스킬 미적용
+  - id: file://prompts/skill-enabled.txt
+    label: 스킬 적용
+
+providers:
+  - id: openai:codex-sdk
+    label: Codex gpt-5.6-sol
+    config:
+      model: gpt-5.6-sol
+      model_reasoning_effort: high
+      working_dir: '{{ workspaceDir }}'
+      sandbox_mode: workspace-write
+      approval_policy: never
+      network_access_enabled: false
+      web_search_mode: disabled
+      inherit_process_env: false
+      enable_streaming: false
+      cli_env:
+        CODEX_HOME: '{{ env.CODEX_HOME }}'
+
+tests: file://tests/*.yaml

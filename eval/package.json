@@ -1,0 +1,26 @@
+{
+  "name": "proofline-eval",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Proofline 스킬의 공개 Promptfoo 평가 세트",
+  "type": "module",
+  "engines": {
+    "node": "^20.20.0 || >=22.22.0"
+  },
+  "scripts": {
+    "preinstall": "node scripts/check-node.mjs",
+    "eval:prepare": "node scripts/run-promptfoo.mjs prepare",
+    "eval:self-test": "node scripts/run-promptfoo.mjs prepare && node --test tests/suite.test.mjs",
+    "eval:validate": "npm run eval:self-test && node scripts/run-promptfoo.mjs validate",
+    "eval:smoke": "node scripts/run-promptfoo.mjs smoke",
+    "eval:full": "node scripts/run-promptfoo.mjs full",
+    "eval:judge": "node scripts/run-pairwise-judge.mjs",
+    "eval:publish": "node scripts/publish-result.mjs",
+    "eval:regrade": "node scripts/regrade-result.mjs",
+    "eval:view": "node scripts/run-promptfoo.mjs view"
+  },
+  "devDependencies": {
+    "@openai/codex-sdk": "0.144.6",
+    "promptfoo": "0.121.19"
+  }
+}

@@ -1,0 +1,16 @@
+- description: 부정 사례 3 - 금지와 미정이 섞인 요구사항 정리
+  metadata:
+    case: 06-requirements-artifact
+    category: 부정 사례
+  vars:
+    request: |-
+      `requests/requirements-notes.md`를 구현팀이 바로 검토할 수 있는 요구사항 문서로 정리해서 `deliverables/requirements.md`에 만들어줘.
+
+      금지 사항, 기존 계약, 조건, 예외와 대안을 빠뜨리지 말고, 미정인 내용이나 제안은 결정된 요구사항으로 바꾸지 마. 원본과 다른 파일은 수정하지 마.
+  assert:
+    - type: javascript
+      value: file://assertions/skill-routing.mjs
+      metric: 스킬 호출 정확성
+    - type: javascript
+      value: file://assertions/requirements-artifact.mjs
+      metric: 요구사항 의미 보존

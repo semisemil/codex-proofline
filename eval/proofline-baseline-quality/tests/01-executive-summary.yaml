@@ -1,0 +1,16 @@
+- description: 정상 동작 1 - 회의 자료를 경영진용 요약으로 정리
+  metadata:
+    case: 01-executive-summary
+    category: 정상 동작
+  vars:
+    request: |-
+      `materials/meeting-notes.md`를 읽고 경영진이 다음 결정을 내릴 수 있도록 한국어 요약을 작성해줘.
+
+      현재 상태, 결정이 필요한 내용, 주요 조건과 남은 불확실성을 구분해. 자료에 없는 결론은 추가하지 말고, 답변에 요약만 작성해. 파일은 수정하지 마.
+  assert:
+    - type: javascript
+      value: file://assertions/skill-routing.mjs
+      metric: 스킬 호출 정확성
+    - type: javascript
+      value: file://assertions/executive-summary-fidelity.mjs
+      metric: 의미 보존
