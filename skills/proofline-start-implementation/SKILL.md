@@ -66,6 +66,8 @@ Allow at most three automatic post-review attempts, counting verdict and no-verd
 
 Never auto-rollback after implementation, validation, or review failure. Keep changes and use the same task for in-scope corrections. On stop, report changed paths, failed/unrun checks, unresolved findings, and next action. Roll back only by explicit user request or approved PRD procedure, only that task's changes, never unrelated work.
 
+After creating or following up with the implementation task, end the coordinator turn. Do not monitor it or call `wait_threads`; the task will report back when complete.
+
 Complete the exact revision only when every mandatory requirement and acceptance criterion is implemented; every required validation ran without required failure or omission; a fresh post-review passed the latest report sequence; and the implementation task and all chain reviewers still name that revision. Then set `completed`, update `updated_at` and `archived_at`, freeze the body, and use `proofline-completion-evidence` to report settings, task references, changed files, validation, omissions, and verdict without copying transcripts.
 
 If revision changes, stop the old chain: no further task instructions, reviewers, or reused reports. Start the new revision only when the current request authorizes it. Transient orchestration failure does not alter PRD status; reserve `blocked` for a durable product decision, permission, or external prerequisite, and revise through `proofline-implementation-spec` when resolution changes the contract.

@@ -12,10 +12,10 @@ Apply this priority in order:
 
 | Setting | Use when |
 | --- | --- |
-| `gpt-5.6-luna` + `low` | Very narrow mechanical change with known locations, procedure, completion conditions, and validation. |
-| `gpt-5.6-luna` + `medium` | Narrow repetitive edits, structured transformation, or simple test additions. |
-| `gpt-5.6-sol` + `medium` | Default for ordinary implementation, debugging, and multi-file work. |
-| `gpt-5.6-terra` + `xhigh` | Settled design with long execution across modules, tools, and tests. |
+| `gpt-5.6-luna` + `medium` | Very narrow mechanical change with known locations, procedure, completion conditions, and validation. |
+| `gpt-5.6-luna` + `xhigh` | Narrow repetitive edits, structured transformation, or simple test additions. |
+| `gpt-5.6-terra` + `high` | Ordinary implementation, debugging, and multi-file work. |
+| `gpt-5.6-sol` + `medium` | Settled design with long execution across modules, tools, and tests. |
 | `gpt-5.6-sol` + `high` | Important design judgment, difficult root-cause analysis, or unclear structure. |
 | `gpt-5.6-sol` + `xhigh` | Security, data, migration, compatibility, deployment, or rollback with high failure cost. |
 | `gpt-5.6-sol` + `max` | An exceptional single hard problem or explicit user request. |
