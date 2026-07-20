@@ -18,7 +18,7 @@ Keep intent in the PRD and reports in native task history; create no project-loc
 
 - Act only as coordinator: modify no product code/tests and supply no substitute verdict. Only the coordinator creates the implementation task, spawns reviewers, and follows up; reviewers never control or message the implementation task.
 - Use one native top-level implementation task per revision for all work and corrections, plus native review subagents. Never simulate roles, run local subprocess agents, or create top-level review tasks.
-- Spawn each reviewer fresh, read-only, and without conversation history. Pass only its compact role contract, exact paths, constraints, explicit model/effort, and—for post-review—the latest complete implementation report exactly once. Identity alone does not make that report readable. Never reuse a reviewer after verdict.
+- Spawn each reviewer fresh, read-only, and without conversation history. Never reuse a reviewer after verdict.
 - If task creation, subagent spawn, model selection, history, or follow-up is unavailable, stop and report the workflow blocked without changing PRD status.
 
 ## Resolve and resume
@@ -50,7 +50,7 @@ Immediately before creating a role, read only its reference, fill every placehol
 - `references/implementation-prompt.md`
 - `references/post-review-prompt.md`
 
-Spawn reviewers with no history and pass paths, not copied PRD/coordinator context. Put the latest implementation response once in post-review's `<implementation_report_text>`. Use the user's language for `<output_language>` and remove inapplicable optional values.
+Use the user's language for `<output_language>` and remove inapplicable optional values.
 
 ## Chain
 
@@ -66,7 +66,7 @@ Allow at most three automatic post-review attempts, counting verdict and no-verd
 
 Never auto-rollback after implementation, validation, or review failure. Keep changes and use the same task for in-scope corrections. On stop, report changed paths, failed/unrun checks, unresolved findings, and next action. Roll back only by explicit user request or approved PRD procedure, only that task's changes, never unrelated work.
 
-Complete the exact revision only when every mandatory requirement and acceptance criterion is implemented; every required validation ran without required failure or omission; a fresh post-review passed the latest report sequence; the implementation task and all chain reviewers still name that revision; and `proofline-completion-evidence` can report it. Then set `completed`, update `updated_at` and `archived_at`, freeze the body, and report settings, task references, changed files, validation, omissions, and verdict without copying transcripts.
+Complete the exact revision only when every mandatory requirement and acceptance criterion is implemented; every required validation ran without required failure or omission; a fresh post-review passed the latest report sequence; and the implementation task and all chain reviewers still name that revision. Then set `completed`, update `updated_at` and `archived_at`, freeze the body, and use `proofline-completion-evidence` to report settings, task references, changed files, validation, omissions, and verdict without copying transcripts.
 
 If revision changes, stop the old chain: no further task instructions, reviewers, or reused reports. Start the new revision only when the current request authorizes it. Transient orchestration failure does not alter PRD status; reserve `blocked` for a durable product decision, permission, or external prerequisite, and revise through `proofline-implementation-spec` when resolution changes the contract.
 

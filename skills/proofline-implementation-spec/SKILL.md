@@ -46,7 +46,7 @@ Do not increment revision for non-semantic typo/formatting, link or evidence-ref
 **Lifecycle:**
 
 - Set `ready` only after its gate and `blocked` only for a durable product prerequisite. Resolve a blocker without revision when only evidence changes; revise when the contract changes.
-- Set `completed` only when current project evidence and native history prove, for the same revision: every mandatory requirement and acceptance criterion is implemented; all required validation ran without required failure or omission; a fresh post-review subagent passed the latest implementation report sequence; and `proofline-completion-evidence` can report it. Then update `updated_at` and `archived_at`, freeze the body, and add no transcript.
+- Set `completed` only when current project evidence and native history prove, for the same revision: every mandatory requirement and acceptance criterion is implemented; all required validation ran without required failure or omission; and a fresh post-review subagent passed the latest implementation report sequence. Then update `updated_at` and `archived_at`, freeze the body, add no transcript, and use `proofline-completion-evidence` for the final report.
 - Set `cancelled` only when the user cancels the product contract, not one workflow; update `updated_at` and `archived_at` and preserve content.
 - To supersede, add the old ID to the new `supersedes`; set the old `superseded_by`, status, `updated_at`, and `archived_at`; preserve its body and location.
 

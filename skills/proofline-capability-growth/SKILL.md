@@ -12,9 +12,6 @@ Do not create or register automation without explicit user approval.
 ## Always apply
 
 - Shortlist first; do not automate immediately.
-- Use evidence-backed candidates only.
-- Reject broad, vague, one-off, or speculative automation.
-- Check existing scripts, tests, CI, hooks, skills, and AGENTS.md rules before proposing anything new.
 - Prefer the smallest useful change.
 
 ## Read more only when needed
@@ -37,11 +34,3 @@ Do not read every asset by default. Use this file as the router.
   - Use `assets/prompts/automation-registration.md`
   - Use `assets/templates/automation-registration-request.md`
   - Trigger only after the user approves a specific candidate.
-
-## Reject or defer when
-
-- It happened only once.
-- Steps or success conditions are unclear.
-- It needs heavy human judgment each run.
-- It would create a broad always-on rule.
-- Existing tooling already solves it well enough.

@@ -9,8 +9,9 @@ Before registration, show:
 3. trigger or schedule
 4. files or sources it may inspect
 5. whether it may write files
-6. stop condition
-7. report format
-8. risks
+6. exact checks it may run
+7. stop condition
+8. report format
+9. risks
 
 Only proceed after the user approves the specific candidate.

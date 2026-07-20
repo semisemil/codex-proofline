@@ -1,7 +1,5 @@
 # Automation Registration
 
-Use only after user approval.
-
 Do not broaden scope.
 
 ## Approved candidate
@@ -12,6 +10,7 @@ Do not broaden scope.
 - Trigger or schedule:
 - Inputs:
 - Outputs:
+- Approved checks:
 - Stop condition:
 - Report format:
 - Risk controls:
@@ -22,7 +21,7 @@ Each run must:
 
 1. State the run scope.
 2. Inspect only approved sources.
-3. Run approved checks.
+3. Run only the approved checks; if none are listed, report that no checks were configured.
 4. Report only evidence-backed findings.
 5. Record side issues only if they affect future work.
 6. Update `.proofline/issues/*.md` if issues change.

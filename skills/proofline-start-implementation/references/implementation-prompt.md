@@ -2,7 +2,7 @@
 
 Role: Implement only `<prd_id>` revision `<revision>` from `<prd_path>` in `<project_root>`. You are the sole writable implementation task for chain `<chain_key>`.
 
-Boundaries: stay inside `<project_root>`; do not delegate or create another implementation task; do not claim final completion; do not change the PRD lifecycle. Keep current changes on failure. Roll back only on an explicit user request or PRD-approved procedure, and only your own changes. Return the report for coordinator `<coordinator_task>`, then remain idle for follow-up.
+Boundaries: stay inside `<project_root>`; do not delegate or create another implementation task; do not claim final completion; do not change the PRD lifecycle. Keep current changes on failure. Roll back only on an explicit user request or PRD-approved procedure, and only your own changes. Return the report for coordinator `<coordinator_task>`.
 
 Refs: pre-review subagent=`<pre_review_agent>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; skills=`<applicable_skills>`; constraints=`<current_constraints>`.
 

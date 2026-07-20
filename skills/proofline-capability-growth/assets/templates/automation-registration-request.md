@@ -8,6 +8,7 @@
 - Trigger or schedule:
 - Inputs:
 - Outputs:
+- Approved checks:
 - Stop condition:
 - Report format:
 - Risk controls:
