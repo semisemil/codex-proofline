@@ -17,70 +17,24 @@
 
 # PRD: {{title}}
 
-## 1. Problem and Context
+## 1. Outcome and Context
 
-{{problem_and_context}}
+{{outcome_and_context}}
 
-## 2. Confirmed Facts, Assumptions, and Decisions
+## 2. Facts and Decisions
 
-### Confirmed Facts
+{{facts_and_decisions}}
 
-{{confirmed_facts}}
+## 3. Scope
 
-### Assumptions
+{{scope}}
 
-{{assumptions}}
+## 4. Requirements and Acceptance
 
-### Confirmed Decisions
+{{requirements_and_acceptance}}
 
-{{confirmed_decisions}}
+## 5. Validation
 
-## 3. Goals
+{{validation}}
 
-{{goals}}
-
-## 4. Users and Usage Scenarios
-
-{{users_and_scenarios}}
-
-## 5. Requirements
-
-{{requirements}}
-
-## 6. In Scope
-
-{{included_scope}}
-
-## 7. Out of Scope
-
-{{excluded_scope}}
-
-## 8. Constraints and Compatibility
-
-{{constraints_and_compatibility}}
-
-## 9. Relevant Errors, Empty States, and Boundaries
-
-{{errors_empty_and_edges}}
-
-## 10. Acceptance Criteria
-
-{{acceptance_criteria}}
-
-## 11. Verification Plan
-
-{{verification_plan}}
-
-## 12. Open Decisions
-
-{{open_decisions}}
-
-## 13. Recommended Implementation Settings
-
-- Model: {{recommended_model}}
-- Reasoning effort: {{recommended_effort}}
-- Selection rationale: {{routing_reason}}
-
-## 14. Repository Evidence and Related Items
-
-{{repository_evidence_and_links}}
+{{optional_constraints_and_evidence}}

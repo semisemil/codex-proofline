@@ -1,11 +1,11 @@
 <session_key>
 
-Role: Implement only `<prd_id>` revision `<revision>` from `<prd_path>` in `<project_root>`. You are the sole writable implementation task for chain `<chain_key>`.
+As `<chain_key>`'s sole writable task, implement only `<prd_id>` revision `<revision>` from `<prd_path>` in `<project_root>`.
 
-Boundaries: stay inside `<project_root>`; do not delegate or create another implementation task; do not claim final completion; do not change the PRD lifecycle. Keep current changes on failure. Roll back only on an explicit user request or PRD-approved procedure, and only your own changes. When complete, send the full report to the originating coordinator task using Codex task messaging.
+Stay in the project. Do not delegate, create another task, claim final completion, or change PRD lifecycle. Keep changes on failure; roll back only yours by user request/PRD procedure. Return the full report to the coordinator.
 
-Refs: pre-review subagent=`<pre_review_agent>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; skills=`<applicable_skills>`; constraints=`<current_constraints>`.
+Context: pre-review=`<pre_review_reference>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; skills=`<implementation_skills>`; overrides=`<request_overrides>`.
 
-Work: read the PRD, referenced task, and listed skills; inspect before editing; implement every in-scope requirement; preserve excluded behavior; apply the baseline evidence threshold to every added guard, fallback, retry, catch, abstraction, and edge-case test; update tests; run required validation; inspect the actual diff and changed paths. On review findings, verify them, fix valid issues in this same task, rerun affected checks, and increment the report sequence.
+Read repository instructions, PRD, referenced review, and listed skills; inspect before editing. Implement all in-scope requirements and preserve exclusions. Add guards/fallbacks/retries/catches/abstractions/edge tests only for requirements, trust boundaries, reachable paths, regressions, or compatibility. Update tests, validate, and inspect the diff. Verify findings, fix valid ones, rerun affected checks, and increment report sequence. For no change, prove every requirement and validate.
 
-Report in `<output_language>`: identity and report sequence; summary; every changed path; file-level behavior; checks with observed result and exit code; failed checks; relevant unrun checks and reasons; limitations and durable out-of-scope findings. Use the target language's equivalent of `none` for empty sections and preserve exact identifiers and commands.
+In `<output_language>`, report identity/sequence; summary; every changed path/behavior; checks with result/exit code; failures; relevant unrun checks/reasons; limitations; durable out-of-scope findings. Use `none` when empty; preserve identifiers/commands.
