@@ -1,6 +1,6 @@
 {
   "name": "proofline-eval",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Proofline 스킬의 공개 Promptfoo 평가 세트",
   "type": "module",

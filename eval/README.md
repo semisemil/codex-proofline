@@ -27,6 +27,8 @@ npm run eval:publish
 
 `eval:full`은 각 조건을 세 번씩 실행해 원시 답변과 실제 작업 결과를 저장합니다. `eval:judge`는 저장된 답변을 새로 생성하지 않고, 핵심 기준을 통과한 답변끼리만 순서를 바꿔 두 번 비교합니다. 한쪽만 핵심 기준을 통과하면 LLM 평가자를 호출하지 않고 그 결과를 선택합니다. 두 비교의 승자가 다르거나 의미 있는 차이가 없으면 동점으로 처리하며, 모든 판정에는 이유를 기록합니다. `eval:publish`는 로컬 원시 결과를 포함하지 않고 공개 가능한 요약, 메타데이터와 정제된 개별 결과를 `results/published/<날짜>/`에 생성합니다.
 
+공개 결과는 [전체 6개 사례 평가](proofline-baseline-quality/results/published/2026-07-20/summary.md)와 [`high`·`medium` 표현 압축 평가](proofline-baseline-quality/results/published/2026-07-22-expression-compression/summary.md)에서 확인할 수 있습니다.
+
 Codex 작업은 한 번에 하나씩 실행합니다. 병렬 세션에서 스킬 호출 기록이 섞이거나 누락돼 서로 다른 조건을 비교하는 일을 막기 위한 설정입니다.
 
 로컬 Codex 로그인을 사용하는 경우 실행기가 로그인 파일 하나만 운영체제 임시 폴더에 복사합니다. 사용자 설정, 규칙, 스킬, 플러그인과 이전 대화는 복사하지 않으며 임시 로그인 파일은 실행 종료 시 삭제합니다. Windows에서는 파일 수정 평가가 작동하도록 비관리자용 샌드박스 설정 하나를 임시 폴더에 새로 생성합니다. `OPENAI_API_KEY`나 `CODEX_API_KEY`가 설정되어 있으면 로그인 파일도 복사하지 않습니다.
@@ -48,7 +50,7 @@ Codex 작업은 한 번에 하나씩 실행합니다. 병렬 세션에서 스킬
 
 | 스킬 | 확인하는 내용 |
 | --- | --- |
-| [`proofline-baseline-quality`](proofline-baseline-quality/) | 의미 보존, 합의와 미정의 구분, 모호성 처리, 수정 권한, 검토 태도, 결과 보고와 코드 품질 |
+| [`proofline-baseline-quality`](proofline-baseline-quality/) | 의미 보존, 표현 압축, 합의와 미정의 구분, 모호성 처리, 수정 권한, 검토 태도, 결과 보고와 코드 품질 |
 
 다른 Proofline 스킬도 같은 형식으로 평가 세트를 추가합니다.
 

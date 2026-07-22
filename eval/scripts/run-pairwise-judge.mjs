@@ -53,6 +53,7 @@ const caseLabels = {
   '04-ambiguous-storage': '모호한 저장 대상 확인',
   '05-critical-plan-review': '조건과 예외가 있는 계획 검토',
   '06-requirements-artifact': '금지와 미정이 섞인 요구사항 문서',
+  '07-expression-compression': '네 가지 기술 개념 설명',
 };
 
 function createIsolatedCodexHome() {
@@ -208,16 +209,18 @@ try {
 }
 
 const countWinner = (winner) => comparisons.filter((entry) => entry.winner === winner).length;
-const cases = Object.entries(caseLabels).map(([caseName, label]) => {
-  const entries = comparisons.filter((entry) => entry.case === caseName);
-  return {
-    case: caseName,
-    label,
-    disabled: entries.filter((entry) => entry.winner === 'disabled').length,
-    enabled: entries.filter((entry) => entry.winner === 'enabled').length,
-    tie: entries.filter((entry) => entry.winner === 'tie').length,
-  };
-});
+const cases = Object.entries(caseLabels)
+  .map(([caseName, label]) => {
+    const entries = comparisons.filter((entry) => entry.case === caseName);
+    return {
+      case: caseName,
+      label,
+      disabled: entries.filter((entry) => entry.winner === 'disabled').length,
+      enabled: entries.filter((entry) => entry.winner === 'enabled').length,
+      tie: entries.filter((entry) => entry.winner === 'tie').length,
+    };
+  })
+  .filter((entry) => entry.disabled + entry.enabled + entry.tie > 0);
 const allCalls = comparisons.flatMap((entry) => entry.judgeCalls);
 const report = {
   schemaVersion: 1,

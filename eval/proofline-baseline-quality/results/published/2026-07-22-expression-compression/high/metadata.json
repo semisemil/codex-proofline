@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "suite": "proofline-baseline-quality",
+  "suiteVersion": "0.2.0",
+  "evaluatedAt": "2026-07-22T08:45:11.962Z",
+  "judgedAt": "2026-07-22T08:51:47.609Z",
+  "repetitionsPerVariant": 3,
+  "source": {
+    "evalId": "eval-x9z-2026-07-22T08:45:11",
+    "rawResultSha256": "c1604403bfb39c3acab68c6fc4c0b3ad1657cc27bb8a90bb0ac9bff0b26b13c4"
+  },
+  "target": {
+    "skill": "proofline-baseline-quality",
+    "skillSha256": "bf767eb4841ce41d926824f1bbae486a950c2d57d6220678c67681952d5d8e64"
+  },
+  "versions": {
+    "promptfoo": "0.121.19",
+    "codexSdk": "0.144.6",
+    "node": "v24.14.0"
+  },
+  "taskModel": {
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "high",
+    "sandboxMode": "workspace-write",
+    "approvalPolicy": "never",
+    "networkAccessEnabled": false,
+    "webSearchMode": "disabled"
+  },
+  "judgeModel": {
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "low",
+    "order": "AB와 BA 모두 평가",
+    "tieAllowed": true,
+    "comparisonConcurrency": 3
+  },
+  "execution": {
+    "maxConcurrency": 1,
+    "cache": false,
+    "order": "각 반복에서 스킬 미적용 후 스킬 적용 순서로 실행"
+  }
+}

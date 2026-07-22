@@ -6,6 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import checkAmbiguityStop from '../proofline-baseline-quality/assertions/ambiguity-stop.mjs';
+import checkExpressionCompression from '../proofline-baseline-quality/assertions/expression-compression.mjs';
 import checkPlanReview from '../proofline-baseline-quality/assertions/plan-review.mjs';
 import checkRequirementsArtifact from '../proofline-baseline-quality/assertions/requirements-artifact.mjs';
 import checkSessionFix from '../proofline-baseline-quality/assertions/session-fix.mjs';
@@ -279,6 +280,89 @@ SLA, 데이터베이스 종류, 메시지 큐, 구현 일정
     );
     const result = checkRequirementsArtifact('요구사항 문서를 만들었습니다.', context);
     assert.equal(result.pass, true, result.reason);
+  });
+});
+
+test('네 가지 기술 질문에 필요한 정보를 보존한 답변을 판정한다', async () => {
+  await withWorkspace('07-expression-compression', (_workspaceDir, context) => {
+    const output = `## 1. 스레드와 프로세스
+
+프로세스는 독립된 메모리와 자원을 가진 실행 중인 프로그램 단위다. 스레드는 프로세스 안의 실행 단위이며 같은 프로세스의 메모리와 자원을 공유한다.
+
+## 2. 컴퓨터마다 속도가 다른 이유
+
+CPU, 메모리, 저장장치, GPU, 발열과 전력 제한, 운영체제와 드라이버, 백그라운드 작업, 네트워크 중 어디가 병목인지에 따라 달라진다.
+
+## 3. 기술 부채
+
+구조 개선을 미룬 기술 부채가 쌓이면 코드 이해, 결합된 부분의 회귀 확인, 수동 테스트, 중복 수정, 오래된 도구 대응과 문서 재탐색에 시간이 든다. 변경 비용과 오류 위험이 커져 개발이 느려진다.
+
+## 4. 작은 모델이 유리한 경우
+
+분류처럼 좁은 작업, 낮은 지연 시간이 필요한 서비스, 요청량이 많아 비용을 줄여야 할 때, 기기 내부 실행, 개인정보 보호, 고정된 출력 형식, 빠른 학습과 배포가 필요한 경우다. 요구 성능을 충족한다면 큰 모델보다 빠르고 저렴하며 운영하기 쉽다.`;
+    const result = checkExpressionCompression(output, context);
+    assert.equal(result.pass, true, result.reason);
+  });
+});
+
+test('메모리 격리와 작은 모델 품질 전제의 동의 표현을 인정한다', async () => {
+  await withWorkspace('07-expression-compression', (_workspaceDir, context) => {
+    const output = `1. 스레드와 프로세스의 차이
+
+각 프로세스는 별도의 메모리 공간과 자원을 가진다. 스레드는 한 프로세스 안에서 실행되는 작업 흐름이다. 같은 프로세스의 메모리와 자원을 공유한다.
+
+2. 같은 프로그램의 실행 속도가 다른 이유
+
+CPU, 메모리, 저장장치, GPU, 발열과 전력 제한, 운영체제와 드라이버, 백그라운드 프로그램, 네트워크가 병목에 영향을 준다.
+
+3. 기술 부채가 개발 속도를 늦추는 이유
+
+구조 개선을 미뤘을 때 기술 부채가 쌓이면 복잡한 의존 관계를 파악하고 회귀 테스트와 중복 수정을 수행하며 오래된 기술과 부족한 문서에 대응해야 한다. 검증 시간과 변경 비용이 커져 개발 속도가 느려진다.
+
+4. 작은 모델이 실제 서비스에서 유리한 경우
+
+분류처럼 좁은 작업, 낮은 지연 시간이 필요한 서비스, 요청량이 많아 비용이 중요한 경우, 기기 내부 실행, 개인정보 보호, 정해진 출력 형식, 빠른 배포에 유리하다. 충분히 최적화하면 큰 모델과 비슷하거나 더 나은 결과를 낼 수 있다. 계층형 구조로 품질을 크게 해치지 않으면서 비용을 줄일 수 있다.`;
+    const result = checkExpressionCompression(output, context);
+    assert.equal(result.pass, true, result.reason);
+  });
+});
+
+test('표에서 같은 프로세스의 메모리 공유를 설명한 답변을 인정한다', async () => {
+  await withWorkspace('07-expression-compression', (_workspaceDir, context) => {
+    const output = `1. 스레드와 프로세스의 차이
+
+프로세스는 실행 중인 프로그램의 독립된 작업 공간이고, 스레드는 그 안에서 실제 명령을 수행하는 실행 흐름이다.
+
+| 구분 | 프로세스 | 스레드 |
+|---|---|---|
+| 메모리 | 다른 프로세스와 기본적으로 분리 | 같은 프로세스의 메모리를 공유 |
+
+2. 같은 프로그램의 실행 속도가 다른 이유
+
+CPU, 메모리, 저장장치, GPU, 발열과 전력 제한, 운영체제와 드라이버, 백그라운드 프로그램, 네트워크가 병목에 영향을 준다.
+
+3. 기술 부채가 개발 속도를 늦추는 이유
+
+기술 부채는 구조 개선, 테스트, 문서화를 미룬 결과다. 코드가 복잡해지고 결합과 영향 범위가 커지며, 자동 테스트가 부족해 검증 시간이 늘고, 중복 코드와 오래된 도구, 부족한 문서 때문에 변경 비용과 개발 시간이 증가한다.
+
+4. 작은 모델이 실제 서비스에서 유리한 경우
+
+작은 모델은 분류와 추출 같은 단순 작업, 빠른 응답, 많은 요청과 낮은 비용, 기기 내부 실행, 개인정보 보호, 정해진 출력 형식, 쉬운 배포에서 유리하다. 요구 성능을 만족하는지 측정해 선택해야 한다.`;
+
+    const result = checkExpressionCompression(output, context);
+    assert.equal(result.pass, true, result.reason);
+  });
+});
+
+test('작은 모델의 실제 서비스 조건을 빠뜨린 답변을 거부한다', async () => {
+  await withWorkspace('07-expression-compression', (_workspaceDir, context) => {
+    const output = `1. 프로세스는 독립된 메모리를 가지고 스레드는 이를 공유한다.
+2. CPU, 메모리, 저장장치, GPU, 발열, 운영체제에 따라 속도가 달라진다.
+3. 기술 부채는 복잡성, 회귀, 테스트와 중복 수정 비용을 높인다.
+4. 작은 모델이 유리할 수 있다.`;
+    const result = checkExpressionCompression(output, context);
+    assert.equal(result.pass, false);
+    assert.match(result.reason, /작은 모델/);
   });
 });
 

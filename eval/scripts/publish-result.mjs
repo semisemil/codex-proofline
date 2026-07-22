@@ -183,6 +183,9 @@ const corePass = {
 const orderConflicts = comparisons.filter(
   (entry) => entry.verdict.judgeCalls.length > 0 && !entry.verdict.consistentAcrossOrder,
 ).length;
+const comparisonsPerVariant = comparisons.length;
+const caseCount = pairwise.cases.length;
+const repeatCount = caseCount > 0 ? comparisonsPerVariant / caseCount : 0;
 
 const summary = `# proofline-baseline-quality 공개 평가 결과
 
@@ -197,7 +200,7 @@ const summary = `# proofline-baseline-quality 공개 평가 결과
 | 핵심 기준 우선 | ${methodTotals.core.disabled} | ${methodTotals.core.enabled} | ${methodTotals.core.tie} |
 | 최종 답변 교차평가 | ${methodTotals.judge.disabled} | ${methodTotals.judge.enabled} | ${methodTotals.judge.tie} |
 
-핵심 기준은 스킬 미적용 결과가 ${corePass.disabled}/18, 스킬 적용 결과가 ${corePass.enabled}/18 통과했다. 최종 답변 교차평가에서 순서를 바꿨을 때 판정이 달라진 ${orderConflicts}건은 동점 처리했다.
+핵심 기준은 스킬 미적용 결과가 ${corePass.disabled}/${comparisonsPerVariant}, 스킬 적용 결과가 ${corePass.enabled}/${comparisonsPerVariant} 통과했다. 최종 답변 교차평가에서 순서를 바꿨을 때 판정이 달라진 ${orderConflicts}건은 동점 처리했다.
 
 ## 사례별 결과
 
@@ -219,7 +222,7 @@ ${pairwise.cases.map((entry) => `| ${entry.label} | ${entry.disabled} | ${entry.
 
 ## 해석 범위
 
-이 결과는 공개된 6개 사례를 각 조건에서 3회 실행한 범위에 한정된다. 모든 작업에서의 일반적인 우위를 의미하지 않는다. 작업 실행 순서를 무작위화하지 않았으므로 시간에 따른 모델 변동 가능성도 한계로 남는다.
+이 결과는 공개된 ${caseCount}개 사례를 각 조건에서 ${repeatCount}회 실행한 범위에 한정된다. 모든 작업에서의 일반적인 우위를 의미하지 않는다. 작업 실행 순서를 무작위화하지 않았으므로 시간에 따른 모델 변동 가능성도 한계로 남는다.
 
 개별 최종 답변, 핵심 기준 판정과 순서 교차 평가 이유는 [result.json](result.json)에 포함돼 있다.
 `;

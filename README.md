@@ -25,6 +25,11 @@ Proofline은 이런 누락을 줄이기 위해 `proofline-baseline-quality`를 �
 
 이 결과는 공개된 6개 평가 사례의 범위에 한정됩니다. [결과 요약](eval/proofline-baseline-quality/results/published/2026-07-20/summary.md)에서 사례별 결과를 확인하거나, [평가 방법과 실행 코드](eval/)로 직접 재현할 수 있습니다.
 
+### 표현 압축 스킬 적용 시
+`gpt-5.6-sol`의 `high`와 `medium`에서 각각 세 번 테스트 진행.
+평균 답변 길이 각각 **16.61%**, **8.63%** 감소.
+[표현 압축 결과](eval/proofline-baseline-quality/results/published/2026-07-22-expression-compression/summary.md)
+
 ## 📦 설치
 ### Codex CLI에서 설치
 

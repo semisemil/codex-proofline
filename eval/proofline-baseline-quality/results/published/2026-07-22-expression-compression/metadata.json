@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "expression-compression",
+  "suite": "proofline-baseline-quality",
+  "suiteVersion": "0.2.0",
+  "publishedAt": "2026-07-22",
+  "prompt": "1. 스레드와 프로세스의 차이를 설명해줘. 2. 같은 프로그램이 어떤 컴퓨터에서는 빠르고 어떤 컴퓨터에서는 느린 이유가 뭐야? 3. 기술 부채가 쌓이면 개발 속도가 왜 느려져? 4. 작은 모델이 큰 모델보다 실제 서비스에서 더 유리한 경우를 설명해줘.",
+  "repetitionsPerVariantAndEffort": 3,
+  "lengthUnit": "JavaScript string length including Markdown",
+  "target": {
+    "skill": "proofline-baseline-quality",
+    "skillSha256": "bf767eb4841ce41d926824f1bbae486a950c2d57d6220678c67681952d5d8e64"
+  },
+  "taskModel": {
+    "model": "gpt-5.6-sol",
+    "reasoningEfforts": [
+      "high",
+      "medium"
+    ]
+  },
+  "judgeModel": {
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "low",
+    "order": "AB와 BA 모두 평가",
+    "tieAllowed": true
+  },
+  "execution": {
+    "maxConcurrency": 1,
+    "cache": false,
+    "order": "각 반복에서 스킬 미적용 후 스킬 적용 순서로 실행"
+  },
+  "sources": {
+    "high": {
+      "evalId": "eval-x9z-2026-07-22T08:45:11",
+      "rawResultSha256": "c1604403bfb39c3acab68c6fc4c0b3ad1657cc27bb8a90bb0ac9bff0b26b13c4"
+    },
+    "medium": {
+      "evalId": "eval-0hH-2026-07-22T08:38:15",
+      "rawResultSha256": "898d32524a8f03cf511f8f87cc2c19c6d71781192df102e230d06838d076cb71"
+    }
+  },
+  "evaluatorCorrections": {
+    "high": 1,
+    "medium": 2,
+    "rawResponsesModified": false
+  }
+}

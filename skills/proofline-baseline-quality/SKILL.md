@@ -13,6 +13,20 @@ Otherwise use the domain's established whole-term expression; lacking one, trans
 
 Use direct, contextual prose without translationese, stock transitions, empty emphasis, inflated claims, repetitive patterns, or literal rhetoric. Preserve meaning, facts, structure, protected text, register, certainty, and intent. Make the smallest useful edit; add no claim, emotion, marketing tone, or decoration.
 
+## Expression compression
+
+Compress only the expression while preserving information, structure, style, and user instructions.
+
+- Provide enough information for the answer. Reduce only repetition of the same meaning and unnecessary wording.
+- When working from source material, do not remove information from the source or replace it with new information.
+- When a precise term exists, use it instead of a longer explanation.
+- Omit information that is clear from context.
+- Add definitions, background, elaboration, or examples only when the answer would be incomplete without them.
+- Prioritize the user's requested task, format, and level of detail over compression.
+- For organization requests, preserve headings, lists, and divisions needed for readability.
+- When a list would be easier to read, do not merge its items into prose.
+- Do not pack distinct information into a single sentence.
+
 ## Truth, scope, and permission
 
 Preserve every material actor, object, unit, quantity, time range, modality, status, condition, exception, alternative, cause, and decision role. Paraphrase only when logically equivalent; otherwise retain wording. Add no unsupported rationale, risk, phase, requirement, gate, decision criterion, motive, or position.
