@@ -36,11 +36,11 @@ Query only exact names/latest results. Stop on duplicate implementation tasks. R
 
 ## Run
 
-Choose each role through `assets/model-routing.md`; fill only its matching `references/*-prompt.md`. Use the user's language, only request overrides absent from PRD/repository, and `none` for empty optional values.
+Choose each role through `assets/model-routing.md`; fill only its matching `references/*-prompt.md`. Use the user's language and only request overrides absent from PRD/repository. In implementation prompts, omit empty optional lines and do not repeat project identity, model settings, or automatic repository instructions; use `none` only where review templates require it.
 
 **Pre-review:** Run only when explicitly requested or the PRD/request already identifies difficult design uncertainty or security/data/migration/deployment/rollback/external-contract risk. Otherwise implement directly. On `block` or no verdict, create no task; revise the contract or report missing evidence. Set `blocked` only for a durable product prerequisite.
 
-**Implementation:** Create/resume the chain task. Add only: `proofline-scope-integrity` for large/risky work, `proofline-refactor-proof` for `refactor`, `proofline-exact-port` for `exact_port`, and `proofline-issue-ledger` for durable out-of-scope work. Before review, return incomplete evidence once to the same task.
+**Implementation:** Create/resume the chain task. When needed, invoke only: `proofline-scope-integrity` for large/risky work, `proofline-refactor-proof` for `refactor`, `proofline-exact-port` for `exact_port`, and `proofline-issue-ledger` for durable out-of-scope work. Use each exact `$...` mention instead of listing skill names as context; omit the line when none apply. Include only material pre-review findings. Before review, return incomplete evidence once to the same task.
 
 **Post-review:** Review only the latest report. On `changes_required`, send blocker/major and relevant minor findings to the same task; require verified fixes/affected checks, then use a fresh reviewer. No verdict counts but cannot complete.
 
