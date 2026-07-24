@@ -17,7 +17,7 @@ The request authorizes that revision. Keep intent in the PRD and reports in task
 ## Rules
 
 - Coordinate only: modify no product code/tests and supply no verdict.
-- Use one writable top-level task per revision; reviewers are fresh read-only subagents that never control/message it. Never simulate roles, run subprocess agents, or create top-level review tasks.
+- Use one writable top-level task per revision, created with `create_thread` and followed up through `send_message_to_thread`; never use `spawn_agent` for implementation. Reviewers are fresh read-only subagents that never control/message it. Never simulate roles, run subprocess agents, or create top-level review tasks.
 - If orchestration, history, follow-up, or model selection is unavailable, stop without changing PRD status.
 
 ## Target and chain
@@ -32,7 +32,7 @@ Chain key: `proofline_<lowercase PRD ID with hyphens replaced by underscores>_r<
 <chain_key>_post_review_<two-digit attempt>
 ```
 
-Query only exact names/latest results. Stop on duplicate implementation tasks. Reuse pre-review `pass` only while revision/facts remain current; number every post-review and resume the first incomplete step. If completed, report `no-op` and create nothing.
+Query only exact names/latest results. Stop on duplicate implementation tasks. Reuse pre-review `pass` only while revision/facts remain current; number every post-review and resume the first incomplete step.
 
 ## Run
 

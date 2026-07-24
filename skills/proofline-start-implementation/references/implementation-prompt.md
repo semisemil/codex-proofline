@@ -2,7 +2,7 @@
 
 As `<chain_key>`'s sole writable task, implement only `<prd_id>` revision `<revision>` from `<prd_path>` in `<project_root>`.
 
-Stay in the project. Do not delegate, create another task, claim final completion, or change PRD lifecycle. Keep changes on failure; roll back only yours by user request/PRD procedure. Return the full report to the coordinator.
+Stay in the project. Do not delegate, create another task, claim final completion, or change PRD lifecycle. Keep changes on failure; roll back only yours by user request/PRD procedure. When complete, send the full report to the originating coordinator task using Codex task messaging.
 
 Context: pre-review=`<pre_review_reference>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; skills=`<implementation_skills>`; overrides=`<request_overrides>`.
 
