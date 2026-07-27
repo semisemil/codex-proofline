@@ -24,6 +24,6 @@ Each run must:
 3. Run only the approved checks; if none are listed, report that no checks were configured.
 4. Report only evidence-backed findings.
 5. Record side issues only if they affect future work.
-6. Update `.proofline/issues/*.md` if issues change.
+6. Update `.proofline/issues/*.json` through the issue-ledger tool if issues change; migrate legacy `.md` only after semantic review.
 7. Do not edit static dashboard frontend files during normal issue updates.
 8. Separate complete, blocked, and not verified.

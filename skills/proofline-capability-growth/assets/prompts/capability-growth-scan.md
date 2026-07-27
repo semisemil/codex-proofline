@@ -1,6 +1,6 @@
 # Capability Growth Scan
 
-Review recent work context, repo scripts, AGENTS.md, `.proofline/issues/*.md`, and repeated user corrections if available.
+Review recent work context, repo scripts, AGENTS.md, `.proofline/issues/*.json` plus legacy `.md` issues, and repeated user corrections if available.
 
 Apply `assets/protocols/candidate-selection.md` and `assets/protocols/existing-tool-check.md` completely. Do not create automation yet.
 

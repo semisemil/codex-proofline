@@ -1,3 +1,5 @@
+const issueModel = globalThis.ProoflineIssueModel;
+
 const state = {
   issues: [],
   directoryHandle: null,
@@ -49,7 +51,8 @@ const statusLabels = {
   doing: '작업 중',
   blocked: '보류',
   resolved: '완료',
-  ignored: '제외'
+  cancelled: '취소',
+  superseded: '대체됨'
 };
 
 const riskLabels = {
@@ -73,8 +76,9 @@ const statusOrder = {
   doing: 0,
   blocked: 1,
   open: 2,
-  ignored: 3,
-  resolved: 4
+  resolved: 3,
+  superseded: 4,
+  cancelled: 5
 };
 
 // 활성 보기는 아직 조치가 끝나지 않은 작업 중 이슈와 대기 이슈를 함께 보여줍니다.
@@ -94,7 +98,7 @@ elements.folderInput.addEventListener('change', async (event) => {
   const files = Array.from(event.target.files || [])
     .filter((file) => isIssueFileName(file.name));
 
-  await loadMarkdownFiles(files);
+  await loadIssueFiles(files);
 });
 
 elements.connectButton.addEventListener('click', connectIssuesDirectory);
@@ -362,10 +366,10 @@ function clearBackgroundError() {
   elements.backgroundMode.setCustomValidity('');
 }
 
-async function loadMarkdownFiles(files) {
+async function loadIssueFiles(files) {
   if (files.length === 0) {
     state.issues = [];
-    setFolderStatus('선택한 폴더에서 Markdown 이슈 파일을 찾지 못했습니다.', 'warning');
+    setFolderStatus('선택한 폴더에서 JSON 또는 레거시 Markdown 이슈 파일을 찾지 못했습니다.', 'warning');
     render();
     return;
   }
@@ -376,7 +380,7 @@ async function loadMarkdownFiles(files) {
   for (const file of files) {
     try {
       const content = await file.text();
-      loadedIssues.push(parseIssueMarkdown(content, file.name));
+      loadedIssues.push(parseIssueFile(content, file.name));
     } catch (error) {
       errors.push(`${file.name}: ${error.message}`);
     }
@@ -516,7 +520,7 @@ async function loadFromDirectoryHandle(directoryHandle, silent = false) {
         const file = await handle.getFile();
         const content = await file.text();
         signatureParts.push(`${fileName}:${file.lastModified}:${file.size}`);
-        loadedIssues.push(parseIssueMarkdown(content, fileName));
+        loadedIssues.push(parseIssueFile(content, fileName));
       } catch (error) {
         errors.push(`${fileName}: ${error.message}`);
       }
@@ -712,75 +716,31 @@ function buildLoadMessage(count, errors, sourceLabel) {
 }
 
 function isIssueFileName(fileName) {
+  if (issueModel) {
+    return issueModel.isIssueFileName(fileName);
+  }
   return typeof fileName === 'string'
-    && fileName.endsWith('.md')
-    && !fileName.endsWith('.example.md')
-    && !fileName.includes('/')
-    && !fileName.includes('\\');
+    && (fileName.endsWith('.json') || fileName.endsWith('.md'))
+    && !fileName.endsWith('.example.json')
+    && !fileName.endsWith('.example.md');
 }
 
 function getDirectoryLabel(directoryHandle) {
   return directoryHandle?.name || '.proofline/issues';
 }
 
-function parseIssueMarkdown(content, fileName) {
-  const match = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
-
-  if (!match) {
-    throw new Error('JSON front matter가 없습니다.');
+function parseIssueFile(content, fileName) {
+  if (!issueModel) {
+    throw new Error('Proofline issue model을 불러오지 못했습니다.');
   }
-
-  let metadata;
-  try {
-    metadata = JSON.parse(match[1]);
-  } catch (error) {
-    throw new Error(`JSON front matter 파싱 실패: ${error.message}`);
-  }
-
-  const body = match[2] || '';
-  const issue = {
-    fileName,
-    body,
-    ...metadata,
-    status: normalizeStatus(metadata.status)
-  };
-
-  validateIssue(issue);
-  return issue;
+  return issueModel.parseIssueContent(content, fileName);
 }
 
 function normalizeStatus(status) {
-  // 이전 원장에서 사용한 상태명은 현재 스키마의 정식 상태로 한 번만 정규화합니다.
-  return status === 'in_progress' ? 'doing' : status;
-}
-
-function validateIssue(issue) {
-  const requiredFields = [
-    'id',
-    'status',
-    'title',
-    'discovered_while',
-    'evidence',
-    'risk',
-    'suggested_next_step',
-    'linked_context',
-    'resolved_evidence',
-    'created_at',
-    'updated_at'
-  ];
-
-  const missingFields = requiredFields.filter((field) => issue[field] === undefined || issue[field] === null);
-  if (missingFields.length > 0) {
-    throw new Error(`필수 필드 누락: ${missingFields.join(', ')}`);
+  if (issueModel) {
+    return issueModel.normalizeLegacyStatus(status);
   }
-
-  if (!Array.isArray(issue.evidence)) {
-    throw new Error('evidence는 배열이어야 합니다.');
-  }
-
-  if (!Array.isArray(issue.resolved_evidence)) {
-    throw new Error('resolved_evidence는 배열이어야 합니다.');
-  }
+  return status === 'in_progress' ? 'doing' : status === 'ignored' ? 'cancelled' : status;
 }
 
 function render() {
@@ -794,8 +754,10 @@ function rememberDisclosureState() {
   // 재렌더 직전에 현재 DOM만 읽어 자동 갱신과 필터 변경의 펼침 상태를 보존합니다.
   for (const card of elements.issuesList.querySelectorAll('[data-issue-id]')) {
     const issueId = card.dataset.issueId;
-    updateOpenSet(state.expandedIssueIds, issueId, card.querySelector('.issue-disclosure').open);
-    updateOpenSet(state.expandedEvidenceIds, issueId, card.querySelector('.issue-evidence').open);
+    const disclosure = card.querySelector('.issue-disclosure');
+    const evidence = card.querySelector('.issue-evidence');
+    updateOpenSet(state.expandedIssueIds, issueId, Boolean(disclosure?.open));
+    updateOpenSet(state.expandedEvidenceIds, issueId, Boolean(evidence?.open));
   }
 
   for (const group of elements.issuesList.querySelectorAll('.issue-group[data-status]')) {
@@ -834,22 +796,7 @@ function getVisibleIssues() {
 }
 
 function buildSearchText(issue) {
-  const evidenceText = issue.evidence
-    .map((item) => `${item.kind || ''} ${item.location || ''} ${item.note || ''}`)
-    .join(' ');
-
-  return [
-    issue.id,
-    issue.status,
-    issue.title,
-    issue.discovered_while,
-    issue.risk,
-    issue.suggested_next_step,
-    evidenceText,
-    issue.body
-  ]
-    .join(' ')
-    .toLowerCase();
+  return issue.searchText || (issueModel ? issueModel.buildSearchText(issue) : JSON.stringify(issue).toLowerCase());
 }
 
 function compareIssues(left, right) {
@@ -866,15 +813,16 @@ function compareIssues(left, right) {
   if (field === 'priority') {
     difference = (riskOrder[left.risk] ?? 99) - (riskOrder[right.risk] ?? 99);
   } else {
-    const key = field === 'number' ? 'id' : 'updated_at';
-    difference = String(left[key]).localeCompare(String(right[key]), undefined, {
+    const leftValue = field === 'number' ? left.id : left.updatedAt ?? left.updated_at;
+    const rightValue = field === 'number' ? right.id : right.updatedAt ?? right.updated_at;
+    difference = String(leftValue).localeCompare(String(rightValue), undefined, {
       numeric: field === 'number'
     });
   }
 
   const orderedDifference = direction === 'desc' ? -difference : difference;
   return orderedDifference
-    || String(right.updated_at).localeCompare(String(left.updated_at))
+    || String(right.updatedAt ?? right.updated_at).localeCompare(String(left.updatedAt ?? left.updated_at))
     || String(left.id).localeCompare(String(right.id), undefined, { numeric: true });
 }
 
@@ -949,17 +897,207 @@ function renderIssueCard(issue) {
   card.querySelector('.risk-label').textContent = riskLabels[issue.risk] || issue.risk;
 
   const updated = card.querySelector('.issue-updated');
-  updated.textContent = formatIssueDate(issue.updated_at);
-  updated.dateTime = String(issue.updated_at ?? '');
-  card.querySelector('.issue-discovered').textContent = issue.discovered_while;
-  card.querySelector('.issue-next-step').textContent = issue.suggested_next_step;
+  updated.textContent = formatIssueDate(issue.updatedAt);
+  updated.dateTime = String(issue.updatedAt ?? '');
+
+  card.querySelector('.issue-overview').innerHTML = renderIssueOverview(issue);
+  card.querySelector('.issue-detail-sections').innerHTML = renderIssueSections(issue);
   const evidence = card.querySelector('.issue-evidence');
-  evidence.open = state.expandedEvidenceIds.has(issue.id);
-  card.querySelector('.issue-evidence-count').textContent = String(issue.evidence.length);
-  card.querySelector('.issue-evidence-content').innerHTML = renderEvidence(issue.evidence);
-  card.querySelector('.issue-body').innerHTML = renderMarkdown(issue.body);
+  if (evidence) {
+    evidence.open = state.expandedEvidenceIds.has(issue.id);
+  }
 
   return card;
+}
+
+function renderIssueOverview(issue) {
+  const labels = {
+    open: '현재 상태',
+    doing: '현재 상태',
+    blocked: '중단 상태',
+    resolved: '해결 요약',
+    cancelled: '종료 요약',
+    superseded: '대체 요약'
+  };
+  const meta = [];
+
+  if (issue.nextAction) {
+    meta.push(renderOverviewFact('다음 행동', issue.nextAction));
+  }
+  if (issue.blocker) {
+    meta.push(renderOverviewFact('중단 원인', issue.blocker));
+    meta.push(renderOverviewFact('해제 조건', issue.unblockCondition));
+  }
+  if (issue.status === 'superseded') {
+    const replacement = issue.relations.find((relation) => relation.type === 'superseded_by');
+    if (replacement) {
+      meta.push(renderOverviewFact('대체 이슈', replacement.target));
+    }
+  }
+
+  const legacyBadge = issue.schemaVersion === 1
+    ? '<span class="schema-badge">Legacy</span>'
+    : `<span class="schema-badge">${escapeHtml(issue.mode)}</span>`;
+  const milestones = issue.milestones.length ? renderMilestones(issue.milestones) : '';
+
+  return `
+    <div class="overview-heading">
+      <p class="overview-label">${escapeHtml(labels[issue.status] || '현재 상태')}</p>
+      ${legacyBadge}
+    </div>
+    <p class="current-summary">${escapeHtml(issue.currentSummary)}</p>
+    ${meta.length ? `<dl class="overview-facts">${meta.join('')}</dl>` : ''}
+    ${milestones}`;
+}
+
+function renderOverviewFact(label, value) {
+  return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`;
+}
+
+function renderMilestones(milestones) {
+  const done = milestones.filter((item) => item.status === 'done').length;
+  const items = milestones.map((item) => `
+    <li class="milestone milestone-${normalizeClassName(item.status)}">
+      <span class="milestone-mark" aria-hidden="true"></span>
+      <div><strong>${escapeHtml(item.id)}</strong><p>${escapeHtml(item.summary)}</p></div>
+      <span class="milestone-status">${escapeHtml(item.status)}</span>
+    </li>`).join('');
+
+  return `
+    <section class="milestone-panel" aria-label="마일스톤">
+      <div class="milestone-heading"><h5>마일스톤</h5><span>${done}/${milestones.length}</span></div>
+      <ol>${items}</ol>
+    </section>`;
+}
+
+function renderIssueSections(issue) {
+  const sections = [];
+
+  if (issue.status === 'resolved') {
+    sections.push(renderCriteriaSection(issue, true));
+  }
+
+  sections.push(renderSubjectSection(issue));
+
+  if (issue.status !== 'resolved') {
+    sections.push(renderCriteriaSection(issue, false));
+  }
+
+  if (issue.effectiveDecisions.length) {
+    sections.push(renderDecisionSection('현재 유효한 결정', issue.effectiveDecisions, true));
+  }
+  if (issue.events.length) {
+    sections.push(renderDecisionSection('결정·상태 이력', issue.events, false));
+  }
+  if (issue.evidence.length) {
+    sections.push(`
+      <details class="issue-section issue-evidence">
+        <summary>판정 근거 <span>${issue.evidence.length}</span></summary>
+        <div class="issue-section-content">${renderEvidence(issue.evidence)}</div>
+      </details>`);
+  }
+  if (issue.relations.length || issue.context.length || issue.artifacts.length) {
+    sections.push(renderReferenceSection(issue));
+  }
+  if (issue.schemaVersion === 1 && issue.legacyBody.trim()) {
+    sections.push(`
+      <details class="issue-section legacy-section">
+        <summary>레거시 원문</summary>
+        <div class="issue-section-content markdown-body">${renderMarkdown(issue.legacyBody)}</div>
+      </details>`);
+  }
+
+  return sections.filter(Boolean).join('');
+}
+
+function renderSubjectSection(issue) {
+  if (issue.subjectKind === 'problem') {
+    const label = issue.type === 'research' ? '연구 주장과 판정' : '문제 주장과 판정';
+    const claims = issue.claims.map((claim) => `
+      <li>
+        <div class="claim-heading"><strong>${escapeHtml(claim.id)}</strong><span class="claim-state claim-${normalizeClassName(claim.state)}">${escapeHtml(claim.state)}</span></div>
+        <p>${escapeHtml(claim.text)}</p>
+      </li>`).join('');
+    return `
+      <details class="issue-section">
+        <summary>${label}</summary>
+        <div class="issue-section-content">
+          <ul class="claim-list">${claims}</ul>
+          ${issue.impact ? `<div class="impact-copy"><strong>영향</strong><p>${escapeHtml(issue.impact)}</p></div>` : ''}
+        </div>
+      </details>`;
+  }
+
+  const constraints = (issue.objective?.constraints || []).map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  return `
+    <details class="issue-section">
+      <summary>${issue.type === 'feature' ? '기능 목표와 제약' : '작업 목표와 제약'}</summary>
+      <div class="issue-section-content">
+        <p>${escapeHtml(issue.objective?.summary || issue.currentSummary)}</p>
+        ${constraints ? `<ul>${constraints}</ul>` : ''}
+      </div>
+    </details>`;
+}
+
+function renderCriteriaSection(issue, resolved) {
+  if (!issue.criteria.length && !issue.verification.length) {
+    return '';
+  }
+  const evidenceById = new Map(issue.evidence.map((item) => [item.id, item]));
+  const criteria = issue.criteria.map((criterion) => {
+    const proof = criterion.evidenceRefs
+      .map((id) => evidenceById.get(id))
+      .filter(Boolean);
+    const proofMarkup = proof.length
+      ? `<ul class="criterion-proof">${proof.map((item) => `<li><code>${escapeHtml(item.id)}</code> ${escapeHtml(item.observation)}</li>`).join('')}</ul>`
+      : '<p class="empty-copy">연결된 판정 근거가 없습니다.</p>';
+    return `
+      <li class="criterion ${proof.length ? 'criterion-proven' : ''}">
+        <div class="criterion-heading"><strong>${escapeHtml(criterion.id)}</strong><p>${escapeHtml(criterion.text)}</p></div>
+        ${resolved || proof.length ? proofMarkup : ''}
+      </li>`;
+  }).join('');
+  const legacyVerification = issue.verification.length
+    ? `<div class="legacy-verification"><strong>레거시 완료 근거</strong><ul>${issue.verification.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>`
+    : '';
+
+  return `
+    <details class="issue-section criteria-section" ${resolved ? 'open' : ''}>
+      <summary>${resolved ? '완료 조건과 증명' : '완료 조건'} <span>${issue.criteria.length}</span></summary>
+      <div class="issue-section-content">
+        <ol class="criteria-list">${criteria}</ol>
+        ${legacyVerification}
+      </div>
+    </details>`;
+}
+
+function renderDecisionSection(label, events, effectiveOnly) {
+  const items = events.map((event) => {
+    const transition = event.kind === 'transition'
+      ? `<span class="event-transition">${escapeHtml(event.from || '')} → ${escapeHtml(event.to || '')}</span>`
+      : '';
+    return `<li><div class="event-heading"><code>${escapeHtml(event.id)}</code>${transition}<time>${escapeHtml(formatIssueDate(event.at))}</time></div><p>${escapeHtml(event.summary)}</p></li>`;
+  }).join('');
+  return `
+    <details class="issue-section event-section" ${effectiveOnly ? 'open' : ''}>
+      <summary>${escapeHtml(label)} <span>${events.length}</span></summary>
+      <div class="issue-section-content"><ol class="event-list">${items}</ol></div>
+    </details>`;
+}
+
+function renderReferenceSection(issue) {
+  const relations = issue.relations.map((item) => `<li><strong>${escapeHtml(item.type)}</strong> <code>${escapeHtml(item.target)}</code></li>`).join('');
+  const context = issue.context.map((item) => `<li><strong>${escapeHtml(item.kind)}</strong> <code>${escapeHtml(item.location)}</code>${item.note ? `<p>${escapeHtml(item.note)}</p>` : ''}</li>`).join('');
+  const artifacts = issue.artifacts.map((item) => `<li><strong>${escapeHtml(item.kind)}</strong> <code>${escapeHtml(item.location)}</code><p>${escapeHtml(item.summary)}</p></li>`).join('');
+  return `
+    <details class="issue-section reference-section">
+      <summary>관계와 참조</summary>
+      <div class="issue-section-content reference-columns">
+        ${relations ? `<section><h5>이슈 관계</h5><ul>${relations}</ul></section>` : ''}
+        ${context ? `<section><h5>관련 맥락</h5><ul>${context}</ul></section>` : ''}
+        ${artifacts ? `<section><h5>Artifact</h5><ul>${artifacts}</ul></section>` : ''}
+      </div>
+    </details>`;
 }
 
 function formatIssueDate(value) {
@@ -978,8 +1116,9 @@ function renderEvidence(evidenceItems) {
     .map((item) => {
       const kind = escapeHtml(item.kind || '근거');
       const location = escapeHtml(item.location || '위치 미상');
-      const note = escapeHtml(item.note || '');
-      return `<li><div class="evidence-heading"><strong>${kind}</strong><code>${location}</code></div>${note ? `<p>${note}</p>` : ''}</li>`;
+      const observation = escapeHtml(item.observation || item.note || '');
+      const stateLabel = item.active === false ? '<span class="evidence-invalid">대체됨</span>' : '';
+      return `<li><div class="evidence-heading"><strong>${escapeHtml(item.id || '')} · ${kind}</strong><code>${location}</code>${stateLabel}</div>${observation ? `<p>${observation}</p>` : ''}</li>`;
     })
     .join('');
 

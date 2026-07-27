@@ -34,7 +34,7 @@
           <button id="change-folder-button" class="icon-action" type="button" data-icon="📁" aria-label="폴더 재지정" title="폴더 재지정" hidden>폴더 재지정</button>
           <label id="folder-picker" class="file-button icon-action" data-icon="📁" aria-label="이슈 폴더 선택" title="이슈 폴더 선택" hidden>
             <span>이슈 폴더 선택</span>
-            <input id="folder-input" type="file" accept=".md" webkitdirectory multiple>
+            <input id="folder-input" type="file" accept=".json,.md" webkitdirectory multiple>
           </label>
         </div>
         <!-- 배경과 테마 조작은 폴더 조작과 분리해 좁은 화면에서도 함께 묶입니다. -->
@@ -113,7 +113,8 @@
             <option value="doing">상태·작업</option>
             <option value="blocked">상태·보류</option>
             <option value="resolved">상태·완료</option>
-            <option value="ignored">상태·제외</option>
+            <option value="cancelled">상태·취소</option>
+            <option value="superseded">상태·대체</option>
           </select>
         </label>
         <label class="filter-control">
@@ -196,29 +197,14 @@
         </summary>
 
         <div class="issue-detail">
-          <dl class="issue-meta">
-            <div>
-              <dt>발견 맥락</dt>
-              <dd class="issue-discovered"></dd>
-            </div>
-            <div>
-              <dt>권장 다음 조치</dt>
-              <dd class="issue-next-step"></dd>
-            </div>
-          </dl>
-          <details class="issue-section issue-evidence">
-            <summary>근거 <span class="issue-evidence-count"></span></summary>
-            <div class="issue-evidence-content"></div>
-          </details>
-          <section class="issue-section issue-body-wrap" aria-label="상세 내용">
-            <h4>상세 내용</h4>
-            <div class="issue-body markdown-body"></div>
-          </section>
+          <section class="issue-overview" aria-label="현재 상태"></section>
+          <div class="issue-detail-sections"></div>
         </div>
       </details>
     </article>
   </template>
 
+  <script src="issue-model.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

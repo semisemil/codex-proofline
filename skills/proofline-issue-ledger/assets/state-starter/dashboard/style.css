@@ -864,6 +864,196 @@ input[type="search"]::placeholder { color: var(--subtle); }
   font-size: var(--type-meta);
 }
 
+.issue-overview {
+  padding: var(--space-5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-list);
+  background: var(--glass-detail);
+}
+
+.overview-heading,
+.milestone-heading,
+.criterion-heading,
+.claim-heading,
+.event-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.overview-heading { justify-content: space-between; }
+
+.overview-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--type-meta);
+  font-weight: 600;
+}
+
+.schema-badge,
+.claim-state,
+.event-transition,
+.evidence-invalid {
+  display: inline-flex;
+  min-height: 1.375rem;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.current-summary {
+  margin: var(--space-3) 0 0;
+  color: var(--text-strong);
+  font-size: 1rem;
+  font-weight: 550;
+  line-height: 1.65;
+}
+
+.overview-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-4) 0 0;
+}
+
+.overview-facts > div {
+  padding-left: var(--space-3);
+  border-left: var(--focus-size) solid var(--accent);
+}
+
+.overview-facts dt {
+  margin-bottom: var(--space-1);
+  color: var(--muted);
+  font-size: var(--type-meta);
+  font-weight: 600;
+}
+
+.overview-facts dd { margin: 0; }
+
+.milestone-panel {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.milestone-heading { justify-content: space-between; }
+.milestone-heading h5 { margin: 0; }
+.milestone-heading span { color: var(--muted); font-size: var(--type-meta); }
+
+.milestone-panel ol,
+.criteria-list,
+.claim-list,
+.event-list,
+.reference-columns ul {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.milestone {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.milestone-mark {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.milestone-done .milestone-mark { border-color: var(--low); background: var(--low); }
+.milestone-doing .milestone-mark { border-color: var(--accent); background: var(--accent); }
+.milestone-blocked .milestone-mark { border-color: var(--high); background: var(--high); }
+.milestone p { margin: var(--space-1) 0 0; color: var(--muted); }
+.milestone-status { color: var(--muted); font-size: var(--type-meta); }
+
+.issue-detail-sections { margin-top: var(--space-4); }
+
+.issue-section {
+  margin-top: 0;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line);
+}
+
+.issue-section > summary {
+  display: flex;
+  min-height: var(--control-height);
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-strong);
+  cursor: pointer;
+  font-size: var(--type-label);
+  font-weight: 600;
+  list-style: none;
+}
+
+.issue-section > summary::-webkit-details-marker { display: none; }
+.issue-section > summary::after { margin-left: auto; color: var(--muted); content: "+"; }
+.issue-section[open] > summary::after { content: "−"; }
+.issue-section > summary span { color: var(--muted); font-size: var(--type-meta); font-weight: 400; }
+.issue-section-content { padding: var(--space-2) 0 var(--space-3); }
+
+.claim-list li,
+.criteria-list > li,
+.event-list li,
+.reference-columns li {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.claim-list li:first-child,
+.criteria-list > li:first-child,
+.event-list li:first-child,
+.reference-columns li:first-child { border-top: 0; }
+
+.claim-list p,
+.criterion-heading p,
+.event-list p,
+.reference-columns p { margin: var(--space-1) 0 0; }
+
+.claim-confirmed { border-color: color-mix(in srgb, var(--low) 45%, var(--line)); color: var(--low); }
+.claim-refuted { border-color: color-mix(in srgb, var(--critical) 45%, var(--line)); color: var(--critical); }
+.claim-reported { color: var(--high); }
+
+.impact-copy {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-left: var(--focus-size) solid var(--line-strong);
+  background: var(--glass-detail);
+}
+.impact-copy p { margin: var(--space-1) 0 0; }
+
+.criterion-heading { align-items: flex-start; }
+.criterion-heading strong { flex: 0 0 auto; color: var(--accent); font-family: var(--font-code); }
+.criterion-heading p { color: var(--text-strong); }
+.criterion-proof { margin: var(--space-2) 0 0 var(--space-6); padding: 0; color: var(--muted); }
+.criterion-proof code { margin-right: var(--space-1); }
+
+.event-heading code { color: var(--accent); }
+.event-heading time { margin-left: auto; color: var(--muted); font-size: var(--type-meta); }
+
+.reference-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-5);
+}
+.reference-columns h5 { margin: 0; }
+.reference-columns code { overflow-wrap: anywhere; }
+
+.evidence-invalid { margin-left: auto; color: var(--critical); }
+.legacy-section { opacity: 0.88; }
+
 .markdown-body {
   color: var(--text);
   line-height: var(--detail-line-height);
@@ -1082,6 +1272,18 @@ input[type="search"]::placeholder { color: var(--subtle); }
   }
 
   .issue-detail { padding: var(--space-4); }
+
+  .issue-overview { padding: var(--space-4); }
+
+  .overview-facts { grid-template-columns: 1fr; }
+
+  .milestone {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .milestone-status {
+    grid-column: 2;
+  }
 
   .evidence-heading {
     display: grid;

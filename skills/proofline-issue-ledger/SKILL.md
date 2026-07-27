@@ -7,20 +7,32 @@ description: Record and update concrete bugs, tasks, features, research, documen
 
 ## Record
 
-Record durable work with a source, reason, next step, or completion criterion. When the user explicitly requests a new item, treat the request and current task context as sufficient source material; do not investigate solely to register it. Reject vague guesses, preferences, temporary notes, and immediately completed work without future value when registration was not explicitly requested.
+Record durable work with an origin, current state, next action, or completion criterion. An explicit user request and current context are sufficient origin; do not investigate solely to register it. A reported bug remains `reported` until direct evidence confirms or refutes it. Reject vague guesses, preferences, temporary notes, and immediately completed work without future value when registration was not requested.
 
-## Update
+Store one v2 JSON file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/`. Before any write, read `../proofline-baseline-quality/SKILL.md` completely and apply it to the issue.
 
-For an update request, change the matching existing file. Change `status`, append concrete `work_log` entries containing `at`, `status`, `summary`, and an `evidence` array, set `updated_at`, and preserve history. Set `resolved` only after `completion_criteria` are met and `resolved_evidence` contains proof.
+Resolve bundled paths relative to this SKILL.md. Run the CLI from the project root as `node <skill-dir>/scripts/issue-ledger.js ...` so its default root is the project's `.proofline/issues`. Use `list` to inspect IDs and titles, avoid only obvious title duplicates, select the next `PL-0001`-style ID, and create from `assets/templates/issue-claim.json` for `bug | research` or `issue-objective.json` for other types. Replace every `REPLACE:` value and adapt the ID, type, mode, risk, arrays, and timestamps, then use the CLI `create` command. Infer available fields, but ask when identity or scope cannot be stated accurately. Cite the ID in the final report.
 
-## Write
+## Read
 
-Store one Markdown file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/` there.
+Run `node <skill-dir>/scripts/issue-ledger.js list` to find candidates, then `show ID` for the default AI brief before opening an issue file. The brief contains current state, claims or objective, criteria, milestones, current decisions, and relations; it omits observations and old transitions. Request only the needed proof with `show ID --evidence E1,E2` or audit history with `show ID --events`.
 
-Before writing or updating an issue, read `../proofline-baseline-quality/SKILL.md` completely and apply it to the entire issue artifact.
+## Keep current
 
-For a new item, read existing front matter only for ids and titles, avoid only obvious title duplicates, create the next `PL-0001`-style id with `assets/templates/issue.md`, replace every `{{...}}` placeholder, and cite the id in the final report. Infer fields from the current context; use empty values or `unknown` when information is unavailable. Ask only when the item's identity or scope cannot be stated accurately.
+An issue is a current-state record, not a session log or experiment report. Keep `state.current_summary` current. Require `next_action` for `open | doing | blocked`; require `blocker` and `unblock_condition` for `blocked`; forbid them for `resolved | cancelled | superseded`. A resolved summary states cause or goal, change, and result.
 
-Required new-item front matter: `id`; `type: bug | task | feature | research | documentation | maintenance`; `status: open | doing | blocked | resolved | ignored`; `title`; `discovered_while`; `description`; `evidence`; `risk: critical | high | medium | low`; `impact`; `suggested_next_step`; `completion_criteria`; `linked_context`; `work_log`; `resolved_evidence`; `created_at`; `updated_at`.
+Keep only decisions and state transitions in `events`. Do not log wording, formatting, routine commands, or every work session. Replace the mutable current summary; Git preserves prose history. A meaningful status, next-action, blocker, milestone, decision, or completion change must rewrite or explicitly reconfirm `current_summary`.
 
-`discovered_while`: creating task, review, request, or investigation. `risk` is severity only; put consequences in `impact`. For non-defects, rate delivery or compatibility risk; `evidence`: requirement or decision source. Existing files without `type` or `work_log` remain valid; add them only on the next meaningful update, never for field migration alone.
+Use normal CLI operations for updates. Before an update, migration, or repair, read `references/v2-schema.md` for the operation contract and run the CLI validator. Direct issue-file edits are only for reviewed migration or repair.
+
+## Prove
+
+`evidence` is an immutable observation that directly confirms or refutes a P-claim, supports a decision, or proves a C-criterion. Related files, future commands, implementation explanation, and full logs are not evidence; put them in `context`, `next_action`, or `artifacts`. Store each evidence item once and reference its E-ID from P/C/D. Do not leave orphan evidence. Add a new item with `supersedes` or `invalidates` instead of rewriting old evidence.
+
+Set `resolved` only when every completion criterion references current valid evidence. Use `cancelled` for intentionally stopped work and `superseded` with a replacement relation when another issue takes over.
+
+## Boundaries
+
+Use `mode: simple` for one independently verifiable result. Use `mode: composite` with 3–7 outcome milestones for coordination work; keep implementation and experiment detail in child issues or artifacts. Split rather than append when the title no longer describes the work, completion criteria materially change, an independent deliverable appears, or another goal replaces the original. Store one directional relation: `child_of`, `superseded_by`, or `follow_up_to`.
+
+Legacy Markdown remains readable. Convert it to v2 only during a meaningful update and after semantic review; never bulk-delete a legacy body whose requirements or decisions have not been extracted. Git retains the removed Markdown after conversion.

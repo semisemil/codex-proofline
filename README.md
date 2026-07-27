@@ -99,7 +99,7 @@ PRD-0001 구현을 시작해줘.
 | `$proofline:proofline-completion-evidence` | 완료 결과나 막힌 상황을 보고할 때 | 완료한 일과 검증 결과의 분리, 통과·실패·미실행 검사, 막힌 이유, 다음 조치 |
 | `$proofline:proofline-refactor-proof` | 책임, 의존 방향, 호출 경로, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경, 남은 기존 결합, 동작 보존 범위, 검증 근거 |
 | `$proofline:proofline-exact-port` | 원본 동작을 그대로 옮겨야 하는 이식 | 원본과 대상의 대응 관계, 승인된 차이, 독립 비교 결과, 확인하지 못한 부분 |
-| `$proofline:proofline-issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 이슈 상태, 위험도, 다음 조치, 완료 조건, 작업 기록과 해결 근거 |
+| `$proofline:proofline-issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 핵심 결정과 판정 근거 |
 | `$proofline:proofline-capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
 | `$proofline:proofline-implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 요구사항, 범위, 수용 기준, 검증 계획, PRD 수명주기 |
 | `$proofline:proofline-start-implementation` | 준비된 PRD를 독립 사전·사후 검토와 함께 구현할 때 | 단일 상위 구현 작업, 새 검토 서브에이전트, 수정 순환, 완료 근거, 명시적 롤백 정책 |
@@ -124,14 +124,14 @@ PL-0012의 진행 상황과 확인 근거를 갱신해줘.
 .proofline/
   STATE.md
   issues/
-    PL-0001-....md
+    PL-0001.json
   dashboard/
     index.html
 ```
 
-각 이슈는 Markdown 파일 하나로 저장됩니다. 상태, 위험도, 영향, 다음 조치, 완료 조건, 작업 기록과 해결 근거가 한 파일에 함께 남습니다.
+각 신규 이슈는 구조화된 JSON 파일 하나로 저장됩니다. 현재 요약과 상태별 필드, 완료 조건, 핵심 결정, 판정 근거를 중복 없이 보존합니다. 상세 로그와 실험 보고서는 별도 산출물로 연결하고, 기존 Markdown 이슈는 점진적 전환을 위해 계속 읽을 수 있습니다.
 
-대시보드를 보려면 `.proofline/dashboard/index.html`을 열고 `.proofline/issues/` 폴더를 한 번 연결하세요. 브라우저가 연결한 폴더를 기억하므로 이후에는 바로 이슈를 읽을 수 있습니다. Proofline 원장이 없는 프로젝트에는 대시보드 파일을 만들지 않습니다. 원장이 있는 프로젝트에서는 새 세션을 시작할 때 더 최신인 번들 대시보드로 갱신합니다.
+대시보드를 보려면 `.proofline/dashboard/index.html`을 열고 `.proofline/issues/` 폴더를 한 번 연결하세요. 브라우저가 연결한 폴더를 기억하고 JSON 및 레거시 Markdown 이슈를 함께 읽습니다. 상세 화면은 진행 중·보류·완료·취소·대체 상태에 맞춰 현재 상황과 판정 근거를 다르게 보여줍니다. Proofline 원장이 없는 프로젝트에는 대시보드 파일을 만들지 않습니다. 원장이 있는 프로젝트에서는 새 세션을 시작할 때 더 최신인 번들 대시보드로 갱신합니다.
 
 ## 🔄 업데이트
 
