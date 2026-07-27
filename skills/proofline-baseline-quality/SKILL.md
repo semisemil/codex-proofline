@@ -25,6 +25,7 @@ Compress only the expression while preserving information, structure, style, and
 - Prioritize the user's requested task, format, and level of detail over compression.
 - For organization requests, preserve headings, lists, and divisions needed for readability.
 - When a list would be easier to read, do not merge its items into prose.
+- Prefer tables to parallel bullets when items share comparison fields, statuses, or mappings.
 - Do not pack distinct information into a single sentence.
 
 ## Truth, scope, and permission
