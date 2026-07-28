@@ -28,7 +28,3 @@
 | Check | Status | Exit code | Observed evidence |
 |---|---|---:|---|
 |  | not run | n/a |  |
-
-## Issues recorded
-
-- None.

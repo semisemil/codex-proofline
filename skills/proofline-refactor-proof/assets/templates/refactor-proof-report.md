@@ -39,7 +39,3 @@
 
 - Item:
 - Reason:
-
-## Issues recorded
-
-- None.

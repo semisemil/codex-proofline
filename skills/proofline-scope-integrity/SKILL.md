@@ -24,6 +24,6 @@ Split large work into checkpoints. Warn about risk when needed. If a checkpoint 
 
 ## Complete
 
-Complete means the approved goal is done and verified.
+Complete only when each non-negotiable requirement and checkpoint has an observed outcome, scope changes are approved, and each planned verification has a result or unverified reason.
 
 Never reduce scope silently or package partial success as full completion.

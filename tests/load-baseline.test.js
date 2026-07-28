@@ -147,6 +147,46 @@ test('Work Slices are conditional, compact, and reviewed locally before final in
   assert.match(finalReview, /Do not repeat file-level/);
 });
 
+test('skill completion boundaries are single-sourced and checkable', () => {
+  const baseline = read('skills', 'proofline-baseline-quality', 'SKILL.md');
+  const completion = read('skills', 'proofline-completion-evidence', 'SKILL.md');
+  const exactPortReport = read('skills', 'proofline-exact-port', 'assets', 'templates', 'exact-port-report.md');
+  const refactorReport = read('skills', 'proofline-refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
+  const scope = read('skills', 'proofline-scope-integrity', 'SKILL.md');
+  const growth = read('skills', 'proofline-capability-growth', 'SKILL.md');
+
+  assert.match(baseline, /## Review\r?\n/);
+  assert.match(baseline, /For review, audit, diagnosis, or critique/);
+  assert.match(baseline, /preserve all source information and keep every result claim source-supported/);
+  assert.match(baseline, /Keep list items separate when a list is easier to read/);
+  assert.match(baseline, /Keep distinct information in separate sentences/);
+  assert.match(baseline, /restate and address the actual claim within its stated scope and exceptions/);
+  assert.doesNotMatch(baseline, /do not remove information from the source|do not merge its items into prose|Do not pack distinct information|Never strengthen it/);
+
+  assert.match(baseline, /Reuse evidence already inspected in this task for follow-up questions/);
+  assert.match(baseline, /user requests current verification, relevant state changed, or the needed detail lacks prior evidence/);
+  assert.match(baseline, /Memory and another task's history are locators until rechecked/);
+  assert.match(completion, /separate completed work, passed checks, failed checks/);
+  assert.match(completion, /including earlier turns while relevant state is unchanged/);
+  assert.match(completion, /Answer follow-up questions about a reported result directly from that unchanged task evidence/);
+  assert.match(completion, /including unchanged evidence from earlier turns/);
+  assert.doesNotMatch(completion, /Never use intention, memory, past success/);
+  assert.match(completion, /implementation-caused failed check makes the task incomplete/);
+  assert.match(completion, /confirmed pre-existing or unrelated failure/);
+  assert.match(completion, /uncertain attribution as unverified/);
+  assert.doesNotMatch(exactPortReport, /## Issues recorded/);
+  assert.doesNotMatch(refactorReport, /## Issues recorded/);
+
+  assert.match(scope, /each non-negotiable requirement and checkpoint has an observed outcome/);
+  assert.match(scope, /scope changes are approved/);
+  assert.match(scope, /each planned verification has a result or unverified reason/);
+
+  assert.equal((growth.match(/  - Complete when/g) || []).length, 3);
+  assert.match(growth, /each inspected workflow is shortlisted/);
+  assert.match(growth, /an inspected alternative is sufficient or an evidenced gap remains/);
+  assert.match(growth, /artifact matches approved scope\/files/);
+});
+
 test('the copyable migration is one-to-one, atomic, and leaves legacy PRDs untouched', () => {
   const migration = read('docs', 'migrations', 'prd-to-spec.md');
   const readme = read('README.md');

@@ -24,13 +24,16 @@ Do not read every asset by default. Use this file as the router.
   - Use `assets/prompts/capability-growth-scan.md`
   - Use `assets/templates/capability-shortlist.md`
   - Trigger when repeated manual work, repeated user corrections, recurring `.proofline/issues/`, or automation requests appear.
+  - Complete when each inspected workflow is shortlisted after both checks or rejected with a reason; create no automation.
 
 - Existing tool check:
   - Read `assets/protocols/existing-tool-check.md`
   - Trigger when checking a specific candidate outside a full scan.
+  - Complete when an inspected alternative is sufficient or an evidenced gap remains.
 
 - User-approved registration:
   - Read `assets/protocols/approval-before-registration.md`
   - Use `assets/prompts/automation-registration.md`
   - Use `assets/templates/automation-registration-request.md`
   - Trigger only after the user approves a specific candidate.
+  - Complete when the artifact matches approved scope/files and each approved check has a result or unverified reason.
