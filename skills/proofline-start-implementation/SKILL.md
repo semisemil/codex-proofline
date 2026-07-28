@@ -1,56 +1,58 @@
 ---
 name: proofline-start-implementation
-description: Start or resume a Proofline PRD with one persistent implementation task, optional risk pre-review, and fresh post-review. Complete only after the latest report passes.
+description: Start or resume a Proofline Spec directly or through conditional Work Slices, with user-requested pre-review and focused post-review. Use when implementing a ready SPEC-* contract and complete only after its task-attributable changes pass.
 ---
 
 # Proofline Start Implementation
 
-Coordinate one PRD revision:
-
-```text
-optional pre-review -> persistent implementation task -> fresh post-review
-changes_required -> same task -> fresh post-review
-```
-
-The request authorizes that revision. Keep intent in the PRD and reports in task history; create no local artifacts.
+Coordinate one authorized Spec revision. Keep the contract in the Spec, optional execution state in its Slice files, and evidence in task history.
 
 ## Rules
 
-- Coordinate only: modify no product code/tests and supply no verdict.
-- Use one writable top-level task per revision, created with `create_thread` and followed up through `send_message_to_thread`; never use `spawn_agent` for implementation. Reviewers are fresh read-only subagents that never control/message it. Never simulate roles, run subprocess agents, or create top-level review tasks.
-- If orchestration, history, follow-up, or model selection is unavailable, stop without changing PRD status.
+- Coordinate only: modify no product code/tests and supply no verdict. Modify only Slice files and Spec lifecycle state.
+- Use one writable top-level task for direct work or each active Slice through `create_thread`/`send_message_to_thread`; use an integration task only for final integration findings. Never use `spawn_agent` for implementation. Use fresh read-only subagents for review; they never control/message implementation tasks.
+- Stop without changing Spec status when required orchestration, history, follow-up, or model selection is unavailable.
 
 ## Target and chain
 
-Resolve one `.proofline/prds/<PRD-ID>-*/PRD.md`; validate identity, schema, revision, contract, status, project, and validation. Proceed only with `ready`. Route `draft | blocked` through `proofline-implementation-spec` unless only lifecycle metadata is stale; reject terminal PRDs.
+Resolve `.proofline/specs/<SPEC-ID>-*/SPEC.md`; ignore `.proofline/prds/**`. Validate identity, schema `2`, revision, contract, status, and project. Proceed only with `ready`; route `draft` through `proofline-implementation-spec`, report the prerequisite for `blocked`, and reject terminal Specs.
 
-Chain key: `proofline_<lowercase PRD ID with hyphens replaced by underscores>_r<revision>`. Use these exact prompt-first-line and task/subagent names:
+Chain key: `proofline_<lowercase Spec ID with hyphens replaced by underscores>_r<revision>`. Use:
 
 ```text
 <chain_key>_pre_review_<two-digit attempt>
 <chain_key>_implementation
 <chain_key>_post_review_<two-digit attempt>
+<chain_key>_slice_<two-digit slice number>_implementation
+<chain_key>_slice_<two-digit slice number>_post_review_<two-digit attempt>
+<chain_key>_integration
+<chain_key>_final_review_<two-digit attempt>
 ```
 
-Query only exact names/latest results. Stop on duplicate implementation tasks. Reuse pre-review `pass` only while revision/facts remain current; number every post-review and resume the first incomplete step.
+Query exact names/latest results; stop on duplicate implementation tasks. Reuse pre-review `pass` only while the revision and inspected facts remain current. Number each review type independently and resume the first incomplete step.
 
 ## Run
 
-Choose each role through `assets/model-routing.md`; fill only its matching `references/*-prompt.md`. Use the user's language and only request overrides absent from PRD/repository. In implementation prompts, omit empty optional lines and do not repeat project identity, model settings, or automatic repository instructions; use `none` only where review templates require it.
+Choose roles through `assets/model-routing.md` and fill the matching `references/*-prompt.md`. Use the user's language; add only overrides absent from the Spec/repository and omit empty optional lines.
 
-**Pre-review:** Run only when explicitly requested or the PRD/request already identifies difficult design uncertainty or security/data/migration/deployment/rollback/external-contract risk. Otherwise implement directly. On `block` or no verdict, create no task; revise the contract or report missing evidence. Set `blocked` only for a durable product prerequisite.
+**Pre-review:** Run only when the user explicitly requests it. On `block`, route a contract-changing decision to `draft` and an external prerequisite to `blocked`; create no task. On `no_verdict`, report missing evidence without changing status.
 
-**Implementation:** Create/resume the chain task. When needed, invoke only: `proofline-scope-integrity` for large/risky work, `proofline-refactor-proof` for `refactor`, `proofline-exact-port` for `exact_port`, and `proofline-issue-ledger` for durable out-of-scope work. Use each exact `$...` mention instead of listing skill names as context; omit the line when none apply. Include only material pre-review findings. Before review, return incomplete evidence once to the same task.
+**Execution mode:** Default to direct implementation. Read `references/slicing.md` only when the Spec may contain multiple independently verifiable outcomes, a real dependency sequence, or more work/evidence than one task context can hold. Record the chain baseline before writing a Slice plan. Create no Slice merely to satisfy the workflow, and never block because a ready Spec has none.
 
-**Post-review:** Review only the latest report. On `changes_required`, send blocker/major and relevant minor findings to the same task; require verified fixes/affected checks, then use a fresh reviewer. No verdict counts but cannot complete.
+**Implementation:** For direct work, create/resume `<chain_key>_implementation` with `references/implementation-prompt.md`. For sliced work, create/resume only one frontier Slice task with `references/slice-implementation-prompt.md`. Each prompt records the pre-edit boundary and task-attributable changes. Mention only needed skills: `proofline-scope-integrity` for large/risky work, `proofline-refactor-proof` for `refactor`, `proofline-exact-port` for `exact_port`, and `proofline-issue-ledger` for durable out-of-scope work. Include only material pre-review findings.
 
-Allow three post-review attempts total, including the first and no-verdict reports. If attempt three does not `pass`, stop; resume only explicitly. Reviewer spawn failures do not count.
+Before review, return reports missing required or changed-behavior evidence to the same task for evidence only; invent no check or code defect.
+
+**Post-review:** For direct work use `references/post-review-prompt.md`. For a Slice use `references/post-review-slice.md`; on `pass`, mark only that Slice `completed` and proceed to the next frontier. After every Slice passes, use `references/post-review-final.md`. Treat it as integration/coverage review, not a repeat of Slice reviews. Resolve its `changes_required` findings through `<chain_key>_integration` with `references/integration-prompt.md`, then run a fresh final review.
+
+Send only `changes_required` findings to the responsible task. For `no_verdict`, request missing implementation evidence only; retry reviewer/tool/attribution failures with a fresh reviewer or report the unverified boundary. Neither verdict changes Spec status.
+
+Use no fixed attempt limit. Continue while fixes/evidence make material progress; stop and report when the same finding repeats without progress or progress cannot continue. Set `blocked` only for an external prerequisite.
 
 After task creation/follow-up, end the turn; do not monitor or call `wait_threads` because the task reports back.
 
 ## Finish
 
-- Never auto-rollback; correct through the same task. Roll back only its changes by user request/PRD procedure. On stop, report paths, failed/unrun checks, findings, and next action.
-- Complete only when all REQs/ACs hold, required validation has no failure/omission, fresh post-review passed the latest report, and every role names the revision. Set `completed`, update timestamps, freeze the body, and report settings, task refs, files, checks, blockers, and verdict without transcripts.
-- On revision change, stop the old chain and reuse no report; start the new chain only when authorized. Orchestration failure does not alter PRD status.
-- On workflow cancellation, stop new work and report changes/validation; set `cancelled` only for product-contract cancellation.
+- Never auto-rollback. Correct through the same task; roll back only by user request or Spec procedure.
+- Complete direct work only after its post-review passes. Complete sliced work only after every Slice is `completed` and a fresh final review passes. In both modes, every REQ's `Behavior`/`Done when` must hold and contractual/repository-required validation must have no failure or omission. Set the Spec `completed`, freeze its body, and report settings, task refs, files, checks, blockers, and verdict without transcripts.
+- On revision change, stop and reuse no report or completed Slice state; regenerate any Slice plan for the new revision. Orchestration failure never alters status. Set `cancelled` only for product-contract cancellation.

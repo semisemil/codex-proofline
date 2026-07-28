@@ -23,4 +23,4 @@ Use `max` only on explicit request; file count alone never raises effort.
 | `gpt-5.6-sol` + `high` | Difficult design/root cause or broad state flow |
 | `gpt-5.6-sol` + `xhigh` | Security/data/compatibility/migration/deployment/rollback/external contract |
 
-Each reviewer: fresh, `fork_turns: "none"`, explicit model/effort. Pass once: role prompt, PRD path, root, overrides, task reference, and latest report when applicable. Copy no conversation/repository instructions.
+Each reviewer: fresh, `fork_turns: "none"`, explicit model/effort. Pass once only the matching role prompt, Spec path, active Slice when applicable, root, overrides, task reference, and latest report. Copy no conversation/repository instructions.

@@ -76,19 +76,21 @@ $proofline:proofline-exact-port
 이 원본 구현을 대상 프로젝트로 동작 변경 없이 이식해줘.
 ```
 
-여러 작업과 독립 검토가 필요한 구현은 먼저 `proofline-implementation-spec`으로 PRD를 만듭니다.
+여러 작업과 독립 검토가 필요한 구현은 먼저 `proofline-implementation-spec`으로 Spec을 만듭니다.
 
 ```text
 $proofline:proofline-implementation-spec
-사용자 알림 설정 개선 작업을 구현 가능한 PRD로 정리해줘.
+사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해줘.
 ```
 
-준비된 PRD를 구현하려면 `proofline-start-implementation`을 사용합니다. 사전·사후 검토 서브에이전트와 하나의 상위 구현 작업을 연결하며 검토가 실패해도 자동 롤백하지 않습니다.
+준비된 Spec을 구현하려면 `proofline-start-implementation`을 사용합니다. 작은 작업은 바로 구현하고, 한 작업 컨텍스트를 넘는 경우에만 Spec 아래에 `Work Slice`를 만들어 Slice별 구현·검토 후 통합 검토를 수행합니다. 사전 검토는 사용자가 요청할 때만 실행하며, 검토가 실패해도 자동 롤백하지 않습니다.
 
 ```text
 $proofline:proofline-start-implementation
-PRD-0001 구현을 시작해줘.
+SPEC-0001 구현을 시작해줘.
 ```
+
+기존 `.proofline/prds/**`는 새 스킬이 읽지 않습니다. 필요한 프로젝트에서는 새 Spec을 만들기 전에 [PRD → Spec 일회성 마이그레이션 프롬프트](docs/migrations/prd-to-spec.md)를 복사해 프로젝트 루트에서 실행하세요. 원본 PRD는 변경하거나 삭제하지 않습니다.
 
 ## 🧩 포함된 스킬
 
@@ -101,8 +103,8 @@ PRD-0001 구현을 시작해줘.
 | `$proofline:proofline-exact-port` | 원본 동작을 그대로 옮겨야 하는 이식 | 원본과 대상의 대응 관계, 승인된 차이, 독립 비교 결과, 확인하지 못한 부분 |
 | `$proofline:proofline-issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 핵심 결정과 판정 근거 |
 | `$proofline:proofline-capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
-| `$proofline:proofline-implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 요구사항, 범위, 수용 기준, 검증 계획, PRD 수명주기 |
-| `$proofline:proofline-start-implementation` | 준비된 PRD를 독립 사전·사후 검토와 함께 구현할 때 | 단일 상위 구현 작업, 새 검토 서브에이전트, 수정 순환, 완료 근거, 명시적 롤백 정책 |
+| `$proofline:proofline-implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 작업별 최소 구조, 통합 요구사항·완료 조건, Spec 수명주기 |
+| `$proofline:proofline-start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 조건부 Work Slice, 작업 귀속 diff, Slice 검토, 최종 통합 판정 |
 
 ## 🗂️ `proofline-issue-ledger`로 이슈 남기기
 

@@ -1,49 +1,45 @@
 ---
 name: proofline-implementation-spec
-description: Create, revise, complete, cancel, or supersede implementation PRDs under .proofline/prds without implementing them. Use for durable implementation specifications or explicit invocation.
+description: Create, revise, complete, cancel, or supersede implementation Specs under .proofline/specs without implementing them. Use for durable contracts covering features, fixes, maintenance, refactors, or exact ports, or on explicit invocation.
 ---
 
 # Proofline Implementation Spec
 
-## Boundaries
+## Scope
 
-- Modify only `.proofline/prds/**`; never implement.
-- Do not copy `AGENTS.md` or system/developer/formatting/build policy. Record only behavior, scope, acceptance, or validation constraints.
-- Cite only necessary `path:line` evidence. Record hashes only when byte identity or artifact integrity is required.
+- Modify only `.proofline/specs/**`; never implement or migrate legacy `.proofline/prds/**`.
+- Record the current implementation contract, not repository, system, formatting, or ordinary build/test policy.
 
 ## Resolve
 
-Resolve explicit path/ID directly. For creation, inspect IDs and active same-goal candidates; read only plausible bodies. Prefer one active `draft | ready | blocked` PRD; stop on ambiguity.
+Resolve an explicit path or ID directly. For creation, inspect Spec metadata and only plausible active `draft | ready | blocked` same-goal bodies. Stop on identity ambiguity.
 
-Before writing, compare meaning, metadata, lifecycle, and links. If already matched, report `no-op`; do not rewrite, snapshot, revise, or retimestamp.
+Compare contract, metadata, lifecycle, and links before writing. If already matched, report `no-op`; do not rewrite, snapshot, or revise.
 
-Path: `.proofline/prds/<PRD-ID>-<slug>/PRD.md`. Allocate above the largest directory/front-matter ID, recheck before creation, and never overwrite collisions. Keep ID/slug fixed. Snapshots: `revisions/REV-<revision>.md`. Use offset-bearing ISO 8601 timestamps; create no global index.
+Use `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md`; allocate above the largest Spec ID, recheck, and never overwrite a collision. Keep ID/slug fixed. Store snapshots at `revisions/REV-<revision>.md`; create no global index.
 
 ## Contract
 
-Create from `assets/templates/prd.md`; preserve order, replace every placeholder, and serialize JSON safely. Omit empty optional sections. Retain existing layouts; never revise only for a new convention.
+Create from `assets/templates/spec.md` and serialize its JSON safely. Require `schema_version: 2`; `SPEC-0001`-form `id`; stable `title`; `kind` in `feature | bug | refactor | exact_port | maintenance`; `status` in `draft | ready | blocked | completed | cancelled | superseded`; positive `revision`; arrays `supersedes`/`related_issues`; nullable `superseded_by`. Create no other metadata; preserve unknown keys in an existing valid Spec.
 
-Require `schema_version: 1`; `PRD-0001`-form `id`; stable `title`; `kind` in `feature | bug | refactor | exact_port | maintenance`; `status` in `draft | ready | blocked | completed | cancelled | superseded`; positive `revision`; created/updated timestamps; terminal-only `archived_at`; arrays `supersedes`/`related_issues`; nullable `superseded_by`.
+Keep only the current contract: no discussion history, investigation logs, rejected alternatives, or metadata repeated as prose. Format every stable `REQ-001` as one list item with nested `Behavior:` and observable `Done when:` lines; create no acceptance IDs or mapping.
 
-Preserve unknown valid metadata. Use stable `REQ-001`/`AC-001` IDs and map every AC to its REQs. Store no model or reasoning setting.
+Use the smallest matching body:
 
-`blocked` means durable prerequisite; task/tool failure never changes status. Never move/delete/rewrite a terminal PRD body; later product changes require a new PRD.
+- `feature`: `Outcome`, `Contract`
+- `bug | maintenance`: `Current`, `Contract`
+- `refactor`: `Current structure`, `Contract`, `Preserve`, `Verification`
+- `exact_port`: `Source and target`, `Contract`, optional `Approved deviations`, `Verification`
 
-## Content
+Add `Boundaries` only for plausible adjacent scope, `Preserve` only for material invariants, `Constraints` only for decisions restricting valid implementations, and `Verification` only when a check/environment is contractual. Omit empty sections and title headings; invent no requirement.
 
-Inspect only enough current sources for material claims. Separate facts/assumptions/decisions; state outcome/context, scope, requirements/acceptance, validation, and relevant boundaries. Leave design open unless user-confirmed.
+## Lifecycle
 
-Cover errors, compatibility, data, security, migration, and rollback only when supported by a requirement, trust boundary, reachable path, or obligation. Do not repeat invariants/invent requirements.
+Prefer `ready`. Use `draft` only when a missing user decision materially changes behavior, scope, compatibility, or data. Use `blocked` only for an actual external prerequisite; transient task, tool, reviewer, or runtime failures never change status. Implementation details and ordinary project-discoverable validation do not prevent `ready`.
 
-## Operations
+- **Create:** Write revision `1` and apply the ready rule.
+- **Major revision:** Snapshot first, never overwrite a differing snapshot, increment once, and invalidate old evidence.
+- **Operational edit:** Do not revise for typo/formatting, relation links, or lifecycle-only changes.
+- **Terminal:** Complete only from same-revision evidence and a fresh passing post-review; cancel only by user; supersede by linking both Specs. Preserve body/location.
 
-- **Create:** Allocate the fixed ID/directory, write revision `1`, and apply the ready gate.
-- **Major revision:** Before changing goal, behavior, requirements, scope, acceptance/validation, policy, or a blocker-resolving decision, snapshot current. Never overwrite a differing snapshot. Increment once, update time/status, invalidate old evidence.
-- **Operational edit:** Do not revise for typo/formatting, evidence/issue/supersession links, timestamps, or lifecycle-only changes.
-- **Terminal:** Complete only with same-revision implementation, validation, and fresh passing post-review; cancel only by user; supersede by linking both PRDs. Set terminal timestamps; preserve body/location.
-
-## Ready and report
-
-Set `ready` only when behavior/project are clear, requirements/acceptance agree, scope/material boundaries are explicit, no decision/prerequisite remains, and validation is executable or justifiably omitted.
-
-Never ask for implementation approval. Report operation, ID/title/path, revision/status, created snapshot, confirmed decisions, blockers, and that no implementation occurred.
+Never ask for implementation approval. Report operation, ID/title/path, revision/status, snapshot, decisions, blockers, and that no implementation occurred.
