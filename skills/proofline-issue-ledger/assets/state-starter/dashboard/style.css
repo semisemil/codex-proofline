@@ -926,6 +926,9 @@ input[type="search"]::placeholder { color: var(--subtle); }
   border-left: var(--focus-size) solid var(--accent);
 }
 
+/* 단일 사실은 전체 너비를 사용해 빈 열을 남기지 않습니다. */
+.overview-facts > div:only-child { grid-column: 1 / -1; }
+
 .overview-facts dt {
   margin-bottom: var(--space-1);
   color: var(--muted);
