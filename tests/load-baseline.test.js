@@ -79,11 +79,12 @@ test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
-test('implementation review is opt-in before work and runs in a focused subagent after work', () => {
+test('implementation review is opt-in before work and runs in a blind subagent after work', () => {
   const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
   const implementation = read('skills', 'proofline-start-implementation', 'references', 'implementation-prompt.md');
   const preReview = read('skills', 'proofline-start-implementation', 'references', 'pre-review-prompt.md');
   const postReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
+  const modelRouting = read('skills', 'proofline-start-implementation', 'assets', 'model-routing.md');
 
   assert.match(coordinator, /Run only when the user explicitly requests it/);
   assert.match(coordinator, /Use no fixed (?:review-)?attempt limit/);
@@ -93,11 +94,14 @@ test('implementation review is opt-in before work and runs in a focused subagent
   assert.match(implementation, /pre-existing changed paths/);
   assert.match(implementation, /task-attributable paths/);
   assert.match(preReview, /Do not block for implementation choices/);
-  // 사후 검토가 사용자 소유 작업으로 분리되지 않도록 실행 경계를 고정한다.
+  // 사후 검토가 별도 작업이나 이전 이력에 종속되지 않도록 실행 경계를 고정한다.
   assert.match(coordinator, /post-review.*`spawn_agent`.*`fork_turns: "none"`/i);
   assert.match(coordinator, /never use `create_thread` to run a post-review/i);
-  assert.match(postReview, /Review only changes attributable to this task/);
-  assert.match(postReview, /Never create a finding or note for unrelated existing code/);
+  assert.match(coordinator, /Never pass implementation or pre-review reports, prior review reports\/findings/);
+  assert.match(postReview, /Independently review the current implementation/);
+  assert.match(postReview, /Do not request or use work reports, prior reviews\/findings/);
+  assert.doesNotMatch(postReview, /Latest report|implementation_report_text|implementation_task|review_attempt/);
+  assert.match(modelRouting, /Pass no task\/report\/review history or expected conclusion/);
   assert.match(postReview, /exactly one verdict: `pass`, `changes_required`, or `no_verdict`/);
 });
 
@@ -112,7 +116,12 @@ test('Work Slices are conditional, compact, and reviewed locally before final in
   assert.match(coordinator, /Record the chain baseline before writing a Slice plan/);
   assert.match(coordinator, /never block because a ready Spec has none/);
   assert.match(coordinator, /mark only that Slice `completed`/);
-  assert.match(coordinator, /integration\/coverage review, not a repeat of Slice reviews/);
+  assert.match(coordinator, /fresh blind final review/);
+  // 슬라이스 및 최종 검토도 이전 작업과 검토 결과를 입력으로 받지 않는다.
+  for (const review of [sliceReview, finalReview]) {
+    assert.match(review, /Do not request or use work reports, prior reviews\/findings/);
+    assert.doesNotMatch(review, /Latest.*report|implementation_report_text|integration_report_text|review_attempt|review_references/);
+  }
 
   assert.match(slicing, /Do not divide by file, component, layer, or test type/);
   assert.match(slicing, /reference parent `REQ-\*` IDs without copying their contract text/);
@@ -143,11 +152,11 @@ test('Work Slices are conditional, compact, and reviewed locally before final in
   ]);
   assert.equal(metadata.status, 'pending');
 
-  assert.match(sliceReview, /Review only this Slice/);
-  assert.match(sliceReview, /Do not review the whole Spec/);
-  assert.match(finalReview, /Treat passed Slice reviews as local proof/);
-  assert.match(finalReview, /complete REQ coverage, cross-Slice integration/);
-  assert.match(finalReview, /Do not repeat file-level/);
+  assert.match(sliceReview, /Inspect the Slice outcome, assigned REQs/);
+  assert.match(sliceReview, /ignore unrelated Spec areas/);
+  assert.doesNotMatch(finalReview, /Treat passed Slice reviews as local proof/);
+  assert.match(finalReview, /Inspect complete REQ coverage, cross-Slice integration/);
+  assert.match(finalReview, /Use only the current Spec, project state/);
 });
 
 test('skill completion boundaries are single-sourced and checkable', () => {

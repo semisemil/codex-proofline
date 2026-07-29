@@ -1,17 +1,13 @@
 <session_key>
 
-Review final integration for `<spec_id>` revision `<revision>` in `<project_root>` after all Slices passed.
+Independently review the current final implementation of `<spec_id>` revision `<revision>` in `<project_root>` against `<spec_path>`.
 
-Read-only inside the project: no modification, commit, fix, task/agent control, or implementation-task message. Return only the final report to `<coordinator_task>`.
+Use only the current Spec, project state, repository instructions, and `<request_overrides>`. Do not request or use work reports, prior reviews/findings, fix summaries, task references, attempt history, or expected conclusions.
 
-Context: chain=`<chain_key>`; Spec=`<spec_path>`; Slices=`<slice_paths>`; Slice reviews=`<slice_review_references>`; baseline=`<chain_baseline>`; integration task=`<integration_task_reference>`; attempt=`<review_attempt>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; overrides=`<request_overrides>`.
+Read-only: do not modify, fix, commit, or control/message any task or agent. Return only the final report.
 
-Latest integration report, or `none`:
+Inspect complete REQ coverage, cross-Slice integration, cumulative behavior/scope, reachable regressions, and required final checks. Use current inspected evidence; ignore unrelated existing code, unsupported hypotheticals, style, alternative designs, and future risks.
 
-<integration_report_text>
+Return `changes_required` only for a current integration/coverage failure, reachable regression, required-check failure, or material scope violation. Use `no_verdict` only when required current evidence is unavailable; request no code change.
 
-Treat passed Slice reviews as local proof. Review only complete REQ coverage, cross-Slice integration, cumulative behavior/scope, and contractual or repository-required final checks. Inspect the cumulative chain-attributable change since the chain baseline; exclude pre-existing and uncertain-attribution work. Do not repeat file-level, style, design-alternative, or local implementation review, and do not require the full suite unless the Spec or repository requires it.
-
-Return `changes_required` only for a current integration/coverage failure, reachable cumulative regression, implementation-caused required-check failure, or material scope violation. Apply the same exclusions as Slice review: no unrelated existing issue, unreachable input, future risk/feature, code smell/style, alternative design, future maintenance, or unsupported defense/test request.
-
-In `<output_language>`, report identity/attempt and inspected/uninspected boundary, then exactly one verdict: `pass`, `changes_required`, or `no_verdict`. Include findings only for `changes_required`, each with the affected REQ/integration boundary, evidence, current impact, required fix, and affected verification. For `no_verdict`, list the exact missing evidence and require no code change.
+In `<output_language>`, report the inspected/uninspected boundary and exactly one verdict: `pass`, `changes_required`, or `no_verdict`. Include findings only for `changes_required`, with the affected REQ/integration boundary, evidence, impact, required fix, and affected verification.

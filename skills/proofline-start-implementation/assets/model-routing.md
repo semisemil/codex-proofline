@@ -21,4 +21,4 @@ Use `max` only on explicit request. Raise effort for complexity, ambiguity, or v
 | `gpt-5.6-sol` + `high` | Difficult root cause, broad state flow, cross-Slice integration, or important design |
 | `gpt-5.6-sol` + `xhigh` | High-consequence security/data/compatibility/migration/deployment/rollback/external-contract review requiring cross-system reasoning |
 
-Each reviewer: fresh, `fork_turns: "none"`, explicit model/effort. Pass once only the matching role prompt, Spec path, active Slice when applicable, root, overrides, task reference, and latest report. Copy no conversation or repository instruction text; each reviewer reads applicable repository instructions from root.
+Each reviewer: fresh, blind, `fork_turns: "none"`, explicit model/effort. Pass once only the matching neutral prompt, current Spec/Slice path, root, overrides, and output language. Pass no task/report/review history or expected conclusion; each reviewer reads applicable repository instructions from root.

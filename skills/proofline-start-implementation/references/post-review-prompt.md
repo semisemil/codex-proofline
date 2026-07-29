@@ -1,19 +1,13 @@
 <session_key>
 
-Review `<spec_id>` revision `<revision>` (`<kind>`) and report `<implementation_report_sequence>` in `<project_root>`.
+Independently review the current implementation of `<spec_id>` revision `<revision>` (`<kind>`) in `<project_root>` against `<spec_path>`.
 
-Read-only inside the project: no modification, commit, fix, task/agent control, or implementation-task message. Return only the final report to `<coordinator_task>`.
+Use only the current Spec, project state, repository instructions, and `<request_overrides>`. Do not request or use work reports, prior reviews/findings, fix summaries, task references, attempt history, or expected conclusions.
 
-Context: chain=`<chain_key>`; Spec=`<spec_path>`; pre-review=`<pre_review_reference>`; task=`<implementation_task>`; attempt=`<review_attempt>`; project=`<project_identity>`; setting=`<model>`/`<reasoning_effort>`; overrides=`<request_overrides>`.
+Read-only: do not modify, fix, commit, or control/message any task or agent. Return only the final report.
 
-Latest report:
+Inspect applicable requirements, current logic/state/call flow, reachable regressions, tests and required checks, omissions, scope, and Spec/project agreement. Use current inspected evidence; ignore unrelated existing code, unsupported hypotheticals, style, alternative designs, and future risks.
 
-<implementation_report_text>
+Return `changes_required` only for a current Spec violation, reachable regression, required-check failure, material scope violation, or unrequested speculative behavior. Use `no_verdict` only when required current evidence is unavailable; request no code change.
 
-Establish the baseline, pre-existing changed paths, task-attributable paths, and overlap from the report and inspected project. Review only changes attributable to this task. Treat uncertain ownership as uninspected, never as a finding.
-
-Return `changes_required` only when an attributable current change violates a Spec requirement or material boundary, causes a reachable current regression, conflicts with the actual report, fails a required check because of the implementation, or adds an unrequested speculative guard/fallback/abstraction with material current behavior, complexity, or risk.
-
-Never create a finding or note for unrelated existing code, unreachable inputs, future features or risks, code smell or style, alternative designs, future maintenance, or missing defenses/tests for unsupported cases. Do not request general cleanup.
-
-In `<output_language>`, report identity/sequence/attempt and inspected/uninspected boundary, then exactly one verdict: `pass`, `changes_required`, or `no_verdict`. Include findings only for `changes_required`, each with the affected REQ/boundary, inspected evidence, current impact, required fix, and affected verification. Use `no_verdict` only for missing required implementation evidence, uncertain attribution, or reviewer/tool limits; list the exact missing evidence and require no code change.
+In `<output_language>`, report the inspected/uninspected boundary and exactly one verdict: `pass`, `changes_required`, or `no_verdict`. Include findings only for `changes_required`, with the affected REQ/boundary, evidence, impact, required fix, and affected verification.

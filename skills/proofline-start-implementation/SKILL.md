@@ -1,6 +1,6 @@
 ---
 name: proofline-start-implementation
-description: Start or resume a Proofline Spec directly or through conditional Work Slices, with user-requested pre-review and focused post-review. Use when implementing a ready SPEC-* contract and complete only after its task-attributable changes pass.
+description: Start or resume a Proofline Spec directly or through conditional Work Slices, with user-requested pre-review and blind post-review. Use when implementing a ready SPEC-* contract and complete only after its current implementation passes.
 ---
 
 # Proofline Start Implementation
@@ -11,7 +11,7 @@ Coordinate one authorized Spec revision. Keep the contract in the Spec, optional
 
 - Coordinate only: modify no product code/tests and supply no verdict. Modify only Slice files and Spec lifecycle state.
 - Use one writable top-level task for direct work or each active Slice through `create_thread`/`send_message_to_thread`; use an integration task only for final integration findings. Never use `spawn_agent` for implementation.
-- Use fresh read-only subagents for review; they never control/message implementation tasks.
+- Use fresh blind read-only subagents for review; they never control/message implementation tasks or receive prior work/review history.
 - Stop without changing Spec status when required orchestration, history, follow-up, or model selection is unavailable.
 
 ## Target and chain
@@ -34,7 +34,7 @@ Query exact names/latest results; stop on duplicate implementation tasks. Reuse 
 
 ## Run
 
-Choose roles through `assets/model-routing.md` and fill the matching `references/*-prompt.md`. Use the user's language; add only overrides absent from the Spec/repository and omit empty optional lines.
+Choose roles through `assets/model-routing.md` and fill the matching `references/*-prompt.md`. Render the entire prompt in the user's language while preserving identifiers and verdict tokens; add only overrides absent from the Spec/repository and omit empty optional lines.
 
 **Pre-review:** Run only when the user explicitly requests it. On `block`, route a contract-changing decision to `draft` and an external prerequisite to `blocked`; create no task. On `no_verdict`, report missing evidence without changing status.
 
@@ -44,7 +44,7 @@ Choose roles through `assets/model-routing.md` and fill the matching `references
 
 Before review, return reports missing required or changed-behavior evidence to the same task for evidence only; invent no check or code defect.
 
-**Post-review:** Start every attempt with a fresh read-only subagent through `spawn_agent` using `fork_turns: "none"`; never use `create_thread` to run a post-review. Wait for its result in the coordinator task. For direct work use `references/post-review-prompt.md`. For a Slice use `references/post-review-slice.md`; on `pass`, mark only that Slice `completed` and proceed to the next frontier. After every Slice passes, use `references/post-review-final.md`. Treat it as integration/coverage review, not a repeat of Slice reviews. Resolve its `changes_required` findings through `<chain_key>_integration` with `references/integration-prompt.md`, then run a fresh final review.
+**Post-review:** Start every attempt with a fresh blind read-only subagent through `spawn_agent` using `fork_turns: "none"`; never use `create_thread` to run a post-review. Give it only the matching neutral review prompt, current Spec/Slice path, project root, request overrides, and output language. Never pass implementation or pre-review reports, prior review reports/findings, fix summaries, task references, attempt history, or expected conclusions. Wait for its result in the coordinator task. For direct work use `references/post-review-prompt.md`. For a Slice use `references/post-review-slice.md`; on `pass`, mark only that Slice `completed` and proceed to the next frontier. After every Slice passes, use `references/post-review-final.md`. Resolve its `changes_required` findings through `<chain_key>_integration` with `references/integration-prompt.md`, then run a fresh blind final review.
 
 Send only `changes_required` findings to the responsible task. For `no_verdict`, request missing implementation evidence only; retry reviewer/tool/attribution failures with a fresh reviewer or report the unverified boundary. Neither verdict changes Spec status.
 
