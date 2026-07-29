@@ -79,7 +79,7 @@ test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
-test('implementation review is opt-in before work and contract-only after work', () => {
+test('implementation review is opt-in before work and runs in a focused subagent after work', () => {
   const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
   const implementation = read('skills', 'proofline-start-implementation', 'references', 'implementation-prompt.md');
   const preReview = read('skills', 'proofline-start-implementation', 'references', 'pre-review-prompt.md');
@@ -93,6 +93,9 @@ test('implementation review is opt-in before work and contract-only after work',
   assert.match(implementation, /pre-existing changed paths/);
   assert.match(implementation, /task-attributable paths/);
   assert.match(preReview, /Do not block for implementation choices/);
+  // 사후 검토가 사용자 소유 작업으로 분리되지 않도록 실행 경계를 고정한다.
+  assert.match(coordinator, /post-review.*`spawn_agent`.*`fork_turns: "none"`/i);
+  assert.match(coordinator, /never use `create_thread` to run a post-review/i);
   assert.match(postReview, /Review only changes attributable to this task/);
   assert.match(postReview, /Never create a finding or note for unrelated existing code/);
   assert.match(postReview, /exactly one verdict: `pass`, `changes_required`, or `no_verdict`/);
