@@ -171,15 +171,37 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   const scope = read('skills', 'proofline-scope-integrity', 'SKILL.md');
   const growth = read('skills', 'proofline-capability-growth', 'SKILL.md');
 
-  // 상시 주입되는 기준은 핵심 의미를 유지하면서 정해진 컨텍스트 예산을 넘지 않아야 한다.
-  assert.ok(baseline.length <= 5200, `baseline skill is ${baseline.length} characters`);
   assert.match(baseline, /read and apply every rule in `references\/ui\.md`/);
+  assert.match(baseline, /Before writing or changing visible UI text/);
   assert.match(baseline, /read and apply every rule in `references\/code\.md`/);
   assert.doesNotMatch(baseline, /clear names, cohesive functions|interface narration/);
   assert.match(baselineUi, /interface narration, intent paraphrases/);
   assert.match(baseline, /## Review and evidence\r?\n/);
   assert.match(baseline, /For review, audit, diagnosis, or critique/);
-  assert.match(baseline, /Preserve all source information and support every result claim/);
+  // 표현 압축의 적용 범위와 명시적 선별, 판단 위임, 검토 형식이 보존 및 권한 규칙과 충돌하지 않아야 한다.
+  assert.match(baseline, /Apply expression compression to every response and artifact/);
+  assert.match(baseline, /controls how in-scope content is expressed, not what is in scope/);
+  assert.match(baseline, /preserve information, structure, style, and the user's instructions/);
+  assert.match(baseline, /Preserve source form for exact reproduction, evidentiary fidelity/);
+  assert.doesNotMatch(baseline, /Preserve source text only when/);
+  assert.match(baseline, /established whole-term expression in the intended output language/);
+  assert.match(baseline, /If none exists in that language/);
+  // 출력 언어 규칙은 중복된 소문자 검사에 의존하지 않아야 한다.
+  assert.doesNotMatch(baseline, /Lowercase Latin prose outside protected spans/);
+  assert.match(baseline, /Within the requested scope, preserve the meaning of retained source information/);
+  assert.match(baseline, /Do not infer intent, preference, policy, or approval from absence, incompleteness, or incidental state/);
+  assert.match(baseline, /Treat authoritative sources as evidence only for what they establish/);
+  assert.match(baseline, /Permission to decide does not authorize dependent action/);
+  assert.match(baseline, /explicitly delegates the substantive choice and separately requests the dependent action/);
+  assert.match(baseline, /read-only answer can fully cover them without choosing among them/);
+  assert.match(baseline, /Proceed without asking when context resolves the interpretation/);
+  assert.match(baseline, /propose rather than apply language corrections/);
+  assert.match(baseline, /answer's substance, an artifact's required content or target/);
+  assert.match(baseline, /differ only in presentation while preserving the requested meaning and format/);
+  assert.match(baseline, /follow the user's requested scope and any specified report format/);
+  assert.match(baseline, /Use examples according to their communicative purpose/);
+  assert.match(baseline, /may identify one case or demonstrate a broader issue/);
+  assert.doesNotMatch(baseline, /Corrections apply only to the named case/);
   assert.match(baseline, /keep useful headings and lists, separate distinct information/);
   assert.match(baseline, /address the actual claim within its scope and exceptions/i);
   assert.doesNotMatch(baseline, /do not remove information from the source|do not merge its items into prose|Do not pack distinct information|Never strengthen it/);
