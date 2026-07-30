@@ -16,6 +16,8 @@ test('baseline hook loads the packaged skill', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /# Proofline Baseline Quality/);
   assert.doesNotMatch(result.stdout, /^---/);
+  assert.ok(result.stdout.includes(path.join(repoRoot, 'skills', 'proofline-baseline-quality', 'references', 'ui.md')));
+  assert.ok(result.stdout.includes(path.join(repoRoot, 'skills', 'proofline-baseline-quality', 'references', 'code.md')));
 });
 
 // 누락된 패키지 파일은 조용히 넘어가지 않고 진단 가능한 오류를 반환해야 한다.
@@ -161,23 +163,38 @@ test('Work Slices are conditional, compact, and reviewed locally before final in
 
 test('skill completion boundaries are single-sourced and checkable', () => {
   const baseline = read('skills', 'proofline-baseline-quality', 'SKILL.md');
+  const baselineCode = read('skills', 'proofline-baseline-quality', 'references', 'code.md');
+  const baselineUi = read('skills', 'proofline-baseline-quality', 'references', 'ui.md');
   const completion = read('skills', 'proofline-completion-evidence', 'SKILL.md');
   const exactPortReport = read('skills', 'proofline-exact-port', 'assets', 'templates', 'exact-port-report.md');
   const refactorReport = read('skills', 'proofline-refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
   const scope = read('skills', 'proofline-scope-integrity', 'SKILL.md');
   const growth = read('skills', 'proofline-capability-growth', 'SKILL.md');
 
-  assert.match(baseline, /## Review\r?\n/);
+  // 상시 주입되는 기준은 핵심 의미를 유지하면서 정해진 컨텍스트 예산을 넘지 않아야 한다.
+  assert.ok(baseline.length <= 5200, `baseline skill is ${baseline.length} characters`);
+  assert.match(baseline, /read and apply every rule in `references\/ui\.md`/);
+  assert.match(baseline, /read and apply every rule in `references\/code\.md`/);
+  assert.doesNotMatch(baseline, /clear names, cohesive functions|interface narration/);
+  assert.match(baselineUi, /interface narration, intent paraphrases/);
+  assert.match(baseline, /## Review and evidence\r?\n/);
   assert.match(baseline, /For review, audit, diagnosis, or critique/);
-  assert.match(baseline, /preserve all source information and keep every result claim source-supported/);
-  assert.match(baseline, /Keep list items separate when a list is easier to read/);
-  assert.match(baseline, /Keep distinct information in separate sentences/);
-  assert.match(baseline, /restate and address the actual claim within its stated scope and exceptions/);
+  assert.match(baseline, /Preserve all source information and support every result claim/);
+  assert.match(baseline, /keep useful headings and lists, separate distinct information/);
+  assert.match(baseline, /address the actual claim within its scope and exceptions/i);
   assert.doesNotMatch(baseline, /do not remove information from the source|do not merge its items into prose|Do not pack distinct information|Never strengthen it/);
 
-  assert.match(baseline, /Reuse evidence already inspected in this task for follow-up questions/);
-  assert.match(baseline, /user requests current verification, relevant state changed, or the needed detail lacks prior evidence/);
-  assert.match(baseline, /Memory and another task's history are locators until rechecked/);
+  // 함수 크기와 지역적으로 가능한 상태가 불필요한 추출 및 방어 처리를 유도하지 않아야 한다.
+  assert.match(baselineCode, /clear names, cohesive functions/);
+  assert.doesNotMatch(baselineCode, /clear names, small functions/);
+  assert.match(baselineCode, /local possibility as unproven reachability/);
+  assert.match(baselineCode, /creation and validation paths and business rules/);
+  assert.match(baselineCode, /upstream-excluded states outside normal flow/);
+  assert.match(baselineCode, /ask the user first/);
+
+  assert.match(baseline, /Reuse inspected task evidence for follow-ups while state is unchanged/);
+  assert.match(baseline, /requested current verification, changed state, or missing detail/);
+  assert.match(baseline, /Memory and other task history are locators until rechecked/);
   assert.match(completion, /separate completed work, passed checks, failed checks/);
   assert.match(completion, /including earlier turns while relevant state is unchanged/);
   assert.match(completion, /Answer follow-up questions about a reported result directly from that unchanged task evidence/);

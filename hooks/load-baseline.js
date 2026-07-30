@@ -59,7 +59,12 @@ try {
     .replace(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, '')
     .replace(/^\r?\n/, '');
 
-  process.stdout.write(body);
+  // 조건부 참조를 설치 위치와 무관하게 읽을 수 있도록 절대 경로로 바꾼다.
+  const resolvedBody = body.replace(/`references\/([^`]+)`/g, (_match, reference) => (
+    `\`${path.join(path.dirname(skillPath), 'references', reference)}\``
+  ));
+
+  process.stdout.write(resolvedBody);
 } catch (error) {
   logFailure(error, skillPath);
   console.error(`Proofline hook failed: ${error.message}`);
