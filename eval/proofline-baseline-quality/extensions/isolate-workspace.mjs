@@ -38,6 +38,7 @@ export async function extensionHook(hookName, context) {
       throw new Error('평가 사례 metadata.case가 올바르지 않습니다.');
     }
     const fixtureDir = resolve(fixtureRoot, caseName);
+    const conversationTurns = context.test.metadata?.conversationTurns;
     const fromFixtureRoot = relative(fixtureRoot, fixtureDir);
     if (
       fromFixtureRoot.startsWith('..') ||
@@ -59,6 +60,17 @@ export async function extensionHook(hookName, context) {
         vars: {
           ...context.test.vars,
           workspaceDir,
+          ...(conversationTurns === undefined
+            ? {}
+            : { conversationTurnsJson: JSON.stringify(conversationTurns) }),
+          evidenceRequirements: {
+            case: caseName,
+            comparison: context.test.metadata?.comparison ?? 'response',
+            artifactRubric: context.test.metadata?.artifactRubric ?? null,
+            turnSnapshots: context.test.metadata?.requiresTurnSnapshots === true,
+            workspaceWriteMonitor:
+              context.test.metadata?.requiresWorkspaceWriteMonitor === true,
+          },
         },
       },
     };

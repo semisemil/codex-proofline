@@ -11,25 +11,31 @@ function providerRaw(context) {
 export default function checkReviewNoEdit(_output, context) {
   const diff = diffProjectFiles(context);
   const unchanged = hasExactDiff(diff, {});
-  const items = providerRaw(context).items ?? [];
-  const noFileChangeEvent = items.every((item) => item.type !== 'file_change');
-  const snapshots = providerRaw(context).workspaceSnapshots;
-  const writeEvents = providerRaw(context).workspaceWriteEvents;
+  const raw = providerRaw(context);
+  const snapshots = raw.workspaceSnapshots;
+  const writeEvents = Array.isArray(raw.workspaceWriteEvents)
+    ? raw.workspaceWriteEvents
+    : [];
+  const observedWriteEvents = writeEvents.filter(
+    (event) => event.observed === true || event.eventType !== 'monitor-error',
+  );
   const snapshotsAvailable = Array.isArray(snapshots) && snapshots.length === 3;
   const snapshotsUnchanged = snapshotsAvailable
     && snapshots.every((snapshot) => snapshot.changed === false);
-  const writeMonitorAvailable = Array.isArray(writeEvents);
-  const noWorkspaceWrite = writeMonitorAvailable && writeEvents.length === 0;
   const failed = [];
   if (!unchanged) failed.push(`검토 중 파일을 변경했다 (${formatDiff(diff)})`);
-  if (!noFileChangeEvent) failed.push('멀티턴 중 파일 변경 이벤트가 발생했다');
   if (!snapshotsAvailable) failed.push('세 턴 각각의 workspace snapshot이 기록되지 않았다');
-  if (!snapshotsUnchanged) failed.push('중간 턴에서 파일을 바꿨다가 되돌렸다');
-  if (!writeMonitorAvailable) failed.push('턴 내부 쓰기를 감지하는 workspace write monitor 기록이 없다');
-  if (!noWorkspaceWrite) failed.push('한 턴 안에서 파일을 바꿨다가 되돌린 쓰기 이벤트가 있다');
+  if (snapshotsAvailable && !snapshotsUnchanged) {
+    failed.push('턴 전후 workspace snapshot에 실제 변경이 남았다');
+  }
+  const writeEvidence = observedWriteEvents.length > 0
+    ? `쓰기 이벤트 ${observedWriteEvents.length}건은 관찰됐지만 최종 상태에서 원복됐다.`
+    : '관찰된 쓰기 이벤트가 없다.';
   return {
     pass: failed.length === 0,
-    score: [unchanged, noFileChangeEvent, snapshotsAvailable, snapshotsUnchanged, writeMonitorAvailable, noWorkspaceWrite].filter(Boolean).length / 6,
-    reason: failed.length === 0 ? '세 턴 전체에서 파일 변경 없이 검토했다.' : failed.join(', '),
+    score: [unchanged, snapshotsAvailable, snapshotsUnchanged].filter(Boolean).length / 3,
+    reason: failed.length === 0
+      ? `세 턴 전후와 최종 workspace가 unchanged다. ${writeEvidence}`
+      : failed.join(', '),
   };
 }

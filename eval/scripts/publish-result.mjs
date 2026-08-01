@@ -7,6 +7,12 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+import {
+  artifactEvidence,
+  conditionOf,
+  workspaceEvidence,
+} from './pairwise-judge-core.mjs';
+
 const evalDir = resolve(import.meta.dirname, '..');
 const suiteDir = join(evalDir, 'proofline-baseline-quality');
 const localResultsDir = join(suiteDir, 'results', 'local');
@@ -46,6 +52,10 @@ const raw = JSON.parse(rawBytes.toString('utf8'));
 const pairwise = readJson(pairwisePath);
 const rawSha256 = sha256Bytes(rawBytes);
 const comparisonRun = raw.metadata?.prooflineComparison;
+
+if (pairwise.schemaVersion !== 3) {
+  throw new Error('실제 artifact 판정과 독립 의미 판정을 포함한 상대평가 스키마 3 결과만 발행할 수 있습니다.');
+}
 
 if (comparisonRun?.architecture !== 'one-identical-prompt-two-isolated-providers') {
   throw new Error('새 격리 환경 방식으로 생성되지 않은 원시 결과는 현재 발행기로 공개할 수 없습니다.');
@@ -103,7 +113,7 @@ if (appliedAdjudicationIds.size > 0) {
     if (!row) throw new Error('재판정 대상 응답을 원시 결과에서 찾을 수 없습니다.');
     return {
       case: row.metadata.case,
-      condition: row.promptIdx === 1 ? 'Proofline 적용' : 'Proofline 없음',
+      condition: conditionOf(row) === 'treatment' ? 'Proofline 적용' : 'Proofline 없음',
       metric: entry.metric,
       previousReason: entry.expected.reason,
       correctedReason: entry.replacement.reason,
@@ -118,25 +128,33 @@ const comparisons = [...pairwise.comparisons]
   .sort((a, b) => a.testIdx - b.testIdx)
   .map((comparison) => {
     const rows = rowsByTest.get(comparison.testIdx) ?? [];
-    const disabled = rows.find((row) => row.promptIdx === 0);
-    const enabled = rows.find((row) => row.promptIdx === 1);
+    const disabled = rows.find((row) => conditionOf(row) === 'control');
+    const enabled = rows.find((row) => conditionOf(row) === 'treatment');
     if (!disabled || !enabled) {
       throw new Error(`공개할 비교 쌍이 완전하지 않습니다: testIdx ${comparison.testIdx}`);
     }
     const repeat = (caseRepeats.get(comparison.case) ?? 0) + 1;
     caseRepeats.set(comparison.case, repeat);
     const variant = (row, name) => ({
-      executionIndex: comparison.testIdx * 2 + row.promptIdx + 1,
+      executionIndex:
+        comparison.testIdx * 2 + (conditionOf(row) === 'treatment' ? 2 : 1),
       variant: name,
       finalResponse: sanitizeText(row.response?.output ?? ''),
       core: comparison.core[name],
       usage: taskUsage(row),
+      artifact: comparison.comparisonMode === 'artifact'
+        ? sanitizeText(artifactEvidence(row))
+        : null,
+      turnMonitoring: comparison.case === '05-review-no-edit'
+        ? sanitizeText(workspaceEvidence(row))
+        : null,
     });
     return {
       comparison: comparison.testIdx + 1,
       case: comparison.case,
       label: comparison.label,
       category: enabled.metadata.category,
+      comparisonMode: comparison.comparisonMode,
       repeat,
       variants: {
         disabled: variant(disabled, 'disabled'),
@@ -148,12 +166,14 @@ const comparisons = [...pairwise.comparisons]
         consistentAcrossOrder: comparison.consistent,
         reason: comparison.reason,
         judgeCalls: comparison.judgeCalls.map((call) => ({
+          kind: call.kind,
           order: call.order,
-          winner: call.verdict.winner,
-          reason: call.verdict.reason,
-          criteria: call.verdict.criteria,
+          candidate: call.candidate,
+          verdict: sanitizeText(call.verdict),
         })),
       },
+      compression: comparison.compression ?? null,
+      artifactEvaluation: comparison.artifactEvaluation ?? null,
     };
   });
 
@@ -193,6 +213,8 @@ const caseMetrics = publishedCases.map((publishedCase) => {
       enabled: publishedCase.enabled,
       tie: publishedCase.tie,
     },
+    compression: publishedCase.compression,
+    artifactComparisons: publishedCase.artifactComparisons,
   };
 });
 
@@ -203,8 +225,16 @@ function formatCharacterChange({ change, changePercent }) {
   return `${Math.abs(change)}자 ${direction} (${percentage})`;
 }
 
+function formatCompression(compression) {
+  if (!compression) return '-';
+  if (compression.included === 0) {
+    return `포함 0회 / 제외 ${compression.excluded}회`;
+  }
+  return `포함 ${compression.included}회 / 제외 ${compression.excluded}회, ${formatCharacterChange(compression)}`;
+}
+
 const metadata = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   suite: 'proofline-baseline-quality',
   suiteVersion: packageJson.version,
   evaluatedAt: raw.metadata?.evaluationCreatedAt,
@@ -252,7 +282,7 @@ const metadata = {
 };
 
 const result = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   metadata,
   totals: pairwise.totals,
   cases: publishedCases,
@@ -293,19 +323,19 @@ const summary = `# proofline-baseline-quality 공개 평가 결과
 | 판정 단계 | Proofline 없음 | Proofline 적용 | 동점 |
 | --- | ---: | ---: | ---: |
 | 핵심 기준 우선 | ${methodTotals.core.disabled} | ${methodTotals.core.enabled} | ${methodTotals.core.tie} |
-| 최종 답변 교차평가 | ${methodTotals.judge.disabled} | ${methodTotals.judge.enabled} | ${methodTotals.judge.tie} |
+| 평가자 판정 | ${methodTotals.judge.disabled} | ${methodTotals.judge.enabled} | ${methodTotals.judge.tie} |
 
-핵심 기준은 Proofline 없음 결과가 ${corePass.disabled}/${comparisonsPerVariant}, Proofline 적용 결과가 ${corePass.enabled}/${comparisonsPerVariant} 통과했다. 최종 답변 교차평가에서 순서를 바꿨을 때 판정이 달라진 ${orderConflicts}건은 동점 처리했다.
+핵심 기준은 Proofline 없음 결과가 ${corePass.disabled}/${comparisonsPerVariant}, Proofline 적용 결과가 ${corePass.enabled}/${comparisonsPerVariant} 통과했다. 응답 또는 artifact의 순서를 바꿨을 때 판정이 달라진 ${orderConflicts}건은 동점 처리했다.
 
 자동 평가 오판 ${publicAdjudications.length}건은 저장된 최종 응답과 실행 기록을 대조해 재판정했다. 공개한 재판정 근거는 [result.json](result.json)에 포함돼 있다.
 
 ## 사례별 결과
 
-| 사례 | 핵심 통과<br>미적용 | 핵심 통과<br>적용 | 최종 선택<br>미적용/적용/동점 | 답변 길이 합계<br>미적용 | 답변 길이 합계<br>적용 | 적용 후 증감 |
+| 사례 | 핵심 통과<br>미적용 | 핵심 통과<br>적용 | 최종 선택<br>미적용/적용/동점 | 답변 길이 진단<br>미적용/적용 | 적용 후 증감 | 표현 압축 판정 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-${caseMetrics.map((entry) => `| ${entry.label} | ${entry.corePass.disabled}/${entry.comparisons} | ${entry.corePass.enabled}/${entry.comparisons} | ${entry.pairwise.disabled}/${entry.pairwise.enabled}/${entry.pairwise.tie} | ${entry.finalResponseChars.disabled}자 | ${entry.finalResponseChars.enabled}자 | ${formatCharacterChange(entry.finalResponseChars)} |`).join('\n')}
+${caseMetrics.map((entry) => `| ${entry.label} | ${entry.corePass.disabled}/${entry.comparisons} | ${entry.corePass.enabled}/${entry.comparisons} | ${entry.pairwise.disabled}/${entry.pairwise.enabled}/${entry.pairwise.tie} | ${entry.finalResponseChars.disabled}자/${entry.finalResponseChars.enabled}자 | ${formatCharacterChange(entry.finalResponseChars)} | ${formatCompression(entry.compression)} |`).join('\n')}
 
-답변 길이는 각 사례의 세 번 실행에서 사용자에게 표시된 최종 답변 문자 수를 합산했다. 길이 증감만으로 품질을 판정하지 않고, 같은 행의 핵심 기준 통과와 최종 비교 결과를 함께 본다.
+답변 길이 진단은 각 사례의 최종 답변 문자 수 합계다. 표현 압축 판정에는 사례 04에서 두 응답이 모두 독립 의미 PASS인 반복만 포함한다. 제외 이유는 [result.json](result.json)의 사례별 \`compression.exclusions\`와 비교별 \`compression.exclusionReason\`에 기록한다. 사례 09~12의 우열은 최종 보고가 아니라 공개 결과에 함께 보존된 실제 artifact와 \`artifactRubric\`으로 판정한다.
 
 ## 실행 정보
 

@@ -1,7 +1,14 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { delimiter, dirname, join } from 'node:path';
+import { delimiter, dirname, join, resolve } from 'node:path';
+
+import {
+  captureArtifactEvidence,
+  diffWorkspaceSnapshots,
+  snapshotProjectFiles,
+  startWorkspaceWriteMonitor,
+} from '../lib/workspace-evidence.mjs';
 
 const ENV_NAMES = [
   'PATH',
@@ -62,14 +69,23 @@ function codexEnvironment(codexHome, pathDirs) {
   return env;
 }
 
-function normalizeTurns(prompt, context) {
-  const configured = context?.vars?.turns;
-  if (configured === undefined) return [prompt];
+export function normalizeTurns(prompt, context) {
+  const serialized = context?.vars?.conversationTurnsJson;
+  if (serialized === undefined) return [prompt];
+  if (typeof serialized !== 'string') {
+    throw new Error('vars.conversationTurnsJson은 JSON 문자열이어야 합니다.');
+  }
+  let configured;
+  try {
+    configured = JSON.parse(serialized);
+  } catch {
+    throw new Error('vars.conversationTurnsJson을 턴 배열로 복원할 수 없습니다.');
+  }
   if (!Array.isArray(configured) || configured.length === 0) {
-    throw new Error('vars.turns는 비어 있지 않은 문자열 배열이어야 합니다.');
+    throw new Error('복원된 conversationTurns는 비어 있지 않은 문자열 배열이어야 합니다.');
   }
   if (configured.some((turn) => typeof turn !== 'string' || turn.trim() === '')) {
-    throw new Error('vars.turns의 각 항목은 비어 있지 않은 문자열이어야 합니다.');
+    throw new Error('conversationTurns의 각 항목은 비어 있지 않은 문자열이어야 합니다.');
   }
   return configured;
 }
@@ -173,6 +189,7 @@ export default class CodexThreadProvider {
         : 'PROOFLINE_TREATMENT_CODEX_HOME'
     ];
     const workingDirectory = context?.vars?.workspaceDir;
+    const evidenceRequirements = context?.vars?.evidenceRequirements ?? {};
     if (!codexHome || typeof workingDirectory !== 'string') {
       throw new Error('격리된 CODEX_HOME 또는 평가 작업공간을 찾지 못했습니다.');
     }
@@ -183,33 +200,124 @@ export default class CodexThreadProvider {
     const turns = normalizeTurns(prompt, context);
     const responses = [];
     const items = [];
+    const workspaceSnapshots = [];
+    const workspaceWriteEvents = [];
+    const workspaceWriteSummary = [];
     const usage = { prompt: 0, cached: 0, completion: 0, reasoning: 0 };
     let threadId;
-    for (const input of turns) {
-      const result = await runCodexTurn({
-        runtime,
-        env,
-        config: this.config,
-        condition,
-        workingDirectory,
-        input,
-        threadId,
-      });
+    for (const [turnIndex, input] of turns.entries()) {
+      const before = evidenceRequirements.turnSnapshots
+        ? snapshotProjectFiles(workingDirectory)
+        : null;
+      const writeMonitor = evidenceRequirements.workspaceWriteMonitor
+        ? startWorkspaceWriteMonitor(workingDirectory)
+        : null;
+      let result;
+      let turnError;
+      try {
+        result = await runCodexTurn({
+          runtime,
+          env,
+          config: this.config,
+          condition,
+          workingDirectory,
+          input,
+          threadId,
+        });
+      } catch (error) {
+        turnError = error;
+      }
+      const turnWriteEvents = writeMonitor ? await writeMonitor.stop() : [];
+      let snapshotChanged = null;
+      if (before) {
+        const after = snapshotProjectFiles(workingDirectory);
+        const diff = diffWorkspaceSnapshots(before, after);
+        snapshotChanged = [...diff.created, ...diff.modified, ...diff.deleted].length > 0;
+        workspaceSnapshots.push({
+          turn: turnIndex + 1,
+          before,
+          after,
+          diff,
+          changed: snapshotChanged,
+        });
+      }
+      if (writeMonitor) {
+        const writeEvents = turnWriteEvents.filter((event) => event.eventType !== 'monitor-error');
+        const observed = writeEvents.length > 0;
+        const reverted = observed && snapshotChanged !== null ? !snapshotChanged : null;
+        workspaceWriteEvents.push(
+          ...turnWriteEvents.map((event) => ({
+            ...event,
+            turn: turnIndex + 1,
+            observed: event.eventType !== 'monitor-error',
+            reverted: event.eventType !== 'monitor-error' ? reverted : null,
+          })),
+        );
+        workspaceWriteSummary.push({
+          turn: turnIndex + 1,
+          observed,
+          reverted,
+          writeEventCount: writeEvents.length,
+          monitorErrorCount: turnWriteEvents.length - writeEvents.length,
+        });
+      }
+      if (turnError) throw turnError;
       threadId = result.threadId;
       responses.push(result.finalResponse);
       items.push(...result.items);
       addUsage(usage, result.usage);
     }
 
+    let artifact;
+    let finalWorkspace;
+    if (
+      evidenceRequirements.comparison === 'artifact'
+      || evidenceRequirements.turnSnapshots
+    ) {
+      const bundle = process.env.PROOFLINE_EVAL_BUNDLE;
+      if (!bundle || typeof evidenceRequirements.case !== 'string') {
+        throw new Error('최종 workspace 증거 수집에 필요한 평가 사례 정보를 찾지 못했습니다.');
+      }
+      const captured = captureArtifactEvidence(
+        resolve(bundle, 'fixtures', evidenceRequirements.case),
+        workingDirectory,
+      );
+      if (evidenceRequirements.comparison === 'artifact') artifact = captured;
+      if (evidenceRequirements.turnSnapshots) {
+        finalWorkspace = {
+          diff: captured.diff,
+          changed: captured.files.length > 0,
+        };
+      }
+    }
+
+    const raw = {
+      items,
+      turns: responses.map((output, index) => ({ input: turns[index], output })),
+      ...(evidenceRequirements.turnSnapshots ? { workspaceSnapshots } : {}),
+      ...(evidenceRequirements.workspaceWriteMonitor
+        ? { workspaceWriteEvents, workspaceWriteSummary }
+        : {}),
+      ...(finalWorkspace ? { finalWorkspace } : {}),
+      ...(artifact ? { artifact } : {}),
+    };
+
     return {
       output: responses.at(-1) ?? '',
       prompt: turns.join('\n\n--- 다음 사용자 턴 ---\n\n'),
-      raw: { items, turns: responses.map((output, index) => ({ input: turns[index], output })) },
+      raw,
       metadata: {
         condition,
         threadId,
         turnCount: turns.length,
         turnResponses: responses,
+        evidence: {
+          workspaceSnapshots: workspaceSnapshots.length,
+          workspaceWriteEvents: workspaceWriteEvents.length,
+          workspaceWriteSummary,
+          finalWorkspaceChanged: finalWorkspace?.changed ?? null,
+          artifactFiles: artifact?.files.length ?? 0,
+        },
       },
       tokenUsage: {
         total: usage.prompt + usage.completion,

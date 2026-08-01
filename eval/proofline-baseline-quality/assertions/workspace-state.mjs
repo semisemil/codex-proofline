@@ -1,24 +1,10 @@
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 
-const IGNORED_TOP_LEVEL = new Set(['.agents', '.git']);
-
-function listProjectFiles(root, current = root) {
-  const files = [];
-  for (const entry of readdirSync(current)) {
-    const path = join(current, entry);
-    const relativePath = relative(root, path).replaceAll('\\', '/');
-    if (IGNORED_TOP_LEVEL.has(relativePath.split('/')[0])) continue;
-    if (statSync(path).isDirectory()) files.push(...listProjectFiles(root, path));
-    else files.push(relativePath);
-  }
-  return files.sort();
-}
-
-function hashFile(path) {
-  return createHash('sha256').update(readFileSync(path)).digest('hex');
-}
+import {
+  diffWorkspaceSnapshots,
+  snapshotProjectFiles,
+} from '../lib/workspace-evidence.mjs';
 
 export function workspaceInfo(context) {
   const workspaceDir = context.vars?.workspaceDir;
@@ -36,15 +22,10 @@ export function workspaceInfo(context) {
 
 export function diffProjectFiles(context) {
   const { fixtureDir, workspaceDir } = workspaceInfo(context);
-  const before = new Set(listProjectFiles(fixtureDir));
-  const after = new Set(listProjectFiles(workspaceDir));
-  return {
-    created: [...after].filter((path) => !before.has(path)),
-    deleted: [...before].filter((path) => !after.has(path)),
-    modified: [...before].filter(
-      (path) => after.has(path) && hashFile(join(fixtureDir, path)) !== hashFile(join(workspaceDir, path)),
-    ),
-  };
+  return diffWorkspaceSnapshots(
+    snapshotProjectFiles(fixtureDir),
+    snapshotProjectFiles(workspaceDir),
+  );
 }
 
 export function readWorkspaceFile(context, relativePath) {

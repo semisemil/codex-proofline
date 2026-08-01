@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+
+import {
+  artifactEvidence,
+  conditionOf,
+  findCoreComponent,
+  workspaceEvidence,
+} from './pairwise-judge-core.mjs';
 
 const evalDir = resolve(import.meta.dirname, '..');
 const suiteDir = resolve(evalDir, 'proofline-baseline-quality');
@@ -15,6 +22,9 @@ const outputJsonPath = resolve(
 );
 const outputMarkdownPath = resolve(
   process.argv[5] ?? resolve(suiteDir, 'results', 'local', 'full-regraded-summary.md'),
+);
+const pairwisePath = resolve(
+  process.argv[6] ?? resolve(suiteDir, 'results', 'local', 'full-pairwise.json'),
 );
 
 const sourceBytes = readFileSync(sourcePath);
@@ -74,7 +84,7 @@ for (const adjudication of adjudicationFile.adjudications) {
   applied.push({
     sessionId: adjudication.sessionId,
     case: row.metadata.case,
-    condition: row.promptIdx === 1 ? '스킬 적용' : '스킬 미적용',
+    condition: conditionOf(row) === 'treatment' ? 'Proofline 적용' : 'Proofline 없음',
     metric: adjudication.metric,
     previousReason: adjudication.expected.reason,
     correctedReason: adjudication.replacement.reason,
@@ -83,46 +93,61 @@ for (const adjudication of adjudicationFile.adjudications) {
   });
 }
 
+let pairwise;
+if (existsSync(pairwisePath)) {
+  const candidate = JSON.parse(readFileSync(pairwisePath, 'utf8'));
+  const recordedAdjudications = [...(candidate.appliedAdjudications ?? [])].sort();
+  const currentAdjudications = applied.map((entry) => entry.sessionId).sort();
+  if (
+    candidate.schemaVersion === 3
+    && candidate.source?.evalId === source.evalId
+    && candidate.source?.sha256 === sourceSha256
+    && JSON.stringify(recordedAdjudications) === JSON.stringify(currentAdjudications)
+  ) {
+    pairwise = candidate;
+  }
+}
+
 const caseLabels = {
-  '01-executive-summary': '경영진용 요약',
-  '02-null-session-fix': '`null` 세션 수정',
-  '03-settings-copy': '설정 화면 문구 수정',
-  '04-ambiguous-storage': '모호한 저장 대상 확인',
-  '05-critical-plan-review': '조건과 예외가 있는 계획 검토',
-  '06-requirements-artifact': '금지와 미정이 섞인 요구사항 문서',
+  '01-correction-repair': '지적 오류를 짚은 사용자 의도 반영',
+  '02-updated-priority': '변경된 판단 기준으로 추천 갱신',
+  '03-mixed-language-output': '한국어 중심 혼합 언어 출력',
+  '04-expression-compression': '동등한 정보의 표현 압축',
+  '05-review-no-edit': '멀티턴 검토의 수정 권한 제한',
+  '06-ambiguous-date-format': '효과가 다른 대상 확인',
+  '07-clear-date-format': '명확한 요청 즉시 실행',
+  '08-strawman-review': '실제 주장에 근거한 검토',
+  '09-ui-information-design': 'UI 문구와 정보 설계',
+  '10-code-no-fallback': '과잉 방어·fallback 없는 구현',
+  '11-code-test-selection': '필요한 테스트 선택',
+  '12-code-cohesion': '사소한 함수 분해 방지',
 };
 
-function coreComponent(row) {
-  return row.gradingResult.componentResults.find(
-    (component) =>
-      component.assertion?.type === 'javascript' &&
-      !String(component.assertion?.value).includes('skill-routing'),
-  );
-}
-
-function relativeComponent(row) {
-  return row.gradingResult.componentResults.find(
-    (component) => component.assertion?.type === 'select-best',
-  );
-}
-
-const caseNames = Object.keys(caseLabels);
+const caseNames = Object.keys(caseLabels).filter((caseName) =>
+  rows.some((row) => row.metadata.case === caseName),
+);
 const cases = caseNames.map((caseName) => {
   const caseRows = rows.filter((row) => row.metadata.case === caseName);
-  const count = (promptIdx, selector) =>
+  const relativeComparisons = (pairwise?.comparisons ?? []).filter(
+    (comparison) => comparison.case === caseName,
+  );
+  const count = (condition, selector) =>
     caseRows.filter(
-      (row) => row.promptIdx === promptIdx && selector(row)?.pass === true,
+      (row) => conditionOf(row) === condition && selector(row)?.pass === true,
     ).length;
   return {
     case: caseName,
     label: caseLabels[caseName],
+    repetitions: caseRows.filter((row) => conditionOf(row) === 'control').length,
     core: {
-      disabled: count(0, coreComponent),
-      enabled: count(1, coreComponent),
+      disabled: count('control', findCoreComponent),
+      enabled: count('treatment', findCoreComponent),
     },
     relative: {
-      disabled: count(0, relativeComponent),
-      enabled: count(1, relativeComponent),
+      disabled: relativeComparisons.filter((comparison) => comparison.winner === 'disabled').length,
+      enabled: relativeComparisons.filter((comparison) => comparison.winner === 'enabled').length,
+      tie: relativeComparisons.filter((comparison) => comparison.winner === 'tie').length,
+      evaluated: relativeComparisons.length,
     },
   };
 });
@@ -136,17 +161,76 @@ const totals = {
   relative: {
     disabled: sum(cases.map((entry) => entry.relative.disabled)),
     enabled: sum(cases.map((entry) => entry.relative.enabled)),
+    tie: sum(cases.map((entry) => entry.relative.tie)),
+    evaluated: sum(cases.map((entry) => entry.relative.evaluated)),
   },
 };
+const comparisonCount = sum(cases.map((entry) => entry.repetitions));
+
+const pairwiseByTest = new Map(
+  (pairwise?.comparisons ?? []).map((comparison) => [comparison.testIdx, comparison]),
+);
+const groupedRows = new Map();
+for (const row of rows) {
+  if (!groupedRows.has(row.testIdx)) groupedRows.set(row.testIdx, []);
+  groupedRows.get(row.testIdx).push(row);
+}
+const evidenceComparisons = [...groupedRows.entries()].map(([testIdx, pair]) => {
+  const disabled = pair.find((row) => conditionOf(row) === 'control');
+  const enabled = pair.find((row) => conditionOf(row) === 'treatment');
+  if (!disabled || !enabled) throw new Error(`재판정 비교 쌍이 완전하지 않습니다: testIdx ${testIdx}`);
+  const comparisonMode = enabled.metadata.comparison ?? 'response';
+  const recordedComparison = pairwiseByTest.get(testIdx);
+  let compression = null;
+  if (comparisonMode === 'compression') {
+    compression = recordedComparison?.compression ?? {
+      included: null,
+      exclusionReason: '독립 의미 판정 결과가 없어 표현 압축 길이 비교를 재판정하지 않았다.',
+      disabledChars: null,
+      enabledChars: null,
+      change: null,
+      changePercent: null,
+    };
+  }
+  return {
+    testIdx,
+    case: enabled.metadata.case,
+    comparisonMode,
+    artifact: comparisonMode === 'artifact' ? {
+      disabled: artifactEvidence(disabled),
+      enabled: artifactEvidence(enabled),
+    } : null,
+    turnMonitoring: enabled.metadata.case === '05-review-no-edit' ? {
+      disabled: workspaceEvidence(disabled),
+      enabled: workspaceEvidence(enabled),
+    } : null,
+    compression,
+    relativeEvaluation: recordedComparison ? {
+      winner: recordedComparison.winner,
+      method: recordedComparison.method,
+      reason: recordedComparison.reason,
+      artifactEvaluation: recordedComparison.artifactEvaluation ?? null,
+      semantic: recordedComparison.semantic ?? null,
+    } : null,
+  };
+});
+
+function failureTypes(row) {
+  return findCoreComponent(row).reason
+    .replace(/\s*\([^)]*\)/g, '')
+    .split(', ')
+    .map((reason) => reason.trim());
+}
+
 const disabledFailureTypes = new Set(
   rows
-    .filter((row) => row.promptIdx === 0 && !coreComponent(row).pass)
-    .map((row) => coreComponent(row).reason),
+    .filter((row) => conditionOf(row) === 'control' && !findCoreComponent(row).pass)
+    .flatMap(failureTypes),
 );
 const enabledFailureTypes = new Set(
   rows
-    .filter((row) => row.promptIdx === 1 && !coreComponent(row).pass)
-    .map((row) => coreComponent(row).reason),
+    .filter((row) => conditionOf(row) === 'treatment' && !findCoreComponent(row).pass)
+    .flatMap(failureTypes),
 );
 const newEnabledFailureTypes = [...enabledFailureTypes].filter(
   (reason) => !disabledFailureTypes.has(reason),
@@ -155,14 +239,14 @@ const noCaseRegression = cases.every(
   (entry) => entry.core.enabled >= entry.core.disabled,
 );
 const fewerCoreFailures =
-  18 - totals.core.enabled < 18 - totals.core.disabled;
+  comparisonCount - totals.core.enabled < comparisonCount - totals.core.disabled;
 const decision =
   newEnabledFailureTypes.length === 0 && noCaseRegression && fewerCoreFailures
     ? '개선 확인'
     : '판단 보류';
 
 const report = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   source: {
     evalId: source.evalId,
     sha256: sourceSha256,
@@ -180,7 +264,27 @@ const report = {
   totals,
   cases,
   adjudications: applied,
+  evidenceComparisons,
 };
+
+const artifactEvidenceCount = evidenceComparisons.filter(
+  (entry) => entry.artifact !== null,
+).length;
+const monitoredTurnComparisonCount = evidenceComparisons.filter(
+  (entry) => entry.turnMonitoring !== null,
+).length;
+const compressionEvidence = evidenceComparisons.filter(
+  (entry) => entry.compression !== null,
+);
+const includedCompressionCount = compressionEvidence.filter(
+  (entry) => entry.compression.included === true,
+).length;
+const excludedCompressionCount = compressionEvidence.filter(
+  (entry) => entry.compression.included === false,
+).length;
+const pendingCompressionCount = compressionEvidence.filter(
+  (entry) => entry.compression.included === null,
+).length;
 
 const markdown = `# proofline-baseline-quality 원시 결과 재판정
 
@@ -190,16 +294,16 @@ const markdown = `# proofline-baseline-quality 원시 결과 재판정
 
 모델 작업은 다시 실행하지 않았다. 평가 ID \`${source.evalId}\`의 원시 응답과 실행 기록을 수정된 평가 기준으로 다시 판정했다.
 
-| 항목 | 스킬 미적용 | 스킬 적용 | 차이 |
+| 항목 | Proofline 없음 | Proofline 적용 | 차이 |
 | --- | ---: | ---: | ---: |
-| 핵심 기준 통과 | ${totals.core.disabled}/18 | ${totals.core.enabled}/18 | 적용 +${totals.core.enabled - totals.core.disabled} |
-| 상대 비교 선택 | ${totals.relative.disabled}/18 | ${totals.relative.enabled}/18 | 적용 +${totals.relative.enabled - totals.relative.disabled} |
+| 핵심 기준 통과 | ${totals.core.disabled}/${comparisonCount} | ${totals.core.enabled}/${comparisonCount} | 적용 +${totals.core.enabled - totals.core.disabled} |
+| 상대 비교 선택 | ${totals.relative.disabled}/${totals.relative.evaluated} | ${totals.relative.enabled}/${totals.relative.evaluated} | 적용 +${totals.relative.enabled - totals.relative.disabled} |
 
 ## 사례별 결과
 
 | 사례 | 핵심 미적용 | 핵심 적용 | 상대 선택 미적용 | 상대 선택 적용 |
 | --- | ---: | ---: | ---: | ---: |
-${cases.map((entry) => `| ${entry.label} | ${entry.core.disabled}/3 | ${entry.core.enabled}/3 | ${entry.relative.disabled}/3 | ${entry.relative.enabled}/3 |`).join('\n')}
+${cases.map((entry) => `| ${entry.label} | ${entry.core.disabled}/${entry.repetitions} | ${entry.core.enabled}/${entry.repetitions} | ${entry.relative.disabled}/${entry.relative.evaluated} | ${entry.relative.enabled}/${entry.relative.evaluated} |`).join('\n')}
 
 ## 바뀐 판정
 
@@ -209,17 +313,18 @@ ${applied.map((entry) => `| ${caseLabels[entry.case]} | ${entry.condition} | ${e
 
 ## 해석
 
-- 수정된 평가 기준에서는 스킬 적용 조건의 핵심 기준이 18회 모두 통과했다.
-- 스킬 미적용 조건은 15/18로 변하지 않았다.
-- 스킬 적용 후 새로운 핵심 실패 유형이 없고, 사례별 통과 횟수가 낮아진 사례도 없으며, 전체 핵심 실패가 3건에서 0건으로 줄었다.
-- 상대 비교 결과 2/18 대 16/18은 원래 판정을 그대로 유지했다. 상대 비교에서 선택되지 않은 결과는 핵심 실패로 계산하지 않았다.
+- 수정된 평가 기준에서 Proofline 적용 조건의 핵심 기준은 ${totals.core.enabled}/${comparisonCount}, 없음 조건은 ${totals.core.disabled}/${comparisonCount} 통과했다.
+- Proofline 적용 후 새로운 핵심 실패 유형은 ${newEnabledFailureTypes.length}개이며, 사례별 회귀 여부는 ${noCaseRegression ? '없음' : '있음'}, 전체 핵심 실패는 ${comparisonCount - totals.core.disabled}건에서 ${comparisonCount - totals.core.enabled}건으로 바뀌었다.
+- 상대 비교 선택은 스키마 3 상대평가 결과가 있는 ${totals.relative.evaluated}개 비교에서 미적용 ${totals.relative.disabled}, 적용 ${totals.relative.enabled}, 동점 ${totals.relative.tie}이다. 상대평가 결과가 없으면 기존 최종 응답 기반 판정을 재사용하지 않고 미판정으로 남긴다.
 
 ## 재판정 범위
 
 - 원본 Promptfoo 결과는 변경하지 않았다.
-- 계획 검토 사례는 저장된 최종 답변에 수정된 표현 판정을 적용했다.
-- 요구사항 문서 사례는 원시 명령 기록에 남은 산출물 내용을 수동 확인해 평가기 오판을 바로잡았다. 당시 임시 작업공간은 실행 종료 후 삭제되어 자동 재실행은 불가능했다.
-- 이후 실행부터는 전체 작업공간을 보관하지 않고, 평가 대상 산출물과 변경 내역만 UTF-8 증거로 남겨야 완전 자동 재판정이 가능하다.
+- 실제 artifact 증거가 보존된 비교: ${artifactEvidenceCount}개
+- 턴별 snapshot과 쓰기 감시 증거가 보존된 비교: ${monitoredTurnComparisonCount}개
+- 표현 압축 길이 비교: 포함 ${includedCompressionCount}개, 제외 ${excludedCompressionCount}개, 독립 의미 판정 미기록 ${pendingCompressionCount}개
+- 독립 의미 판정은 원본과 재판정 기록이 일치하는 상대평가 결과가 있을 때만 재사용한다. 없으면 모델을 다시 호출하지 않고 미판정으로 남긴다.
+- 사례 09~12의 우열은 스키마 3 상대평가에 기록된 실제 artifact 판정만 재사용한다. 최종 보고 기반의 이전 상대판정은 재사용하지 않는다.
 
 원시 결과 SHA-256: \`${sourceSha256}\`
 `;
@@ -230,5 +335,5 @@ for (const path of [outputJsonPath, outputMarkdownPath]) {
 writeFileSync(outputJsonPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
 writeFileSync(outputMarkdownPath, markdown, 'utf8');
 console.log(`재판정 완료: ${decision}`);
-console.log(`핵심 기준: 미적용 ${totals.core.disabled}/18, 적용 ${totals.core.enabled}/18`);
+console.log(`핵심 기준: 미적용 ${totals.core.disabled}/${comparisonCount}, 적용 ${totals.core.enabled}/${comparisonCount}`);
 console.log(`결과: ${outputMarkdownPath}`);
