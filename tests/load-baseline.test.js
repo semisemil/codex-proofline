@@ -107,6 +107,29 @@ test('implementation review is opt-in before work and runs in a blind subagent a
   assert.match(postReview, /exactly one verdict: `pass`, `changes_required`, or `no_verdict`/);
 });
 
+test('post-review findings require sourced eligibility without an automatic blind rerun', () => {
+  const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
+  const directReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
+  const sliceReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-slice.md');
+  const finalReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-final.md');
+  const reportRepair = read('skills', 'proofline-start-implementation', 'references', 'review-report-repair.md');
+
+  assert.match(coordinator, /check its eligibility/);
+  assert.match(coordinator, /Do not re-review implementation correctness/);
+  assert.match(coordinator, /review-report-repair\.md` once with the same reviewer/);
+  assert.match(coordinator, /start no fresh reviewer or code change automatically/);
+  assert.match(reportRepair, /This is not a new review/);
+  assert.match(reportRepair, /Do not perform a full re-review or add a finding/);
+
+  for (const review of [directReview, sliceReview, finalReview]) {
+    assert.match(review, /Harmlessness does not authorize that change/);
+    assert.match(review, /internal implementation detail.*does not establish a finding/);
+    assert.match(review, /check command, script, or test existing in the project is not enough/);
+    assert.match(review, /do not infer task attribution from work history you were not given/);
+    assert.doesNotMatch(review, /unrequested speculative behavior/);
+  }
+});
+
 test('Work Slices are conditional, compact, and reviewed locally before final integration', () => {
   const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
   const slicing = read('skills', 'proofline-start-implementation', 'references', 'slicing.md');
