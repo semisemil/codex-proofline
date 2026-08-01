@@ -9,7 +9,6 @@ if (!bundle) {
 
 const workspaceRoot = resolve(bundle, '..', 'workspaces');
 const fixtureRoot = join(bundle, 'fixtures');
-const skillRoot = join(bundle, 'skill', 'proofline-baseline-quality');
 
 function ensureDisposableWorkspace(path) {
   const normalized = resolve(path);
@@ -53,11 +52,6 @@ export async function extensionHook(hookName, context) {
       join(workspaceRoot, randomUUID()),
     );
     cpSync(fixtureDir, workspaceDir, { recursive: true });
-    cpSync(
-      skillRoot,
-      join(workspaceDir, '.agents', 'skills', 'proofline-baseline-quality'),
-      { recursive: true },
-    );
     initializeRepository(workspaceDir);
     return {
       test: {
