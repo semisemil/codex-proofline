@@ -178,19 +178,31 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baselineUi, /interface narration, intent paraphrases/);
   assert.match(baseline, /## Review and evidence\r?\n/);
   assert.match(baseline, /For review, audit, diagnosis, or critique/);
-  // 표현 압축의 적용 범위와 명시적 선별, 판단 위임, 검토 형식이 보존 및 권한 규칙과 충돌하지 않아야 한다.
+  // 명시적 변환과 허가 범위가 보존, 형식 선호, 표현 압축보다 우선해야 한다.
   assert.match(baseline, /Apply expression compression to every response and artifact/);
   assert.match(baseline, /controls how in-scope content is expressed, not what is in scope/);
+  assert.match(baseline, /source dimension the user did not authorize changing/);
+  assert.match(baseline, /summarize, select, filter, restructure, or change style/);
   assert.match(baseline, /preserve information, structure, style, and the user's instructions/);
+  assert.match(baseline, /no requested or source format needs preservation/);
+  assert.match(baseline, /explicit task, authorized target and scope, and requested transformations or format/);
+  assert.match(baseline, /compression and style preferences only among meaning-equivalent options/);
   assert.match(baseline, /Preserve source form for exact reproduction, evidentiary fidelity/);
   assert.doesNotMatch(baseline, /Preserve source text only when/);
   assert.match(baseline, /established whole-term expression in the intended output language/);
   assert.match(baseline, /If none exists in that language/);
   // 출력 언어 규칙은 중복된 소문자 검사에 의존하지 않아야 한다.
   assert.doesNotMatch(baseline, /Lowercase Latin prose outside protected spans/);
+  assert.match(baseline, /no unsupported or task-irrelevant claim/);
+  assert.doesNotMatch(baseline, /add no claim, emotion/);
+  assert.match(baseline, /Preserve each material proposition, not each source sentence or restatement/);
+  assert.match(baseline, /Judge preservation across the response or artifact as a whole/);
+  assert.match(baseline, /removal loses no material meaning/);
   assert.match(baseline, /Within the requested scope, preserve the meaning of retained source information/);
   assert.match(baseline, /Do not infer intent, preference, policy, or approval from absence, incompleteness, or incidental state/);
   assert.match(baseline, /Treat authoritative sources as evidence only for what they establish/);
+  assert.match(baseline, /choice as accepted by the user only when the user explicitly accepts that specific choice/);
+  assert.doesNotMatch(baseline, /Agreement requires the user's explicit acceptance/);
   assert.match(baseline, /Permission to decide does not authorize dependent action/);
   assert.match(baseline, /explicitly delegates the substantive choice and separately requests the dependent action/);
   assert.match(baseline, /read-only answer can fully cover them without choosing among them/);
@@ -202,17 +214,30 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /Use examples according to their communicative purpose/);
   assert.match(baseline, /may identify one case or demonstrate a broader issue/);
   assert.doesNotMatch(baseline, /Corrections apply only to the named case/);
-  assert.match(baseline, /keep useful headings and lists, separate distinct information/);
+  assert.match(baseline, /keep useful headings and lists and separate distinct information/);
   assert.match(baseline, /address the actual claim within its scope and exceptions/i);
+  assert.match(baseline, /Restate it only when needed to prevent ambiguity or misrepresentation/);
+  assert.doesNotMatch(baseline, /Restate and address the actual claim/);
+  assert.match(baseline, /Do not repeat settled explanations unless the user asks or a new point requires them/);
+  assert.match(baseline, /Collapse meaning-equivalent restatements/);
+  assert.doesNotMatch(baseline, /Collapse only exact duplicates/);
   assert.doesNotMatch(baseline, /do not remove information from the source|do not merge its items into prose|Do not pack distinct information|Never strengthen it/);
+
+  // 읽기 전용 수리와 허가된 수정 범위가 원인 경계 규칙보다 우선해야 한다.
+  assert.match(baseline, /state-changing action only when the user authorizes that corrective action/);
+  assert.match(baseline, /correct change lies outside the authorized target or scope/);
+  assert.match(baseline, /instead of applying an in-scope workaround or editing the unauthorized target/);
 
   // 함수 크기와 지역적으로 가능한 상태가 불필요한 추출 및 방어 처리를 유도하지 않아야 한다.
   assert.match(baselineCode, /clear names, cohesive functions/);
   assert.doesNotMatch(baselineCode, /clear names, small functions/);
+  assert.match(baselineCode, /states made valid or reachable by an explicit behavioral requirement/);
+  assert.doesNotMatch(baselineCode, /only for explicit requirements, real trust boundaries/);
   assert.match(baselineCode, /local possibility as unproven reachability/);
   assert.match(baselineCode, /creation and validation paths and business rules/);
   assert.match(baselineCode, /upstream-excluded states outside normal flow/);
-  assert.match(baselineCode, /ask the user first/);
+  assert.match(baselineCode, /uncertainty changes the implementation/);
+  assert.match(baselineCode, /ask the user before changing behavior/);
 
   assert.match(baseline, /Reuse inspected task evidence for follow-ups while state is unchanged/);
   assert.match(baseline, /requested current verification, changed state, or missing detail/);
