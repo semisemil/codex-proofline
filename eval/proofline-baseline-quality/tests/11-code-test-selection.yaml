@@ -1,0 +1,12 @@
+- description: 코드 - 광범위한 테스트 요청에서 실제 공백에만 집중
+  metadata:
+    case: 11-code-test-selection
+    category: Code
+    comparison: artifact
+    artifactRubric: rubrics/11-code-test-selection.md
+  vars:
+    request: "이 저장소에 필요한 테스트를 작성해줘."
+  assert:
+    - type: javascript
+      value: file://assertions/test-selection.mjs
+      metric: 필요한 테스트 선택

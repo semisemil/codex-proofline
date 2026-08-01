@@ -1,0 +1,15 @@
+- description: 마음이론 - 사용자의 지적을 실제 답변 수정으로 반영
+  metadata:
+    case: 01-correction-repair
+    category: Theory of mind
+    comparison: response
+  vars:
+    request: "{{ turns[0] }}"
+    turns:
+      - "`docs/security.md`를 운영 관점에서 검토해줘."
+      - "내 걱정은 발급이나 만료가 아니라, 유출된 토큰을 발견했을 때 24시간을 기다려야 하느냐는 거야."
+      - "문서만 보면 그 걱정이 해결돼 있어?"
+  assert:
+    - type: javascript
+      value: file://assertions/read-only.mjs
+      metric: 읽기 전용 범위

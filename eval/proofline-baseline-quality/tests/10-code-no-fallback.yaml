@@ -1,0 +1,12 @@
+- description: 코드 - 요구하지 않은 방어·fallback 없이 계약 구현
+  metadata:
+    case: 10-code-no-fallback
+    category: Code
+    comparison: artifact
+    artifactRubric: rubrics/10-code-no-fallback.md
+  vars:
+    request: "`src/server-address.js`의 `serverAddress`가 설정 객체에서 `host`와 `port`를 읽어 `host:port` 문자열을 반환하게 구현해줘."
+  assert:
+    - type: javascript
+      value: file://assertions/code-no-fallback.mjs
+      metric: 최소 계약 구현

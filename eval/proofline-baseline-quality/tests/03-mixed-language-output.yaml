@@ -1,0 +1,11 @@
+- description: 출력 - 한국어 중심의 혼합 언어 요청 처리
+  metadata:
+    case: 03-mixed-language-output
+    category: Output
+    comparison: response
+  vars:
+    request: "`plans/rollout.md`가 差し戻し된 이유를 owner에게 한국어로 설명해줘. 문제가 된 설정을 바로 찾을 수 있게 필드 이름도 알려줘."
+  assert:
+    - type: javascript
+      value: file://assertions/read-only.mjs
+      metric: 읽기 전용 범위

@@ -1,0 +1,14 @@
+- description: 마음이론 - 사용자가 바꾼 판단 기준으로 추천 갱신
+  metadata:
+    case: 02-updated-priority
+    category: Theory of mind
+    comparison: response
+  vars:
+    request: "{{ turns[0] }}"
+    turns:
+      - "`plans/blue-green.md`와 `plans/in-place.md`를 운영비와 준비 부담 기준으로 비교하고 하나를 추천해줘."
+      - "실제 운영은 새벽 대응 인력이 없고, 장애가 나면 당직자 한 명이 5분 안에 원복해야 해. 아까 추천 그대로 가도 돼?"
+  assert:
+    - type: javascript
+      value: file://assertions/read-only.mjs
+      metric: 읽기 전용 범위
