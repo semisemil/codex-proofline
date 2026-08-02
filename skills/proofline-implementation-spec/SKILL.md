@@ -1,6 +1,6 @@
 ---
 name: proofline-implementation-spec
-description: Create, revise, complete, cancel, or supersede implementation Specs under .proofline/specs without implementing them. Use for durable contracts covering features, fixes, maintenance, refactors, or exact ports, or on explicit invocation.
+description: ""
 ---
 
 # Proofline Implementation Spec

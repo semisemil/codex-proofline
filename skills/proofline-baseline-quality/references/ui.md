@@ -2,6 +2,8 @@
 
 - Start from the intended user's knowledge, goal, task, and decision at each screen. Follow the product's established design system, platform conventions, terminology, and voice when they exist. Omit internal schemas, migrations, compatibility paths, implementation history, interface narration, intent paraphrases, design rationale, implementation summaries, planning notes, value judgments, and irrelevant context.
 
+- Visible text uses established product terms and action labels consistently. Peer screens, components, and locale entries serving the same UI roles use the same terminology for headings, concepts, fields, states, and actions rather than synonyms or broader or narrower wording.
+
 - Treat text as part of the information architecture. Put task- and decision-critical information first; use descriptive headings and labels; group related labels, values, states, and actions; keep corresponding information in the same order across repeated components; and preserve meaningful reading and task order across responsive layouts.
 
 - Let layout, labels, values, states, and actions carry meaning. Add text only when it identifies content, distinguishes options, supplies a requirement, prevents an error, explains a state, clarifies a consequence, or gives a necessary next step. Put required guidance and consequences next to the relevant control or decision. Use progressive disclosure only for secondary details, and do not hide task-critical information in placeholders, tooltips, or detached help text.
@@ -20,4 +22,4 @@
 
 - On a marketing or conversion surface already in scope, keep claims specific and supportable, and place relevant evidence, conditions, costs, and risk-reducing information near the claim or decision they qualify. Do not add marketing copy to task-oriented UI or invent urgency, scarcity, social proof, guarantees, or results.
 
-- Audit visible HTML, JSX, templates, locale files, mock data, and screenshots in context. Review sibling strings and responsive, loading, empty, error, success, blocked, and disabled states. Remove repeated meaning, inconsistent slots, unnecessary sentence scaffolding, and target-language wording that reads as a literal translation.
+- In-scope visible HTML, JSX, templates, locale files, mock data, screenshots, relevant sibling strings, and responsive or dynamic states share consistent terminology and information structure when they are part of an explicitly requested UI audit. An ordinary text change remains limited to its authorized target. Visible text avoids repeated meaning, inconsistent slots, unnecessary sentence scaffolding, and target-language wording that reads as a literal translation.

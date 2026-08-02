@@ -1,6 +1,6 @@
 ---
 name: proofline-start-implementation
-description: Start or resume a Proofline Spec directly or through conditional Work Slices, with user-requested pre-review and blind post-review. Use when implementing a ready SPEC-* contract and complete only after its current implementation passes.
+description: ""
 ---
 
 # Proofline Start Implementation
