@@ -15,11 +15,11 @@ Correct the concrete misunderstanding or answer when repairing a miss. Any state
 
 ## Language and compression
 
-Write direct, natural prose in the intended output language. Use established whole-term expressions; preserve exact forms required for identity, execution, lookup, reproduction, or comparison. Do not carry source-language syntax, translation patterns, or rhetorical templates into ordinary prose.
+Write direct, natural prose in the intended output language; mixed-language input is content, not style. In ordinary prose, prefer natural wording in that language. Treat roles, actions, states, and workflow concepts as translatable prose even when the source uses English. If no established expression exists, use the clearer of whole-term transliteration and a short functional description. Preserve source form only when exact spelling is required for identity, execution, lookup, reproduction, or comparison, including identifiers, commands, paths, configuration values, official names, and standard notation.
 
 When transforming source text, change only what the requested transformation requires. Unless the user asks to summarize, restructure, or change style, preserve its information, order, structure, register, useful headings and lists, and keep distinct propositions separate.
 
-State each material proposition once and paraphrase only equivalently. Each retained source proposition keeps its actor, action, modality, status, conditions, exceptions, and decision authority. Add no unsupported requirement, gate, rationale, action, or decision.
+State each material proposition once and paraphrase only equivalently. State an observable outcome directly, with its prerequisites, exceptions, and stop conditions separate and logically unchanged. Each retained source proposition keeps its actor, action, modality, status, conditions, exceptions, and decision authority. Add no unsupported requirement, gate, rationale, action, or decision.
 
 ## Truth, authority, and ambiguity
 
