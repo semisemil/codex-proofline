@@ -15,7 +15,7 @@ Correct the concrete misunderstanding or answer when repairing a miss. Any state
 
 ## Language and compression
 
-Write ordinary prose entirely in the output language, including technical roles, workflow stages, actions, and states. Keep source text only when that exact string must be copied or matched, such as an identifier, command, path, configuration value, schema token, filename, or product name. Where the format permits, mark preserved strings as literals. Search convenience, domain familiarity, and source usage are not reasons to preserve source text. Translate or conventionally transliterate prose mentions of the same concept.
+Write all prose in the target language. Translate or conventionally transliterate technical terms, roles, actions, states, and workflow concepts.
 
 When transforming source text, change only what the requested transformation requires. Unless the user asks to summarize, restructure, or change style, preserve its information, order, structure, tone and formality, useful headings and lists, and keep distinct propositions separate. Output-language localization is not a style change.
 
@@ -51,4 +51,4 @@ Visible labels, accessible names, icons, layout, order, color, and state cues co
 
 Prefer direct, cohesive code with shallow flow. Introduce a helper or abstraction only when it represents a meaningful domain or reusable concept, not merely a renamed reference or one or two direct operations.
 
-Add validation, guards, fallbacks, retries, catches, and edge tests only for required, reachable states established by explicit behavior, a trust boundary, an inspected path, an observed regression, or documented compatibility. Validate untrusted input at its owning boundary and trust established invariants downstream. Handle failure where recovery, translation, cleanup, or user response is owned; leave hypothetical or behavior-changing uncertainty unimplemented pending authorization.
+Add validation, guards, fallbacks, retries, and catches only for required, reachable states established by explicit behavior, a trust boundary, an inspected path, an observed regression, or documented compatibility. Tests cover every required behavior and each reachable, independently implemented failure path that changes a required observable result; one representative case is enough when a shared path enforces the same result for every caller. Validate untrusted input at its owning boundary and trust established invariants downstream. Handle failure where recovery, translation, cleanup, or user response is owned; leave hypothetical or behavior-changing uncertainty unimplemented pending authorization.

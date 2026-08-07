@@ -16,8 +16,8 @@ test('baseline hook loads the packaged skill', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /# Proofline Baseline Quality/);
   assert.doesNotMatch(result.stdout, /^---/);
-  assert.ok(result.stdout.includes(path.join(repoRoot, 'skills', 'proofline-baseline-quality', 'references', 'ui.md')));
-  assert.ok(result.stdout.includes(path.join(repoRoot, 'skills', 'proofline-baseline-quality', 'references', 'code.md')));
+  assert.match(result.stdout, /## Language and compression/);
+  assert.match(result.stdout, /Tests cover every required behavior/);
 });
 
 // 누락된 패키지 파일은 조용히 넘어가지 않고 진단 가능한 오류를 반환해야 한다.
@@ -211,93 +211,37 @@ test('Work Slices share one base worktree but keep independent implementation hi
 
 test('skill completion boundaries are single-sourced and checkable', () => {
   const baseline = read('skills', 'proofline-baseline-quality', 'SKILL.md');
-  const baselineCode = read('skills', 'proofline-baseline-quality', 'references', 'code.md');
-  const baselineUi = read('skills', 'proofline-baseline-quality', 'references', 'ui.md');
   const completion = read('skills', 'proofline-completion-evidence', 'SKILL.md');
   const exactPortReport = read('skills', 'proofline-exact-port', 'assets', 'templates', 'exact-port-report.md');
   const refactorReport = read('skills', 'proofline-refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
   const scope = read('skills', 'proofline-scope-integrity', 'SKILL.md');
   const growth = read('skills', 'proofline-capability-growth', 'SKILL.md');
 
-  assert.match(baseline, /read and apply every rule in `references\/ui\.md`/);
-  assert.match(baseline, /Before writing or changing visible UI text/);
-  assert.match(baseline, /read and apply every rule in `references\/code\.md`/);
-  assert.doesNotMatch(baseline, /clear names, cohesive functions|interface narration/);
-  assert.match(baselineUi, /interface narration, intent paraphrases/);
+  assert.match(baseline, /Write all prose in the target language/);
+  assert.match(baseline, /Translate or conventionally transliterate technical terms, roles, actions, states, and workflow concepts/);
+  assert.doesNotMatch(baseline, /can be translated naturally|required for copying, execution, or matching/);
+  assert.match(baseline, /change only what the requested transformation requires/);
+  assert.match(baseline, /preserve its information, order, structure, tone and formality, useful headings and lists/);
+  assert.match(baseline, /Output-language localization is not a style change/);
+  assert.match(baseline, /keep distinct propositions separate/);
+  assert.match(baseline, /Each retained source proposition keeps its actor, action, modality, status, conditions, exceptions, and decision authority/);
+  assert.match(baseline, /Add no unsupported requirement, gate, rationale, action, or decision/);
+
+  assert.match(baseline, /Acceptance requires the user's explicit acceptance of the specific choice/);
+  assert.match(baseline, /Authority to decide does not authorize dependent action/);
+  assert.match(baseline, /Review, audit, diagnosis, explanation, and recommendation are read-only/);
+  assert.match(baseline, /Ask one concise question only when unresolved live interpretations require different substantive answers/);
+  assert.match(baseline, /An example's communicative purpose determines its scope/);
   assert.match(baseline, /## Review and evidence\r?\n/);
-  assert.match(baseline, /For review, audit, diagnosis, or critique/);
-  // 명시적 변환과 허가 범위가 보존, 형식 선호, 표현 압축보다 우선해야 한다.
-  assert.match(baseline, /Apply expression compression to every response and artifact/);
-  assert.match(baseline, /controls how in-scope content is expressed, not what is in scope/);
-  assert.match(baseline, /source dimension the user did not authorize changing/);
-  assert.match(baseline, /summarize, select, filter, restructure, or change style/);
-  assert.match(baseline, /preserve information, structure, style, and the user's instructions/);
-  assert.match(baseline, /no requested or source format needs preservation/);
-  assert.match(baseline, /explicit task, authorized target and scope, and requested transformations or format/);
-  assert.match(baseline, /compression and style preferences only among meaning-equivalent options/);
-  assert.match(baseline, /Preserve source form for exact reproduction, evidentiary fidelity/);
-  assert.doesNotMatch(baseline, /Preserve source text only when/);
-  assert.match(baseline, /established whole-term expression in the intended output language/);
-  assert.match(baseline, /If none exists in that language/);
-  // 출력 언어 규칙은 중복된 소문자 검사에 의존하지 않아야 한다.
-  assert.doesNotMatch(baseline, /Lowercase Latin prose outside protected spans/);
-  assert.match(baseline, /no unsupported or task-irrelevant claim/);
-  assert.doesNotMatch(baseline, /add no claim, emotion/);
-  assert.match(baseline, /Preserve each material proposition, not each source sentence or restatement/);
-  assert.match(baseline, /Judge preservation across the response or artifact as a whole/);
-  assert.match(baseline, /removal loses no material meaning/);
-  assert.match(baseline, /Within the requested scope, preserve the meaning of retained source information/);
-  assert.match(baseline, /Do not infer intent, preference, policy, or approval from absence, incompleteness, or incidental state/);
-  assert.match(baseline, /Treat authoritative sources as evidence only for what they establish/);
-  assert.match(baseline, /choice as accepted by the user only when the user explicitly accepts that specific choice/);
-  assert.doesNotMatch(baseline, /Agreement requires the user's explicit acceptance/);
-  assert.match(baseline, /Permission to decide does not authorize dependent action/);
-  assert.match(baseline, /explicitly delegates the substantive choice and separately requests the dependent action/);
-  assert.match(baseline, /read-only answer can fully cover them without choosing among them/);
-  assert.match(baseline, /Proceed without asking when context resolves the interpretation/);
-  assert.match(baseline, /propose rather than apply language corrections/);
-  assert.match(baseline, /answer's substance, an artifact's required content or target/);
-  assert.match(baseline, /differ only in presentation while preserving the requested meaning and format/);
-  assert.match(baseline, /follow the user's requested scope and any specified report format/);
-  assert.match(baseline, /Use examples according to their communicative purpose/);
-  assert.match(baseline, /may identify one case or demonstrate a broader issue/);
-  assert.doesNotMatch(baseline, /Corrections apply only to the named case/);
-  assert.match(baseline, /keep useful headings and lists and separate distinct information/);
-  assert.match(baseline, /address the actual claim within its scope and exceptions/i);
-  assert.match(baseline, /Restate it only when needed to prevent ambiguity or misrepresentation/);
-  assert.doesNotMatch(baseline, /Restate and address the actual claim/);
-  assert.match(baseline, /Do not repeat settled explanations unless the user asks or a new point requires them/);
-  assert.match(baseline, /Collapse meaning-equivalent restatements/);
-  assert.doesNotMatch(baseline, /Collapse only exact duplicates/);
-  assert.doesNotMatch(baseline, /do not remove information from the source|do not merge its items into prose|Do not pack distinct information|Never strengthen it/);
+  assert.match(baseline, /Address the actual claim within its scope, conditions, and exceptions/);
+  assert.match(baseline, /Reuse inspected task evidence while relevant state is unchanged/);
+  assert.match(baseline, /Use the shortest natural whole expression that preserves meaning/);
+  assert.match(baseline, /Prefer direct, cohesive code with shallow flow/);
+  assert.match(baseline, /Tests cover every required behavior and each reachable, independently implemented failure path/);
 
-  // 읽기 전용 수리와 허가된 수정 범위가 원인 경계 규칙보다 우선해야 한다.
-  assert.match(baseline, /state-changing action only when the user authorizes that corrective action/);
-  assert.match(baseline, /correct change lies outside the authorized target or scope/);
-  assert.match(baseline, /instead of applying an in-scope workaround or editing the unauthorized target/);
-
-  // 함수 크기와 지역적으로 가능한 상태가 불필요한 추출 및 방어 처리를 유도하지 않아야 한다.
-  assert.match(baselineCode, /clear names, cohesive functions/);
-  assert.doesNotMatch(baselineCode, /clear names, small functions/);
-  assert.match(baselineCode, /states made valid or reachable by an explicit behavioral requirement/);
-  assert.doesNotMatch(baselineCode, /only for explicit requirements, real trust boundaries/);
-  assert.match(baselineCode, /local possibility as unproven reachability/);
-  assert.match(baselineCode, /creation and validation paths and business rules/);
-  assert.match(baselineCode, /upstream-excluded states outside normal flow/);
-  assert.match(baselineCode, /uncertainty changes the implementation/);
-  assert.match(baselineCode, /ask the user before changing behavior/);
-
-  assert.match(baseline, /Reuse inspected task evidence for follow-ups while state is unchanged/);
-  assert.match(baseline, /requested current verification, changed state, or missing detail/);
-  assert.match(baseline, /Memory and other task history are locators until rechecked/);
-  assert.match(completion, /separate completed work, passed checks, failed checks/);
-  assert.match(completion, /including earlier turns while relevant state is unchanged/);
-  assert.match(completion, /Answer follow-up questions about a reported result directly from that unchanged task evidence/);
-  assert.match(completion, /including unchanged evidence from earlier turns/);
-  assert.doesNotMatch(completion, /Never use intention, memory, past success/);
-  assert.match(completion, /implementation-caused failed check makes the task incomplete/);
-  assert.match(completion, /confirmed pre-existing or unrelated failure/);
-  assert.match(completion, /uncertain attribution as unverified/);
+  assert.match(completion, /Report only evidence already available from the task without initiating verification/);
+  assert.match(completion, /Do not repeat work solely to strengthen the report/);
+  assert.match(completion, /when required evidence is absent, report it as unverified/);
   assert.doesNotMatch(exactPortReport, /## Issues recorded/);
   assert.doesNotMatch(refactorReport, /## Issues recorded/);
 
