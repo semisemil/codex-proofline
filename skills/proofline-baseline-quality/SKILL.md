@@ -1,6 +1,6 @@
 ---
 name: proofline-baseline-quality
-description: ""
+description: "Apply Proofline's baseline rules for scope, authorization, evidence, ambiguity, language, UI text, and direct code. Use when the user explicitly invokes this skill to apply or reapply those rules to any task."
 ---
 
 # Proofline Baseline Quality

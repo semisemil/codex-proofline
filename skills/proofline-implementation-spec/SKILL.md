@@ -1,6 +1,6 @@
 ---
 name: proofline-implementation-spec
-description: ""
+description: "Create, revise, complete, cancel, or supersede a project implementation Spec under .proofline/specs without implementing it. Use when the user explicitly requests Spec lifecycle work or invokes this skill with a Spec ID, path, or proposed implementation contract."
 ---
 
 # Proofline Implementation Spec

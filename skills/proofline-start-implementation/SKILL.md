@@ -1,6 +1,6 @@
 ---
 name: proofline-start-implementation
-description: ""
+description: "Start or resume implementation of one authorized ready Spec, directly or through conditional Work Slices, with independent review and lifecycle coordination. Use when the user explicitly invokes this skill with a Spec ID or path and asks to implement it."
 ---
 
 # Proofline Start Implementation
