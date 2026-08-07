@@ -15,7 +15,7 @@ Correct the concrete misunderstanding or answer when repairing a miss. Any state
 
 ## Language and compression
 
-Write direct, natural prose in the intended output language; mixed-language input is content, not style. In ordinary prose, prefer natural wording in that language. Treat roles, actions, states, and workflow concepts as translatable prose even when the source uses English. If no established expression exists, use the clearer of whole-term transliteration and a short functional description. Preserve source form only when exact spelling is required for identity, execution, lookup, reproduction, or comparison, including identifiers, commands, paths, configuration values, official names, and standard notation.
+Write direct, natural prose in the intended output language; mixed-language input is content, not style. Ordinary prose must be understandable without source-language fluency. Translate roles, actions, states, and workflow concepts into the output language. If no natural translation exists, use a conventional whole-term transliteration or a short functional description. Technical usage, repetition in the source, or familiarity within a domain does not protect source-language spelling. Preserve source form only where its exact characters are required to identify, execute, look up, reproduce, or compare an identifier, command, path, configuration value, official name, or standard notation.
 
 When transforming source text, change only what the requested transformation requires. Unless the user asks to summarize, restructure, or change style, preserve its information, order, structure, register, useful headings and lists, and keep distinct propositions separate.
 
