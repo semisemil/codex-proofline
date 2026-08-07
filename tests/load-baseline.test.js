@@ -81,72 +81,101 @@ test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
-test('implementation review is opt-in before work and runs in a blind subagent after work', () => {
+test('implementation review is opt-in, blind, bounded, and prompt identifiers stay private', () => {
   const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
   const implementation = read('skills', 'proofline-start-implementation', 'references', 'implementation-prompt.md');
   const preReview = read('skills', 'proofline-start-implementation', 'references', 'pre-review-prompt.md');
-  const postReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
+  const review = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
   const modelRouting = read('skills', 'proofline-start-implementation', 'assets', 'model-routing.md');
+  const reviewControl = read('skills', 'proofline-start-implementation', 'references', 'review-control.md');
+  const allRolePrompts = [implementation, preReview, review, read('skills', 'proofline-start-implementation', 'references', 'review-report-repair.md')].join('\n');
 
-  assert.match(coordinator, /Run only when the user explicitly requests it/);
-  assert.match(coordinator, /Use no fixed (?:review-)?attempt limit/);
-  assert.match(coordinator, /no_verdict.*missing implementation evidence/);
-  assert.doesNotMatch(coordinator, /Allow three post-review attempts|\.proofline\/prds\/<PRD-ID>/);
+  assert.match(coordinator, /Run `references\/pre-review-prompt\.md` only when the user explicitly requests it/);
+  assert.match(coordinator, /at most three verdict-bearing attempts/);
+  assert.match(reviewControl, /For `no_verdict`, request only implementation evidence.*review report explicitly identifies as missing/);
+  assert.match(reviewControl, /one fresh replacement reviewer/);
+  assert.match(reviewControl, /Stop on the same finding, a return to any earlier finding.*or the same evidence request/);
+  assert.match(reviewControl, /unchanged state ends the loop/);
+  assert.doesNotMatch(coordinator, /Use no fixed (?:review-)?attempt limit|\.proofline\/prds\/<PRD-ID>/);
 
-  assert.match(implementation, /pre-existing changed paths/);
-  assert.match(implementation, /task-attributable paths/);
+  assert.match(implementation, /Complete only `<implementation_target>`/);
+  assert.match(implementation, /<candidate_boundary>/);
+  assert.match(implementation, /candidate paths, verification results, and blockers/);
   assert.match(preReview, /Do not block for implementation choices/);
-  // 사후 검토가 별도 작업이나 이전 이력에 종속되지 않도록 실행 경계를 고정한다.
-  assert.match(coordinator, /post-review.*`spawn_agent`.*`fork_turns: "none"`/i);
-  assert.match(coordinator, /never use `create_thread` to run a post-review/i);
-  assert.match(coordinator, /Never pass implementation or pre-review reports, prior review reports\/findings/);
-  assert.match(postReview, /Independently review the current implementation/);
-  assert.match(postReview, /Do not request or use work reports, prior reviews\/findings/);
-  assert.doesNotMatch(postReview, /Latest report|implementation_report_text|implementation_task|review_attempt/);
+  assert.match(coordinator, /Blind review.*`spawn_agent` using `fork_turns: "none"`/i);
+  assert.match(coordinator, /never use `create_thread` for review/i);
+  assert.match(coordinator, /Never pass implementation or pre-review reports, prior reviews\/findings/);
+  assert.match(review, /Independently review `<review_target>`/);
+  assert.match(review, /Do not request or use work reports, prior reviews\/findings/);
+  assert.match(review, /<candidate_boundary>/);
+  assert.doesNotMatch(review, /Latest report|implementation_report_text|implementation_task|review_attempt/);
   assert.match(modelRouting, /Pass no task\/report\/review history or expected conclusion/);
-  assert.match(postReview, /exactly one verdict: `pass`, `changes_required`, or `no_verdict`/);
+  assert.match(review, /exactly one verdict: `pass`, `changes_required`, or `no_verdict`/);
+  assert.doesNotMatch(allRolePrompts, /<session_key>|chain=/);
+  assert.match(coordinator, /Never place the chain key in a role prompt/);
 });
 
-test('post-review findings require sourced eligibility without an automatic blind rerun', () => {
+test('post-review findings use one compact conditional eligibility contract', () => {
   const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
-  const directReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
-  const sliceReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-slice.md');
-  const finalReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-final.md');
+  const review = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
   const reportRepair = read('skills', 'proofline-start-implementation', 'references', 'review-report-repair.md');
+  const reviewControl = read('skills', 'proofline-start-implementation', 'references', 'review-control.md');
 
-  assert.match(coordinator, /check its eligibility/);
-  assert.match(coordinator, /Do not re-review implementation correctness/);
-  assert.match(coordinator, /review-report-repair\.md` once with the same reviewer/);
-  assert.match(coordinator, /start no fresh reviewer or code change automatically/);
+  assert.match(coordinator, /On `changes_required`, `no_verdict`, malformed output, or execution failure, read `references\/review-control\.md`/);
+  assert.match(reviewControl, /Forward a finding only when the existing report identifies/);
+  assert.match(reviewControl, /send `review-report-repair\.md` to the same reviewer once/);
+  assert.match(reviewControl, /applying a source requires a material interpretation choice/);
   assert.match(reportRepair, /This is not a new review/);
-  assert.match(reportRepair, /Do not perform a full re-review or add a finding/);
-
-  for (const review of [directReview, sliceReview, finalReview]) {
-    assert.match(review, /Harmlessness does not authorize that change/);
-    assert.match(review, /internal implementation detail.*does not establish a finding/);
-    assert.match(review, /check command, script, or test existing in the project is not enough/);
-    assert.match(review, /do not infer task attribution from work history you were not given/);
-    assert.doesNotMatch(review, /unrequested speculative behavior/);
-  }
+  assert.match(reportRepair, /Do not re-read the full scope or add a finding/);
+  assert.match(review, /An unrequested reachable behavior, interface, data\/default/);
+  assert.match(review, /internal detail preserving authorized behavior and boundaries is not/);
+  assert.match(review, /required check must come from the Spec, applicable repository instructions, or an explicit project declaration/);
+  assert.match(review, /do not infer task attribution from unavailable history/);
 });
 
-test('Work Slices are conditional, compact, and reviewed locally before final integration', () => {
+test('Work Slices share one base worktree but keep independent implementation histories', () => {
   const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
   const slicing = read('skills', 'proofline-start-implementation', 'references', 'slicing.md');
   const template = read('skills', 'proofline-start-implementation', 'assets', 'templates', 'slice.md');
-  const sliceReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-slice.md');
-  const finalReview = read('skills', 'proofline-start-implementation', 'references', 'post-review-final.md');
+  const implementation = read('skills', 'proofline-start-implementation', 'references', 'implementation-prompt.md');
+  const review = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
 
   assert.match(coordinator, /Default to direct implementation/);
-  assert.match(coordinator, /Record the chain baseline before writing a Slice plan/);
+  assert.match(coordinator, /Record the chain baseline before writing the complete Slice plan/);
   assert.match(coordinator, /never block because a ready Spec has none/);
-  assert.match(coordinator, /mark only that Slice `completed`/);
-  assert.match(coordinator, /fresh blind final review/);
-  // 슬라이스 및 최종 검토도 이전 작업과 검토 결과를 입력으로 받지 않는다.
-  for (const review of [sliceReview, finalReview]) {
-    assert.match(review, /Do not request or use work reports, prior reviews\/findings/);
-    assert.doesNotMatch(review, /Latest.*report|implementation_report_text|integration_report_text|review_attempt|review_references/);
+  assert.match(coordinator, /one worktree per Spec revision and one writer at a time/);
+  assert.match(coordinator, /`<chain_key>_implementation_base`/);
+  assert.match(coordinator, /reply only: ready: <current project root>/);
+  assert.match(coordinator, /Send it no later message/);
+  assert.match(coordinator, /`fork_thread` from this base with `environment: \{ type: "same-directory" \}`/);
+  assert.match(coordinator, /record the thread ID, mark that Slice `in_progress`, then send the common implementation prompt/);
+  assert.match(coordinator, /Every Slice inherits only the base turn/);
+  assert.match(coordinator, /Stage only this task's implementation, including additions and deletions, and do not commit/);
+  assert.match(coordinator, /Treat HEAD plus the staged diff \(git diff --cached\) as the complete candidate/);
+  assert.match(coordinator, /Commit the staged implementation from this task as <commit_message> and report the commit SHA/);
+  assert.match(coordinator, /Do not complete direct work or a Slice until.*SHA/);
+  assert.match(coordinator, /In non-Git projects, `pass` completes.*without a commit/);
+  assert.match(coordinator, /Do not automatically amend, rebase, squash, merge, hand off, push/);
+  assert.match(implementation, /Complete only `<implementation_target>`/);
+  assert.match(review, /Independently review `<review_target>`/);
+
+  for (const removed of [
+    'worktree-prompt.md',
+    'checkpoint-commit-prompt.md',
+    'slice-implementation-prompt.md',
+    'integration-prompt.md',
+    'post-review-slice.md',
+    'post-review-final.md',
+  ]) {
+    assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'proofline-start-implementation', 'references', removed)), false);
   }
+
+  assert.match(coordinator, /proofline\(<SPEC-ID>\): implement revision <revision>/);
+  assert.match(coordinator, /proofline\(<SPEC-ID>\): complete <SLICE-ID>/);
+  assert.match(coordinator, /proofline\(<SPEC-ID>\): resolve final integration/);
+  assert.match(coordinator, /fresh blind final review/);
+  assert.match(review, /Do not request or use work reports, prior reviews\/findings/);
+  assert.doesNotMatch(review, /Latest.*report|implementation_report_text|integration_report_text|review_attempt|review_references/);
 
   assert.match(slicing, /Do not divide by file, component, layer, or test type/);
   assert.match(slicing, /reference parent `REQ-\*` IDs without copying their contract text/);
@@ -176,12 +205,8 @@ test('Work Slices are conditional, compact, and reviewed locally before final in
     'blocked_by',
   ]);
   assert.equal(metadata.status, 'pending');
-
-  assert.match(sliceReview, /Inspect the Slice outcome, assigned REQs/);
-  assert.match(sliceReview, /ignore unrelated Spec areas/);
-  assert.doesNotMatch(finalReview, /Treat passed Slice reviews as local proof/);
-  assert.match(finalReview, /Inspect complete REQ coverage, cross-Slice integration/);
-  assert.match(finalReview, /Use only the current Spec, project state/);
+  assert.match(review, /A `pass` requires the target obligations to hold/);
+  assert.match(review, /Unrelated existing code.*cannot establish a finding/);
 });
 
 test('skill completion boundaries are single-sourced and checkable', () => {

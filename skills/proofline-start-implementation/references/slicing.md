@@ -24,7 +24,7 @@ Each Slice must:
 - list only real Slice dependencies in `blocked_by`;
 - omit repository policy, generic tests, discussion, and evidence logs.
 
-Use `pending | in_progress | completed`. The frontier is every `pending` Slice whose `blocked_by` entries are `completed`; readiness is derived, not stored. Mark the selected Slice `in_progress` after its task is created successfully and `completed` only after its Slice review passes. Execute one frontier Slice at a time unless the user explicitly requests isolated parallel work.
+Use `pending | in_progress | completed`. The frontier is every `pending` Slice whose `blocked_by` entries are `completed`; readiness is derived, not stored. Mark the selected Slice `in_progress` after its task is created successfully. In Git, mark it `completed` only after its review passes and the coordinator receives its checkpoint commit SHA. In non-Git projects, mark it `completed` immediately after the pass. Execute one frontier Slice at a time in the shared project directory.
 
 Keep the body minimal:
 
