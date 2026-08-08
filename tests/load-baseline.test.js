@@ -17,7 +17,7 @@ test('baseline hook loads the packaged skill', () => {
   assert.match(result.stdout, /# Proofline Baseline Quality/);
   assert.doesNotMatch(result.stdout, /^---/);
   assert.match(result.stdout, /## Language and compression/);
-  assert.match(result.stdout, /Tests cover every required behavior/);
+  assert.match(result.stdout, /Treat named protocol rules, untrusted-input boundaries, and lifecycle states as contracts/);
 });
 
 // 누락된 패키지 파일은 조용히 넘어가지 않고 진단 가능한 오류를 반환해야 한다.
@@ -236,8 +236,9 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /Address the actual claim within its scope, conditions, and exceptions/);
   assert.match(baseline, /Reuse inspected task evidence while relevant state is unchanged/);
   assert.match(baseline, /Use the shortest natural whole expression that preserves meaning/);
-  assert.match(baseline, /Prefer direct, cohesive code with shallow flow/);
-  assert.match(baseline, /Tests cover every required behavior and each reachable, independently implemented failure path/);
+  assert.match(baseline, /Prefer the simplest design that preserves all information required for correct observable behavior/);
+  assert.match(baseline, /Treat named protocol rules, untrusted-input boundaries, and lifecycle states as contracts/);
+  assert.match(baseline, /Test each independently implemented path that changes a required observable result/);
 
   assert.match(completion, /Report only evidence already available from the task without initiating verification/);
   assert.match(completion, /Do not repeat work solely to strengthen the report/);
