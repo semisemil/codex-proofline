@@ -1,79 +1,85 @@
 ---
 name: start-implementation
-description: "Start or resume implementation of one authorized ready Spec, directly or through conditional Work Slices, with independent review and lifecycle coordination. Use when the user explicitly invokes this skill with a Spec ID or path and asks to implement it."
+description: "Coordinate implementation sessions and independent reviews in Direct or Sliced mode when the user asks to start or resume implementation using a ready Spec ID or path."
 ---
 
 # Proofline Start Implementation
 
-Coordinate one authorized Spec revision. Keep the contract in the Spec, optional execution state in its Slice files, and evidence in task history.
+Coordinate one ready Spec through implementation completion. The coordinator does not directly implement product code or tests or judge the result. Write all messages and reports in the user's language, and follow `assets/model-routing.md` for implementer and reviewer model and reasoning levels.
 
-## Rules
+## Participants
 
-- Coordinate only: modify no product code/tests and supply no verdict. Modify only Slice files and Spec lifecycle state.
-- In Git, use one worktree per Spec revision and one writer at a time. The direct implementation task owns its worktree; sliced work uses an unchanged implementation-base task whose children share its directory.
-- A Git implementer stages its candidate. A fresh blind subagent reviews it; the same implementer fixes and restages, then commits only after `pass`.
-- In non-Git projects, use the current project location without worktrees, staging, or automatic commits.
-- Stop without changing Spec status when required orchestration, shared-directory branching, history, follow-up, or model selection is unavailable. Do not invent a patch or VCS-specific fallback.
+- **Coordinator (current Codex task):** Coordinate sessions and reviews and update Spec/Slice status.
+- **Implementer (created by the coordinator with `create_thread`/`fork_thread`):** Implement code and tests.
+- **Reviewer (`spawn_agent` subagent):** Do not participate in implementation; judge independently (blind and read-only).
 
-## Target and chain
+## Preparation
 
-Resolve `.proofline/specs/<SPEC-ID>-*/SPEC.md`; ignore `.proofline/prds/**`. Validate identity, schema `2`, revision, contract, status, and project. Proceed only with `ready`; route `draft` through `implementation-spec`, report the prerequisite for `blocked`, and reject terminal Specs.
+1. Check `.proofline/specs/<SPEC-ID>-*/SPEC.md` (identity, schema, revision, requirements, project, and status).
+2. Proceed only with `ready` (`draft` → return to `implementation-spec`; `blocked` → inform the user of the prerequisite; terminal status → stop).
+3. If `$spec-slice` reports `Direct`, proceed in Direct mode. If it reports `Sliced`, use the current revision's Slice plan written by that skill.
 
-Chain key: `proofline_<lowercase Spec ID with hyphens replaced by underscores>_r<revision>`. Use it only in coordinator state to name or index:
+## Common Implementation and Review Sequence
 
-```text
-<chain_key>_pre_review_<two-digit attempt>
-<chain_key>_implementation_base
-<chain_key>_implementation
-<chain_key>_post_review_<two-digit attempt>
-<chain_key>_slice_<two-digit slice number>_implementation
-<chain_key>_slice_<two-digit slice number>_post_review_<two-digit attempt>
-<chain_key>_integration
-<chain_key>_final_review_<two-digit attempt>
-```
+Specify the target for Direct (entire Spec) or Sliced (current Slice/final fixes), then proceed:
 
-Query exact titled tasks and record returned fork thread IDs under their logical keys. Stop on duplicates. Reuse unchanged Spec, task linkage, pre-review facts, implementation reports, and review evidence. Resume the first incomplete step. Never place the chain key in a role prompt.
+1. **Instruct:** The coordinator sends the implementer the target path, implementation work, user constraints, and required verification.
+2. **Execute:** The implementer implements only the specified target and performs the required verification. Do not change Spec/Slice status.
+3. **Report:** The implementer reports whether the work is complete (and the reason if incomplete) to the coordinator with `send_message_to_thread`.
+4. **Wait:** The coordinator must not call `wait_threads`. End the turn after instructing or creating the task, and resume when the report is received.
+5. **Handle incomplete work:** When an incomplete report is received, report the stop reason to the user without review.
+6. **Create review:** When a completion report is received, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`).
+   - **Pass:** Target Spec/Slice, project root containing the current implementation state, repository instructions, user constraints, output language, and judgment criteria.
+   - **Do not pass:** Implementer report, previous review, fix explanation, work history, or expected judgment.
+7. **Judge:** The reviewer compares against the project state and judges:
+   - `pass`: Requirements are satisfied and required verification succeeds → proceed with the pass procedure for that mode.
+   - `fail`: Implementation defect or scope violation (give the reason and required fixes) → send to the same implementer and resume from step 2 (a fresh reviewer makes the next judgment).
+   - `need_confirm`: A user decision is required → stop automatic progress and, after user confirmation, either proceed with the pass procedure or send to the same implementer and resume from step 2.
 
-## Run
+## Repetition Limits
 
-Choose roles through `assets/model-routing.md`. Fill prompts in their existing language, set `<output_language>` to the user's language, add only overrides absent from the Spec/repository, and omit empty optional lines.
+- Review again only when the result has changed materially or new evidence exists. Stop immediately if the result is unchanged, a failure repeats, or a previous failure recurs.
+- Allow at most three `fail` judgments per target (one Direct target, one Slice, or the final entire Spec). Report a stop if the limit is exceeded.
+- If reviewer execution fails or the judgment is invalid, replace the reviewer with a fresh one at most once (stop if it fails again).
+- If task creation, forking, reporting, or review is unavailable, report the stop reason without changing status.
 
-**Pre-review:** Run `references/pre-review-prompt.md` only when the user explicitly requests it. On `block`, route a contract-changing decision to `draft` and an external prerequisite to `blocked`; create no implementation task. On `no_verdict`, report missing evidence without changing status.
+## Direct Mode
 
-**Execution mode:** Default to direct implementation. Read `references/slicing.md` only when the Spec may contain multiple independently verifiable outcomes, a real dependency sequence, or more work/evidence than one task context can hold. Record the chain baseline before writing the complete Slice plan. Create no Slice merely to satisfy the workflow, and never block because a ready Spec has none.
+1. Use `create_thread` to create a local task that shares the project (implementer).
+2. Run the common sequence for the entire Spec.
+3. Complete on `pass` (no worktree, staging, or automatic commit).
 
-**Git tasks:** Start from the project state containing the validated Spec and, when sliced, its complete plan.
+## Sliced Mode
 
-- Direct: create/resume titled task `<chain_key>_implementation` in a new worktree and send `references/implementation-prompt.md` for the whole revision.
-- Sliced: create/resume titled task `<chain_key>_implementation_base` in a new worktree with: `This is the implementation fork base for <spec_id> revision <revision>. In <output_language>, reply only: ready: <current project root>`. Send it no later message. For each frontier Slice, `fork_thread` from this base with `environment: { type: "same-directory" }`, record the thread ID, mark that Slice `in_progress`, then send the common implementation prompt. Run one Slice at a time. Every Slice inherits only the base turn while seeing the commits in the shared directory.
-- Final integration: fork from the same unchanged base with `same-directory`, record it as `<chain_key>_integration`, and send the common implementation prompt with only eligible final findings.
+Process Slices whose dependencies are satisfied sequentially (run only one implementer at a time).
 
-**Non-Git tasks:** Use `references/implementation-prompt.md` in the current project location for direct work or one sequential task per Slice. Use the same task pattern for final integration. Request no worktree, staging, commit, patch, or SVN-specific operation.
+### Git Repositories
 
-**Implementation candidate:** Fill `<implementation_target>` with the direct revision, Slice, or eligible integration findings. In Git, fill `<candidate_boundary>` with: `Stage only this task's implementation, including additions and deletions, and do not commit.` In non-Git, omit it. Mention only needed skills: `scope-integrity` for large/risky work, `refactor-proof` for `refactor`, `exact-port` for `exact_port`, and `issue-ledger` for durable out-of-scope work.
+1. From a state containing the ready Spec and Slice plan, use `create_thread` to create a task based on a temporary worktree.
+2. The base task only prepares the worktree and reports readiness with `send_message_to_thread` (do not call `wait_threads`; end the turn).
+3. After receiving the report, select a runnable Slice, fork the base task with `fork_thread` (`environment: { type: "same-directory" }`), and assign it as the Slice implementer.
+4. Run the common sequence for that Slice.
+5. On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`, then end the turn. Change the Slice to `completed` only after receiving the SHA.
+6. Repeat with the next Slice (do not commit before `pass`; do not merge, rebase, squash, push, remove the worktree, or delete the branch).
 
-A Git report is review-ready when it gives the project root, staged paths, required verification, and blockers, and the index represents exactly that task's candidate. A non-Git report needs the corresponding changed paths and evidence. Return only missing evidence to the same task. After creating or following up an implementation task, end the turn; the task reports back.
+### Non-Git Projects
 
-**Blind review:** Start every verdict-bearing attempt with a fresh read-only `spawn_agent` using `fork_turns: "none"`; never use `create_thread` for review. Fill `references/post-review-prompt.md` for the direct revision, Slice, or final implementation. For a Git direct/Slice review, set `<candidate_boundary>` to `Treat HEAD plus the staged diff (git diff --cached) as the complete candidate; ignore unstaged and untracked changes.` For Git final review, evaluate the committed Slice state plus any staged integration candidate and ignore other unstaged/untracked changes. For non-Git, use the current authorized implementation state.
+1. For each Slice, use `create_thread` to create a shared local task (implementer).
+2. Run the common sequence → on `pass`, change it to `completed` and proceed to the next Slice (no worktree, staging, or automatic commit is needed).
 
-Give the subagent only that neutral prompt, current Spec/Slice path, implementation root, request overrides, and output language. Never pass implementation or pre-review reports, prior reviews/findings, fix summaries, task references, attempt history, expected conclusions, or the chain key. Wait for its result in the coordinator task.
+### Final Review of the Entire Spec
 
-Allow at most three verdict-bearing attempts for direct work, each Slice, and final review, including the first. A report-format repair is not a new attempt; a reviewer/tool execution failure may use one fresh replacement. On `changes_required`, `no_verdict`, malformed output, or execution failure, read `references/review-control.md`. Send eligible findings to the same implementer, which fixes, verifies, and refreshes the staged candidate before a new blind review. Never re-run a review when candidate state is unchanged.
+1. When all Slices are `completed`, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`) (target: entire Spec; use the same pass/do-not-pass constraints as common step 6).
+2. Complete on `pass`.
+3. On `fail`, send it to the last Slice implementer → run common steps 2-5, then return to final review step 1.
+4. On `need_confirm`, obtain user confirmation → complete if passed; if changes are required, send them to the last Slice implementer, run common steps 2-5, and return to final review step 1.
 
-**Pass:** In Git, send the responsible implementation task one follow-up: `Commit the staged implementation from this task as <commit_message> and report the commit SHA in <output_language>.` Use:
+If there were final fixes, in Git the same implementer commits after `pass` and reports the SHA with `send_message_to_thread`. In non-Git projects, complete without a commit.
 
-```text
-proofline(<SPEC-ID>): implement revision <revision>
-proofline(<SPEC-ID>): complete <SLICE-ID>
-proofline(<SPEC-ID>): resolve final integration
-```
+## Completion
 
-Do not complete direct work or a Slice until the coordinator receives the SHA. A failed commit is a stop boundary. In non-Git projects, `pass` completes the direct work or Slice without a commit.
-
-After a Slice commit, mark only that Slice `completed` and start the next frontier. After all Slices complete, run a fresh blind final review. Route eligible final findings through the integration task, then review again; commit staged integration only after `pass`. Do not automatically amend, rebase, squash, merge, hand off, push, remove the worktree, or delete a branch/reference.
-
-## Finish
-
-- Never auto-rollback. Correct through the responsible task; roll back only by user request or Spec procedure.
-- Complete direct work only after review passes and any Git commit succeeds. Complete sliced work only after every Slice is `completed`, final review passes, and any integration commit succeeds. Every REQ's `Behavior`/`Done when` and required validation must hold. Set the Spec `completed`, freeze its body, and report settings, task refs, worktree root, files, checks, blockers, verdict, and commit SHAs without transcripts.
-- On revision change, stop and reuse no report, worktree, or completed Slice state; regenerate any Slice plan. Orchestration failure never alters status. Set `cancelled` only for product-contract cancellation.
+- Direct: On review `pass`, change the Spec to `completed`.
+- Sliced: When every Slice is `completed` and the entire Spec receives `pass`, change the Spec to `completed`. In Git, all Slice SHAs and, if there were final fixes, that SHA must have been received.
+- Preserve the Spec body except for lifecycle status.
+- Report to the user: execution mode, tasks used, project/worktree root, changed paths, verification results, final judgment, and commit SHAs (when stopped, include the reason and the decision or prerequisite).
+- Stop immediately if the Spec revision changes (do not reuse previous implementation or review results, and do not roll back automatically; roll back only when explicitly requested by the user or permitted by the Spec procedure).

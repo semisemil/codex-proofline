@@ -81,106 +81,70 @@ test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
-test('implementation review is opt-in, blind, bounded, and prompt identifiers stay private', () => {
+test('implementation uses callback-driven implementers and one bounded blind review cycle', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
-  const implementation = read('skills', 'start-implementation', 'references', 'implementation-prompt.md');
-  const preReview = read('skills', 'start-implementation', 'references', 'pre-review-prompt.md');
-  const review = read('skills', 'start-implementation', 'references', 'post-review-prompt.md');
   const modelRouting = read('skills', 'start-implementation', 'assets', 'model-routing.md');
-  const reviewControl = read('skills', 'start-implementation', 'references', 'review-control.md');
-  const allRolePrompts = [implementation, preReview, review, read('skills', 'start-implementation', 'references', 'review-report-repair.md')].join('\n');
 
-  assert.match(coordinator, /Run `references\/pre-review-prompt\.md` only when the user explicitly requests it/);
-  assert.match(coordinator, /at most three verdict-bearing attempts/);
-  assert.match(reviewControl, /For `no_verdict`, request only implementation evidence.*review report explicitly identifies as missing/);
-  assert.match(reviewControl, /one fresh replacement reviewer/);
-  assert.match(reviewControl, /Stop on the same finding, a return to any earlier finding.*or the same evidence request/);
-  assert.match(reviewControl, /unchanged state ends the loop/);
-  assert.doesNotMatch(coordinator, /Use no fixed (?:review-)?attempt limit|\.proofline\/prds\/<PRD-ID>/);
-
-  assert.match(implementation, /Complete only `<implementation_target>`/);
-  assert.match(implementation, /<candidate_boundary>/);
-  assert.match(implementation, /candidate paths, verification results, and blockers/);
-  assert.match(preReview, /Do not block for implementation choices/);
-  assert.match(coordinator, /Blind review.*`spawn_agent` using `fork_turns: "none"`/i);
-  assert.match(coordinator, /never use `create_thread` for review/i);
-  assert.match(coordinator, /Never pass implementation or pre-review reports, prior reviews\/findings/);
-  assert.match(review, /Independently review `<review_target>`/);
-  assert.match(review, /Do not request or use work reports, prior reviews\/findings/);
-  assert.match(review, /<candidate_boundary>/);
-  assert.doesNotMatch(review, /Latest report|implementation_report_text|implementation_task|review_attempt/);
+  assert.match(coordinator, /Coordinator \(current Codex task\).*Spec\/Slice status/);
+  assert.match(coordinator, /Implementer \(created by the coordinator with `create_thread`\/`fork_thread`\)/);
+  assert.match(coordinator, /Reviewer \(`spawn_agent` subagent\).*blind and read-only/);
+  assert.match(coordinator, /follow `assets\/model-routing\.md` for implementer and reviewer model and reasoning levels/);
+  assert.doesNotMatch(coordinator, /`(?:create|fork|spawn)\\_(?:thread|agent)`/);
+  assert.match(coordinator, /whether the work is complete \(and the reason if incomplete\).*`send_message_to_thread`/);
+  assert.match(coordinator, /reason if incomplete/);
+  assert.doesNotMatch(coordinator, /completion report (?:contains|includes)/i);
+  assert.match(coordinator, /coordinator must not call `wait_threads`/);
+  assert.match(coordinator, /`spawn_agent`\(`fork_turns: "none"`\)/);
+  assert.match(coordinator, /project root containing the current implementation state/);
+  assert.match(coordinator, /Do not pass.*Implementer report, previous review, fix explanation, work history, or expected judgment/);
+  assert.match(coordinator, /`pass`: Requirements are satisfied and required verification succeeds/);
+  assert.match(coordinator, /`fail`: Implementation defect or scope violation/);
+  assert.match(coordinator, /`need_confirm`: A user decision is required/);
+  assert.match(coordinator, /same implementer and resume from step 2/);
+  assert.match(coordinator, /fresh reviewer makes the next judgment/);
+  assert.match(coordinator, /at most three `fail` judgments per target/);
+  assert.match(coordinator, /a failure repeats, or a previous failure recurs/);
+  assert.match(coordinator, /replace the reviewer with a fresh one at most once/);
+  assert.match(coordinator, /task creation, forking, reporting, or review is unavailable.*without changing status/);
   assert.match(modelRouting, /Pass no task\/report\/review history or expected conclusion/);
-  assert.match(review, /exactly one verdict: `pass`, `changes_required`, or `no_verdict`/);
-  assert.doesNotMatch(allRolePrompts, /<session_key>|chain=/);
-  assert.match(coordinator, /Never place the chain key in a role prompt/);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references')), false);
+  assert.doesNotMatch(coordinator, /pre-review|review-report-repair|changes_required|no_verdict|chain_key/);
 });
 
-test('post-review findings use one compact conditional eligibility contract', () => {
+test('Direct and Sliced modes keep different VCS behavior', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
-  const review = read('skills', 'start-implementation', 'references', 'post-review-prompt.md');
-  const reportRepair = read('skills', 'start-implementation', 'references', 'review-report-repair.md');
-  const reviewControl = read('skills', 'start-implementation', 'references', 'review-control.md');
+  const slicing = read('skills', 'spec-slice', 'SKILL.md');
+  const template = read('skills', 'spec-slice', 'assets', 'templates', 'slice.md');
 
-  assert.match(coordinator, /On `changes_required`, `no_verdict`, malformed output, or execution failure, read `references\/review-control\.md`/);
-  assert.match(reviewControl, /Forward a finding only when the existing report identifies/);
-  assert.match(reviewControl, /send `review-report-repair\.md` to the same reviewer once/);
-  assert.match(reviewControl, /applying a source requires a material interpretation choice/);
-  assert.match(reportRepair, /This is not a new review/);
-  assert.match(reportRepair, /Do not re-read the full scope or add a finding/);
-  assert.match(review, /An unrequested reachable behavior, interface, data\/default/);
-  assert.match(review, /internal detail preserving authorized behavior and boundaries is not/);
-  assert.match(review, /required check must come from the Spec, applicable repository instructions, or an explicit project declaration/);
-  assert.match(review, /do not infer task attribution from unavailable history/);
-});
+  assert.match(coordinator, /Direct Mode[\s\S]*`create_thread` to create a local task that shares the project/);
+  assert.match(coordinator, /Direct Mode[\s\S]*no worktree, staging, or automatic commit/);
+  assert.match(coordinator, /If `\$spec-slice` reports `Direct`, proceed in Direct mode/);
+  assert.match(coordinator, /reports `Sliced`.*current revision's Slice plan/);
+  assert.doesNotMatch(coordinator, /do not (?:decide on|write) Slices/i);
+  assert.doesNotMatch(coordinator, /assets\/templates\/slice\.md|links to Slice documents/);
+  assert.match(coordinator, /Sliced Mode[\s\S]*Process Slices whose dependencies are satisfied sequentially/);
+  assert.match(coordinator, /Git Repositories[\s\S]*`create_thread` to create a task based on a temporary worktree/);
+  assert.match(coordinator, /base task only prepares the worktree and reports readiness with `send_message_to_thread`/);
+  assert.match(coordinator, /fork the base task with `fork_thread` \(`environment: \{ type: "same-directory" \}`\)/);
+  assert.match(coordinator, /only one implementer at a time/);
+  assert.match(coordinator, /On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`/);
+  assert.match(coordinator, /Change the Slice to `completed` only after receiving the SHA/);
+  assert.match(coordinator, /do not commit before `pass`/);
+  assert.match(coordinator, /do not merge, rebase, squash, push, remove the worktree, or delete the branch/);
+  assert.match(coordinator, /Non-Git Projects[\s\S]*create a shared local task/);
+  assert.match(coordinator, /Non-Git Projects[\s\S]*no worktree, staging, or automatic commit is needed/);
+  assert.match(coordinator, /Final Review of the Entire Spec[\s\S]*create a fresh reviewer with `spawn_agent`\(`fork_turns: "none"`\)/);
+  assert.match(coordinator, /last Slice implementer[\s\S]*common steps 2-5/);
+  assert.match(coordinator, /run common steps 2-5, then return to final review step 1/);
+  assert.match(coordinator, /If there were final fixes, in Git the same implementer commits after `pass` and reports the SHA with `send_message_to_thread`/);
+  assert.match(coordinator, /if there were final fixes, that SHA must have been received/);
 
-test('Work Slices share one base worktree but keep independent implementation histories', () => {
-  const coordinator = read('skills', 'start-implementation', 'SKILL.md');
-  const slicing = read('skills', 'start-implementation', 'references', 'slicing.md');
-  const template = read('skills', 'start-implementation', 'assets', 'templates', 'slice.md');
-  const implementation = read('skills', 'start-implementation', 'references', 'implementation-prompt.md');
-  const review = read('skills', 'start-implementation', 'references', 'post-review-prompt.md');
-
-  assert.match(coordinator, /Default to direct implementation/);
-  assert.match(coordinator, /Record the chain baseline before writing the complete Slice plan/);
-  assert.match(coordinator, /never block because a ready Spec has none/);
-  assert.match(coordinator, /one worktree per Spec revision and one writer at a time/);
-  assert.match(coordinator, /`<chain_key>_implementation_base`/);
-  assert.match(coordinator, /reply only: ready: <current project root>/);
-  assert.match(coordinator, /Send it no later message/);
-  assert.match(coordinator, /`fork_thread` from this base with `environment: \{ type: "same-directory" \}`/);
-  assert.match(coordinator, /record the thread ID, mark that Slice `in_progress`, then send the common implementation prompt/);
-  assert.match(coordinator, /Every Slice inherits only the base turn/);
-  assert.match(coordinator, /Stage only this task's implementation, including additions and deletions, and do not commit/);
-  assert.match(coordinator, /Treat HEAD plus the staged diff \(git diff --cached\) as the complete candidate/);
-  assert.match(coordinator, /Commit the staged implementation from this task as <commit_message> and report the commit SHA/);
-  assert.match(coordinator, /Do not complete direct work or a Slice until.*SHA/);
-  assert.match(coordinator, /In non-Git projects, `pass` completes.*without a commit/);
-  assert.match(coordinator, /Do not automatically amend, rebase, squash, merge, hand off, push/);
-  assert.match(implementation, /Complete only `<implementation_target>`/);
-  assert.match(review, /Independently review `<review_target>`/);
-
-  for (const removed of [
-    'worktree-prompt.md',
-    'checkpoint-commit-prompt.md',
-    'slice-implementation-prompt.md',
-    'integration-prompt.md',
-    'post-review-slice.md',
-    'post-review-final.md',
-  ]) {
-    assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references', removed)), false);
-  }
-
-  assert.match(coordinator, /proofline\(<SPEC-ID>\): implement revision <revision>/);
-  assert.match(coordinator, /proofline\(<SPEC-ID>\): complete <SLICE-ID>/);
-  assert.match(coordinator, /proofline\(<SPEC-ID>\): resolve final integration/);
-  assert.match(coordinator, /fresh blind final review/);
-  assert.match(review, /Do not request or use work reports, prior reviews\/findings/);
-  assert.doesNotMatch(review, /Latest.*report|implementation_report_text|integration_report_text|review_attempt|review_references/);
-
-  assert.match(slicing, /Do not divide by file, component, layer, or test type/);
-  assert.match(slicing, /reference parent `REQ-\*` IDs without copying their contract text/);
-  assert.match(slicing, /readiness is derived, not stored/);
-  assert.match(slicing, /use direct mode and create no Slice files/);
+  assert.match(slicing, /independent sub-goals \(Sub Goals\)/);
+  assert.match(slicing, /no meaningful Slices, do not create any documents and report `Direct`/);
+  assert.match(slicing, /write the complete plan before product implementation/);
+  assert.match(slicing, /Spec's `Slices` section/);
+  assert.match(slicing, /Do not change the Spec body outside the `Slices` section/);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'assets', 'templates', 'slice.md')), false);
 
   assert.match(template, /"schema_version": 1/);
   assert.match(template, /"blocked_by": \{\{blocked_by_json\}\}/);
@@ -205,8 +169,6 @@ test('Work Slices share one base worktree but keep independent implementation hi
     'blocked_by',
   ]);
   assert.equal(metadata.status, 'pending');
-  assert.match(review, /A `pass` requires the target obligations to hold/);
-  assert.match(review, /Unrelated existing code.*cannot establish a finding/);
 });
 
 test('skill completion boundaries are single-sourced and checkable', () => {

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline Spec Slice"
+  short_description: "Divide a Spec into an independently implementable Slice plan"
+  default_prompt: "Use $spec-slice to decide whether the specified ready Spec needs Slices and create the complete plan without implementing it."
+
+policy:
+  allow_implicit_invocation: false

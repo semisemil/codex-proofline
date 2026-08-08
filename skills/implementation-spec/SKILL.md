@@ -20,6 +20,8 @@ Use `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md`; allocate above the largest Spec
 
 ## Contract
 
+Write the Spec in the user's language.
+
 Create from `assets/templates/spec.md` and serialize its JSON safely. Require `schema_version: 2`; `SPEC-0001`-form `id`; stable `title`; `kind` in `feature | bug | refactor | exact_port | maintenance`; `status` in `draft | ready | blocked | completed | cancelled | superseded`; positive `revision`; arrays `supersedes`/`related_issues`; nullable `superseded_by`. Create no other metadata; preserve unknown keys in an existing valid Spec.
 
 Keep only the current contract: no discussion history, investigation logs, rejected alternatives, or metadata repeated as prose. Format every stable `REQ-001` as one list item with nested `Behavior:` and observable `Done when:` lines; create no acceptance IDs or mapping.
