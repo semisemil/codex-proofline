@@ -10,7 +10,7 @@ const hookPath = path.join(repoRoot, 'hooks', 'refresh-dashboard.js');
 const bundledDashboard = path.join(
   repoRoot,
   'skills',
-  'proofline-issue-ledger',
+  'issue-ledger',
   'assets',
   'state-starter',
   'dashboard',

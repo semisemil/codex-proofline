@@ -44,31 +44,31 @@ $proofline:proofline-baseline-quality
 ### 작업에 맞는 스킬 직접 부르기
 
 Codex는 설치된 스킬 중 작업에 맞는 것을 필요할 때 불러옵니다. 중요한 작업에서 적용 기준을 분명히 하고 싶다면 스킬 이름을 직접 적으세요.
-책임과 호출 경로를 실제로 바꾸는 리팩터링에는 `proofline-refactor-proof`를 사용합니다.
+책임과 호출 경로를 실제로 바꾸는 리팩터링에는 `refactor-proof`를 사용합니다.
 
 ```text
-$proofline:proofline-refactor-proof
+$proofline:refactor-proof
 사용자 설정 저장 책임을 서비스 계층으로 옮겨줘.
 ```
 
-원본 동작을 바꾸지 않고 그대로 옮겨야 한다면 `proofline-exact-port`를 사용합니다.
+원본 동작을 바꾸지 않고 그대로 옮겨야 한다면 `exact-port`를 사용합니다.
 
 ```text
-$proofline:proofline-exact-port
+$proofline:exact-port
 이 원본 구현을 대상 프로젝트로 동작 변경 없이 이식해줘.
 ```
 
-여러 작업과 독립 검토가 필요한 구현은 먼저 `proofline-implementation-spec`으로 Spec을 만듭니다.
+여러 작업과 독립 검토가 필요한 구현은 먼저 `implementation-spec`으로 Spec을 만듭니다.
 
 ```text
-$proofline:proofline-implementation-spec
+$proofline:implementation-spec
 사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해줘.
 ```
 
-준비된 Spec을 구현하려면 `proofline-start-implementation`을 사용합니다. 작은 작업은 바로 구현하고, 한 작업 컨텍스트를 넘는 경우에만 Spec 아래에 `Work Slice`를 만들어 Slice별 구현·검토 후 통합 검토를 수행합니다. 사전 검토는 사용자가 요청할 때만 실행하며, 검토가 실패해도 자동 롤백하지 않습니다.
+준비된 Spec을 구현하려면 `start-implementation`을 사용합니다. 작은 작업은 바로 구현하고, 한 작업 컨텍스트를 넘는 경우에만 Spec 아래에 `Work Slice`를 만들어 Slice별 구현·검토 후 통합 검토를 수행합니다. 사전 검토는 사용자가 요청할 때만 실행하며, 검토가 실패해도 자동 롤백하지 않습니다.
 
 ```text
-$proofline:proofline-start-implementation
+$proofline:start-implementation
 SPEC-0001 구현을 시작해줘.
 ```
 
@@ -79,26 +79,26 @@ SPEC-0001 구현을 시작해줘.
 | 스킬 | 사용시점       |  개선사항|
 | --- | --- | --- |
 | `$proofline:proofline-baseline-quality` | 모든 대화와 결과물 | 대상 독자에 맞는 언어, 자연스러운 문장, 수정 권한, 근거가 있는 판단 |
-| `$proofline:proofline-scope-integrity` | 크거나 위험하고 여러 단계로 이어지는 작업 | 처음 합의한 목표, 필수 조건, 중간 점검, 검증 계획, 범위 변경 승인 |
-| `$proofline:proofline-completion-evidence` | 완료 결과나 막힌 상황을 보고할 때 | 완료한 일과 검증 결과의 분리, 통과·실패·미실행 검사, 막힌 이유, 다음 조치 |
-| `$proofline:proofline-refactor-proof` | 책임, 의존 방향, 호출 경로, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경, 남은 기존 결합, 동작 보존 범위, 검증 근거 |
-| `$proofline:proofline-exact-port` | 원본 동작을 그대로 옮겨야 하는 이식 | 원본과 대상의 대응 관계, 승인된 차이, 독립 비교 결과, 확인하지 못한 부분 |
-| `$proofline:proofline-issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 핵심 결정과 판정 근거 |
-| `$proofline:proofline-capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
-| `$proofline:proofline-implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 작업별 최소 구조, 통합 요구사항·완료 조건, Spec 수명주기 |
-| `$proofline:proofline-start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 조건부 Work Slice, 작업 귀속 diff, Slice 검토, 최종 통합 판정 |
+| `$proofline:scope-integrity` | 크거나 위험하고 여러 단계로 이어지는 작업 | 처음 합의한 목표, 필수 조건, 중간 점검, 검증 계획, 범위 변경 승인 |
+| `$proofline:completion-evidence` | 완료 결과나 막힌 상황을 보고할 때 | 완료한 일과 검증 결과의 분리, 통과·실패·미실행 검사, 막힌 이유, 다음 조치 |
+| `$proofline:refactor-proof` | 책임, 의존 방향, 호출 경로, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경, 남은 기존 결합, 동작 보존 범위, 검증 근거 |
+| `$proofline:exact-port` | 원본 동작을 그대로 옮겨야 하는 이식 | 원본과 대상의 대응 관계, 승인된 차이, 독립 비교 결과, 확인하지 못한 부분 |
+| `$proofline:issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 핵심 결정과 판정 근거 |
+| `$proofline:capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
+| `$proofline:implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 작업별 최소 구조, 통합 요구사항·완료 조건, Spec 수명주기 |
+| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 조건부 Work Slice, 작업 귀속 diff, Slice 검토, 최종 통합 판정 |
 
-## 🗂️ `proofline-issue-ledger`로 이슈 남기기
+## 🗂️ `issue-ledger`로 이슈 남기기
 
-대화 중 발견한 버그나 나중에 할 작업은 세션이 끝나면 다시 찾기 어렵습니다. `proofline-issue-ledger`는 이런 작업을 프로젝트의 `.proofline/` 폴더에 저장합니다. 버그뿐 아니라 일반 작업, 기능, 조사, 문서화, 유지보수 항목도 기록할 수 있습니다.
+대화 중 발견한 버그나 나중에 할 작업은 세션이 끝나면 다시 찾기 어렵습니다. `issue-ledger`는 이런 작업을 프로젝트의 `.proofline/` 폴더에 저장합니다. 버그뿐 아니라 일반 작업, 기능, 조사, 문서화, 유지보수 항목도 기록할 수 있습니다.
 
 ```text
-$proofline:proofline-issue-ledger
+$proofline:issue-ledger
 설정 파일 호환성 문제를 이슈로 등록해줘.
 ```
 
 ```text
-$proofline:proofline-issue-ledger
+$proofline:issue-ledger
 PL-0012의 진행 상황과 확인 근거를 갱신해줘.
 ```
 
@@ -141,7 +141,7 @@ codex plugin marketplace upgrade proofline
 
 ### 대시보드에 이슈가 표시되지 않을 때
 
-대시보드에서 `.proofline/issues/` 폴더를 연결했는지 확인한 뒤 다시 읽기를 누르세요. 아직 이슈 원장을 만들지 않았다면 먼저 `proofline-issue-ledger`로 이슈를 하나 등록해야 합니다.
+대시보드에서 `.proofline/issues/` 폴더를 연결했는지 확인한 뒤 다시 읽기를 누르세요. 아직 이슈 원장을 만들지 않았다면 먼저 `issue-ledger`로 이슈를 하나 등록해야 합니다.
 
 
 ## 라이선스

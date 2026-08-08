@@ -1,5 +1,5 @@
 ---
-name: proofline-capability-growth
+name: capability-growth
 description: "Use for Codex capability growth: review repeated manual work, shortlist automation candidates, check existing tools, and prepare skill/script/hook/Codex automation registration only after user approval."
 ---
 

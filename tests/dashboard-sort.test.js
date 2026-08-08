@@ -8,7 +8,7 @@ const appPath = path.join(
   __dirname,
   '..',
   'skills',
-  'proofline-issue-ledger',
+  'issue-ledger',
   'assets',
   'state-starter',
   'dashboard',

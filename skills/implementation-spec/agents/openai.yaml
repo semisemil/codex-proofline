@@ -1,7 +1,7 @@
 interface:
   display_name: "Proofline Implementation Spec"
   short_description: "Create, revise, and manage implementation Specs"
-  default_prompt: "Use $proofline-implementation-spec to create, revise, complete, cancel, or supersede the requested project Spec without implementing it."
+  default_prompt: "Use $implementation-spec to create, revise, complete, cancel, or supersede the requested project Spec without implementing it."
 
 policy:
   allow_implicit_invocation: false

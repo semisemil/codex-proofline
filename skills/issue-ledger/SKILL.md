@@ -1,5 +1,5 @@
 ---
-name: proofline-issue-ledger
+name: issue-ledger
 description: Record and update concrete bugs, tasks, features, research, documentation, and maintenance in a project-local ledger. Use when the user asks to register or update project work, or when durable out-of-scope work should be preserved.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: proofline-scope-integrity
+name: scope-integrity
 description: Use when work is large, risky, multi-step, or easy to shrink accidentally. Keep the full approved goal, checkpoints, verification plan, risks, and approval decisions visible. Not for ordinary low-risk work.
 ---
 

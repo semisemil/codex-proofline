@@ -1,5 +1,5 @@
 ---
-name: proofline-start-implementation
+name: start-implementation
 description: "Start or resume implementation of one authorized ready Spec, directly or through conditional Work Slices, with independent review and lifecycle coordination. Use when the user explicitly invokes this skill with a Spec ID or path and asks to implement it."
 ---
 
@@ -17,7 +17,7 @@ Coordinate one authorized Spec revision. Keep the contract in the Spec, optional
 
 ## Target and chain
 
-Resolve `.proofline/specs/<SPEC-ID>-*/SPEC.md`; ignore `.proofline/prds/**`. Validate identity, schema `2`, revision, contract, status, and project. Proceed only with `ready`; route `draft` through `proofline-implementation-spec`, report the prerequisite for `blocked`, and reject terminal Specs.
+Resolve `.proofline/specs/<SPEC-ID>-*/SPEC.md`; ignore `.proofline/prds/**`. Validate identity, schema `2`, revision, contract, status, and project. Proceed only with `ready`; route `draft` through `implementation-spec`, report the prerequisite for `blocked`, and reject terminal Specs.
 
 Chain key: `proofline_<lowercase Spec ID with hyphens replaced by underscores>_r<revision>`. Use it only in coordinator state to name or index:
 
@@ -50,7 +50,7 @@ Choose roles through `assets/model-routing.md`. Fill prompts in their existing l
 
 **Non-Git tasks:** Use `references/implementation-prompt.md` in the current project location for direct work or one sequential task per Slice. Use the same task pattern for final integration. Request no worktree, staging, commit, patch, or SVN-specific operation.
 
-**Implementation candidate:** Fill `<implementation_target>` with the direct revision, Slice, or eligible integration findings. In Git, fill `<candidate_boundary>` with: `Stage only this task's implementation, including additions and deletions, and do not commit.` In non-Git, omit it. Mention only needed skills: `proofline-scope-integrity` for large/risky work, `proofline-refactor-proof` for `refactor`, `proofline-exact-port` for `exact_port`, and `proofline-issue-ledger` for durable out-of-scope work.
+**Implementation candidate:** Fill `<implementation_target>` with the direct revision, Slice, or eligible integration findings. In Git, fill `<candidate_boundary>` with: `Stage only this task's implementation, including additions and deletions, and do not commit.` In non-Git, omit it. Mention only needed skills: `scope-integrity` for large/risky work, `refactor-proof` for `refactor`, `exact-port` for `exact_port`, and `issue-ledger` for durable out-of-scope work.
 
 A Git report is review-ready when it gives the project root, staged paths, required verification, and blockers, and the index represents exactly that task's candidate. A non-Git report needs the corresponding changed paths and evidence. Return only missing evidence to the same task. After creating or following up an implementation task, end the turn; the task reports back.
 

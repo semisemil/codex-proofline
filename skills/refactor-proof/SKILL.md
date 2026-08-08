@@ -1,5 +1,5 @@
 ---
-name: proofline-refactor-proof
+name: refactor-proof
 description: Use for refactors, restructuring, responsibility splits, dependency cleanup, architecture or module-boundary changes, and state or data flow changes. Prove that the intended structure changed rather than only names or surface code.
 ---
 

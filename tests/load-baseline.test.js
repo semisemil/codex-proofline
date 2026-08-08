@@ -43,8 +43,8 @@ test('baseline hook reports a missing skill', (t) => {
 });
 
 test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
-  const skill = read('skills', 'proofline-implementation-spec', 'SKILL.md');
-  const template = read('skills', 'proofline-implementation-spec', 'assets', 'templates', 'spec.md');
+  const skill = read('skills', 'implementation-spec', 'SKILL.md');
+  const template = read('skills', 'implementation-spec', 'assets', 'templates', 'spec.md');
 
   assert.match(skill, /\.proofline\/specs\/<SPEC-ID>-<slug>\/SPEC\.md/);
   assert.match(skill, /schema_version: 2/);
@@ -82,13 +82,13 @@ test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
 });
 
 test('implementation review is opt-in, blind, bounded, and prompt identifiers stay private', () => {
-  const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
-  const implementation = read('skills', 'proofline-start-implementation', 'references', 'implementation-prompt.md');
-  const preReview = read('skills', 'proofline-start-implementation', 'references', 'pre-review-prompt.md');
-  const review = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
-  const modelRouting = read('skills', 'proofline-start-implementation', 'assets', 'model-routing.md');
-  const reviewControl = read('skills', 'proofline-start-implementation', 'references', 'review-control.md');
-  const allRolePrompts = [implementation, preReview, review, read('skills', 'proofline-start-implementation', 'references', 'review-report-repair.md')].join('\n');
+  const coordinator = read('skills', 'start-implementation', 'SKILL.md');
+  const implementation = read('skills', 'start-implementation', 'references', 'implementation-prompt.md');
+  const preReview = read('skills', 'start-implementation', 'references', 'pre-review-prompt.md');
+  const review = read('skills', 'start-implementation', 'references', 'post-review-prompt.md');
+  const modelRouting = read('skills', 'start-implementation', 'assets', 'model-routing.md');
+  const reviewControl = read('skills', 'start-implementation', 'references', 'review-control.md');
+  const allRolePrompts = [implementation, preReview, review, read('skills', 'start-implementation', 'references', 'review-report-repair.md')].join('\n');
 
   assert.match(coordinator, /Run `references\/pre-review-prompt\.md` only when the user explicitly requests it/);
   assert.match(coordinator, /at most three verdict-bearing attempts/);
@@ -116,10 +116,10 @@ test('implementation review is opt-in, blind, bounded, and prompt identifiers st
 });
 
 test('post-review findings use one compact conditional eligibility contract', () => {
-  const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
-  const review = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
-  const reportRepair = read('skills', 'proofline-start-implementation', 'references', 'review-report-repair.md');
-  const reviewControl = read('skills', 'proofline-start-implementation', 'references', 'review-control.md');
+  const coordinator = read('skills', 'start-implementation', 'SKILL.md');
+  const review = read('skills', 'start-implementation', 'references', 'post-review-prompt.md');
+  const reportRepair = read('skills', 'start-implementation', 'references', 'review-report-repair.md');
+  const reviewControl = read('skills', 'start-implementation', 'references', 'review-control.md');
 
   assert.match(coordinator, /On `changes_required`, `no_verdict`, malformed output, or execution failure, read `references\/review-control\.md`/);
   assert.match(reviewControl, /Forward a finding only when the existing report identifies/);
@@ -134,11 +134,11 @@ test('post-review findings use one compact conditional eligibility contract', ()
 });
 
 test('Work Slices share one base worktree but keep independent implementation histories', () => {
-  const coordinator = read('skills', 'proofline-start-implementation', 'SKILL.md');
-  const slicing = read('skills', 'proofline-start-implementation', 'references', 'slicing.md');
-  const template = read('skills', 'proofline-start-implementation', 'assets', 'templates', 'slice.md');
-  const implementation = read('skills', 'proofline-start-implementation', 'references', 'implementation-prompt.md');
-  const review = read('skills', 'proofline-start-implementation', 'references', 'post-review-prompt.md');
+  const coordinator = read('skills', 'start-implementation', 'SKILL.md');
+  const slicing = read('skills', 'start-implementation', 'references', 'slicing.md');
+  const template = read('skills', 'start-implementation', 'assets', 'templates', 'slice.md');
+  const implementation = read('skills', 'start-implementation', 'references', 'implementation-prompt.md');
+  const review = read('skills', 'start-implementation', 'references', 'post-review-prompt.md');
 
   assert.match(coordinator, /Default to direct implementation/);
   assert.match(coordinator, /Record the chain baseline before writing the complete Slice plan/);
@@ -167,7 +167,7 @@ test('Work Slices share one base worktree but keep independent implementation hi
     'post-review-slice.md',
     'post-review-final.md',
   ]) {
-    assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'proofline-start-implementation', 'references', removed)), false);
+    assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references', removed)), false);
   }
 
   assert.match(coordinator, /proofline\(<SPEC-ID>\): implement revision <revision>/);
@@ -211,11 +211,11 @@ test('Work Slices share one base worktree but keep independent implementation hi
 
 test('skill completion boundaries are single-sourced and checkable', () => {
   const baseline = read('skills', 'proofline-baseline-quality', 'SKILL.md');
-  const completion = read('skills', 'proofline-completion-evidence', 'SKILL.md');
-  const exactPortReport = read('skills', 'proofline-exact-port', 'assets', 'templates', 'exact-port-report.md');
-  const refactorReport = read('skills', 'proofline-refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
-  const scope = read('skills', 'proofline-scope-integrity', 'SKILL.md');
-  const growth = read('skills', 'proofline-capability-growth', 'SKILL.md');
+  const completion = read('skills', 'completion-evidence', 'SKILL.md');
+  const exactPortReport = read('skills', 'exact-port', 'assets', 'templates', 'exact-port-report.md');
+  const refactorReport = read('skills', 'refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
+  const scope = read('skills', 'scope-integrity', 'SKILL.md');
+  const growth = read('skills', 'capability-growth', 'SKILL.md');
 
   assert.match(baseline, /Write all prose in the target language/);
   assert.match(baseline, /Translate or conventionally transliterate technical terms, roles, actions, states, and workflow concepts/);

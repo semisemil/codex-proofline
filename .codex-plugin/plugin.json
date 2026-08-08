@@ -1,6 +1,6 @@
 {
   "name": "proofline",
-  "version": "0.2.9",
+  "version": "0.3.0",
   "description": "Codex가 요청 범위를 놓치지 않고, 실제로 확인한 내용만 완료로 보고하도록 돕는 플러그인입니다.",
   "author": {
     "name": "semisemil",
@@ -33,9 +33,9 @@
       "검증 결과와 완료 여부 보고"
     ],
     "defaultPrompt": [
-      "$proofline:proofline-issue-ledger 이 대화에서 나온 후속 작업을 프로젝트 이슈로 등록해 줘",
-      "$proofline:proofline-implementation-spec 사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해 줘. 구현은 시작하지 마",
-      "$proofline:proofline-start-implementation SPEC-0001 구현을 시작해 줘"
+      "$proofline:issue-ledger 이 대화에서 나온 후속 작업을 프로젝트 이슈로 등록해 줘",
+      "$proofline:implementation-spec 사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해 줘. 구현은 시작하지 마",
+      "$proofline:start-implementation SPEC-0001 구현을 시작해 줘"
     ],
     "websiteURL": "https://github.com/semisemil/codex-proofline"
   }

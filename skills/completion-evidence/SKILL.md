@@ -1,5 +1,5 @@
 ---
-name: proofline-completion-evidence
+name: completion-evidence
 description: Use when reporting task completion, blockers, failed checks, or material unverified work. Report only evidence already available from the task without initiating verification.
 ---
 
