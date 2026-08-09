@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline Tenet Me"
+  short_description: "Review reverse outcome paths using only current evidence"
+  default_prompt: "Use $tenet-me to review SPEC-0001."
+
+policy:
+  allow_implicit_invocation: false

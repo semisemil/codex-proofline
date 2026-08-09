@@ -124,7 +124,9 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
   assert.doesNotMatch(coordinator, /assets\/templates\/slice\.md|links to Slice documents/);
   assert.match(coordinator, /Sliced Mode[\s\S]*Process Slices whose dependencies are satisfied sequentially/);
   assert.match(coordinator, /Git Repositories[\s\S]*`create_thread` to create a task based on a temporary worktree/);
-  assert.match(coordinator, /base task only prepares the worktree and reports readiness with `send_message_to_thread`/);
+  assert.match(coordinator, /Its entire prompt is: `<SPEC-ID> base session`/);
+  assert.match(coordinator, /When creation returns a `threadId`[\s\S]*send the implementation instructions only to that fork/);
+  assert.match(coordinator, /If creation returns only a `clientThreadId`, end the turn and resolve the ready task before forking it/);
   assert.match(coordinator, /fork the base task with `fork_thread` \(`environment: \{ type: "same-directory" \}`\)/);
   assert.match(coordinator, /only one implementer at a time/);
   assert.match(coordinator, /On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`/);

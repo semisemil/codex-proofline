@@ -7,8 +7,14 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 
 ## Scope
 
-- Modify only `.proofline/specs/**`; never implement or migrate legacy `.proofline/prds/**`.
+- Modify only `.proofline/specs/**`; the sole exception is domain documentation maintained through an available `domain-modeling` skill. Never implement or migrate legacy `.proofline/prds/**`.
 - Record the current implementation contract, not repository, system, formatting, or ordinary build/test policy.
+
+## Project language
+
+Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
+
+When a project-specific term is ambiguous, conflicts with an existing definition, becomes canonical, or an important design decision settles, use the `domain-modeling` skill when available to maintain the domain model.
 
 ## Resolve
 
