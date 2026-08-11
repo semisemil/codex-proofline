@@ -58,6 +58,13 @@ $proofline:exact-port
 이 원본 구현을 대상 프로젝트로 동작 변경 없이 이식해줘.
 ```
 
+거친 제품·기능·소프트웨어·업무 시스템 아이디어를 개발 기획으로 구체화하려면 `development-plan`으로 Plan을 만듭니다. Plan 본문은 대상과 판단에 맞게 구성되며 `.proofline/plan/` 아래에 저장됩니다. `ready`는 구현 Spec의 입력으로 충분하다는 뜻이며 후속 작업의 승인은 아닙니다.
+
+```text
+$proofline:development-plan
+반복 업무를 자동화하는 내부 도구 아이디어를 개발 기획 Plan으로 구체화해줘.
+```
+
 여러 작업과 독립 검토가 필요한 구현은 먼저 `implementation-spec`으로 Spec을 만듭니다.
 
 ```text
@@ -85,6 +92,7 @@ SPEC-0001 구현을 시작해줘.
 | `$proofline:exact-port` | 원본 동작을 그대로 옮겨야 하는 이식 | 원본과 대상의 대응 관계, 승인된 차이, 독립 비교 결과, 확인하지 못한 부분 |
 | `$proofline:issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 핵심 결정과 판정 근거 |
 | `$proofline:capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
+| `$proofline:development-plan` | 거친 제품·기능·소프트웨어·업무 시스템 아이디어를 개발 기획으로 구체화할 때 | 자유 형식 Plan, 결정·불확실성·범위 구분, Spec 작성 준비 상태 |
 | `$proofline:implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 작업별 최소 구조, 통합 요구사항·완료 조건, Spec 수명주기 |
 | `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 조건부 Work Slice, 작업 귀속 diff, Slice 검토, 최종 통합 판정 |
 

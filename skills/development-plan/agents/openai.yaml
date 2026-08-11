@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline Development Plan"
+  short_description: "Turn rough ideas into development planning documents"
+  default_prompt: "Use $development-plan to turn this rough product or software idea into a project Plan without implementing it."
+
+policy:
+  allow_implicit_invocation: false
