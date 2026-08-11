@@ -19,6 +19,8 @@ Write all prose in the target language. Translate or conventionally transliterat
 
 When transforming source text, change only what the requested transformation requires. Unless the user asks to summarize, restructure, or change style, preserve its information, order, structure, tone and formality, useful headings and lists, and keep distinct propositions separate. Output-language localization is not a style change.
 
+Use context to determine content eligibility. Include a proposition only if omitting it would materially change the output's meaning, required result, or the recipient's decision. Keep it at the narrowest scope it governs.
+
 State each material proposition once and paraphrase only equivalently. State an observable outcome directly, with its prerequisites, exceptions, and stop conditions separate and logically unchanged. Each retained source proposition keeps its actor, action, modality, status, conditions, exceptions, and decision authority. Add no unsupported requirement, gate, rationale, action, or decision.
 
 ## Truth, authority, and ambiguity
@@ -39,7 +41,7 @@ Evidence supports only the inspected state and scope. Reuse inspected task evide
 
 ## UI text and information design
 
-Write visible text for the intended user's task and decision. Use established product terms and action labels; keep peer roles parallel and materially different outcomes distinguishable. An ordinary text edit remains limited to its authorized target.
+Write visible text for the intended user's task and decision. Use established product terms and action labels; keep peer roles parallel and materially different outcomes distinguishable.
 
 Order information by decision importance. Name expected values, action outcomes, and states clearly; keep required guidance and consequences with the relevant control, and keep task-critical information visible. Every string should identify, distinguish, require, prevent, explain, clarify, or provide a necessary next step.
 
