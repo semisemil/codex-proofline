@@ -22,6 +22,18 @@
   const eventKinds = new Set(['decision', 'transition']);
   const terminalStatuses = new Set(['resolved', 'cancelled', 'superseded']);
   const requestedWorkTypes = new Set(['task', 'feature', 'documentation', 'maintenance']);
+  const linkedWorkKinds = new Map([
+    ['plan', {
+      label: 'Plan',
+      idPattern: /^PLAN-\d{4,}$/,
+      locationPattern: /^\.proofline\/plan\/(PLAN-\d{4,})-[^/]+\/PLAN\.md$/
+    }],
+    ['spec', {
+      label: 'Spec',
+      idPattern: /^SPEC-\d{4,}$/,
+      locationPattern: /^\.proofline\/specs\/(SPEC-\d{4,})-[^/]+\/SPEC\.md$/
+    }]
+  ]);
 
   const topLevelOrder = [
     'schema_version',
@@ -838,27 +850,97 @@
     return `${prefix}${highest + 1}`;
   }
 
+  function resolveLinkedWork(work) {
+    if (!isPlainObject(work)) {
+      throw new Error('link_work.work 객체가 필요합니다.');
+    }
+    const kind = linkedWorkKinds.get(work.kind);
+    if (!kind) {
+      throw new Error('link_work.work.kind는 plan 또는 spec이어야 합니다.');
+    }
+    if (!kind.idPattern.test(work.id || '')) {
+      throw new Error(`link_work.work.id가 ${kind.label} ID 형식이 아닙니다.`);
+    }
+    if (!isNonEmptyString(work.location)) {
+      throw new Error('link_work.work.location이 필요합니다.');
+    }
+    const location = work.location.replace(/\\/g, '/');
+    const match = kind.locationPattern.exec(location);
+    if (!match || match[1] !== work.id) {
+      throw new Error(`link_work.work.location이 ${work.id}의 ${kind.label} 경로가 아닙니다.`);
+    }
+    return { kind: kind.label, location };
+  }
+
+  function applyStateMutation(issue, operation, operationAt) {
+    const previousStatus = issue.state.status;
+    issue.state.status = operation.status;
+    for (const field of ['next_action', 'blocker', 'unblock_condition']) {
+      if (operation[field] === null || operation[field] === undefined || operation[field] === '') {
+        delete issue.state[field];
+      } else {
+        issue.state[field] = operation[field];
+      }
+    }
+    if (previousStatus !== operation.status) {
+      issue.events.push({
+        id: nextLocalId(issue.events, 'T'),
+        kind: 'transition',
+        at: operationAt,
+        from: previousStatus,
+        to: operation.status,
+        summary: operation.transition_summary || operation.current_summary
+      });
+    }
+  }
+
+  function applyLinkedWorkMutation(issue, operation, operationAt) {
+    if (terminalStatuses.has(issue.state.status)) {
+      throw new Error(`종료된 이슈에는 연결 작업 진행을 기록할 수 없습니다: ${issue.state.status}`);
+    }
+    const work = resolveLinkedWork(operation.work);
+    let matchingContext = null;
+    issue.context = asArray(issue.context).filter((item) => {
+      const matches = isPlainObject(item)
+        && isNonEmptyString(item.location)
+        && item.location.replace(/\\/g, '/') === work.location;
+      if (!matches) {
+        return true;
+      }
+      if (matchingContext) {
+        return false;
+      }
+      matchingContext = item;
+      matchingContext.location = work.location;
+      return true;
+    });
+    if (!matchingContext) {
+      issue.context.push(work);
+    }
+
+    if (operation.status !== undefined) {
+      if (!activeStatuses.has(operation.status)) {
+        throw new Error('link_work.status는 open, doing, blocked 중 하나여야 합니다.');
+      }
+      applyStateMutation(issue, operation, operationAt);
+      return;
+    }
+    if (operation.next_action !== undefined) {
+      if (!isNonEmptyString(operation.next_action)) {
+        throw new Error('link_work.next_action은 비어 있지 않은 문자열이어야 합니다.');
+      }
+      issue.state.next_action = operation.next_action;
+    }
+    if (operation.blocker !== undefined || operation.unblock_condition !== undefined) {
+      throw new Error('link_work blocker 필드는 status와 함께 사용해야 합니다.');
+    }
+  }
+
   function applyMutation(issue, operation, operationAt) {
     if (operation.type === 'set_state') {
-      const previousStatus = issue.state.status;
-      issue.state.status = operation.status;
-      for (const field of ['next_action', 'blocker', 'unblock_condition']) {
-        if (operation[field] === null || operation[field] === undefined || operation[field] === '') {
-          delete issue.state[field];
-        } else {
-          issue.state[field] = operation[field];
-        }
-      }
-      if (previousStatus !== operation.status) {
-        issue.events.push({
-          id: nextLocalId(issue.events, 'T'),
-          kind: 'transition',
-          at: operationAt,
-          from: previousStatus,
-          to: operation.status,
-          summary: operation.transition_summary || operation.current_summary
-        });
-      }
+      applyStateMutation(issue, operation, operationAt);
+    } else if (operation.type === 'link_work') {
+      applyLinkedWorkMutation(issue, operation, operationAt);
     } else if (operation.type === 'add_evidence') {
       issue.evidence.push(operation.evidence);
       const targets = asArray(operation.targets);

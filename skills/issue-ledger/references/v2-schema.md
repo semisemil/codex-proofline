@@ -47,9 +47,10 @@ node <skill-dir>/scripts/issue-ledger.js show ID [--root DIR] [--evidence E1,E2]
 node <skill-dir>/scripts/issue-ledger.js validate [FILE] [--root DIR]
 node <skill-dir>/scripts/issue-ledger.js create --input ISSUE.json [--root DIR]
 node <skill-dir>/scripts/issue-ledger.js update ID --operation OPERATION.json [--root DIR]
+node <skill-dir>/scripts/issue-ledger.js link-work ID --help
 ```
 
-Supported operation types are `batch`, `set_state`, `add_evidence`, `link_evidence`, `add_event`, `set_milestone`, and `add_relation`. Every update requires one top-level `current_summary` confirmation. Use `batch.operations` when evidence, its P/C/D link, a decision, or a terminal-state change must become valid atomically. `add_evidence.targets` can link a new observation to one or more existing P/C/D IDs in one operation. A changed `set_state` automatically appends a T-ID transition, using `transition_summary` when supplied and otherwise the confirmed current summary. JSON output uses stable top-level key order and two-space indentation.
+Supported update operation types are `batch`, `set_state`, `add_evidence`, `link_evidence`, `add_event`, `set_milestone`, and `add_relation`. Every update requires one top-level `current_summary` confirmation. Use `batch.operations` when evidence, its P/C/D link, a decision, or a terminal-state change must become valid atomically. `add_evidence.targets` can link a new observation to one or more existing P/C/D IDs in one operation. A changed `set_state` automatically appends a T-ID transition, using `transition_summary` when supplied and otherwise the confirmed current summary. The dedicated `link-work` command validates the Plan or Spec backlink, adds one canonical context path, may update active state, is idempotent, and refuses terminal issues. JSON output uses stable top-level key order and two-space indentation.
 
 Minimal operation shapes:
 

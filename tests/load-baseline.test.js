@@ -114,6 +114,26 @@ test('implementation uses callback-driven implementers and one bounded blind rev
   assert.doesNotMatch(coordinator, /pre-review|review-report-repair|changes_required|no_verdict|chain_key/);
 });
 
+test('Plan, Spec, and implementation share one conditional issue-link contract', () => {
+  const plan = read('skills', 'development-plan', 'SKILL.md');
+  const spec = read('skills', 'implementation-spec', 'SKILL.md');
+  const implementation = read('skills', 'start-implementation', 'SKILL.md');
+  const ledger = read('skills', 'issue-ledger', 'SKILL.md');
+  const link = read('skills', 'issue-ledger', 'references', 'work-link.md');
+
+  assert.match(plan, /optional nonempty `related_issues`/);
+  assert.match(plan, /omit it for standalone Plans/);
+  assert.match(spec, /issue-ledger\/references\/work-link\.md/);
+  assert.match(implementation, /issue-ledger\/references\/work-link\.md` once/);
+  assert.match(implementation, /outside implementer and reviewer context/);
+  assert.match(ledger, /apply `references\/work-link\.md`/);
+  assert.match(link, /없으면 Issue Ledger에 접근하지 않는다/);
+  assert.match(link, /같은 입력은 `no-op`/);
+  assert.match(link, /이슈를 생성·재개·해결하지 않는다/);
+  assert.match(link, /Slice는 Spec에 두고/);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'work-on-issue')), false);
+});
+
 test('Direct and Sliced modes keep different VCS behavior', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
   const slicing = read('skills', 'spec-slice', 'SKILL.md');

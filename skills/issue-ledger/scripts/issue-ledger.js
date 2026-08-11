@@ -105,6 +105,101 @@ function loadJsonFile(filePath, label) {
   }
 }
 
+function containsLinkWork(operation) {
+  return operation?.type === 'link_work'
+    || (operation?.type === 'batch'
+      && Array.isArray(operation.operations)
+      && operation.operations.some((item) => item?.type === 'link_work'));
+}
+
+function requireOption(options, key, label) {
+  const value = options[key];
+  if (typeof value !== 'string' || value.trim() === '') {
+    fail(`${label} 값이 필요합니다.`);
+  }
+  return value;
+}
+
+function frontMatter(content, label) {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!match) {
+    fail(`${label} front matter를 읽지 못했습니다.`);
+  }
+  return match[1];
+}
+
+function yamlScalar(value) {
+  const trimmed = String(value || '').trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"'))
+    || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function readPlanMetadata(content) {
+  const metadata = frontMatter(content, 'Plan');
+  const idMatch = metadata.match(/^id:[ \t]*(.*?)[ \t]*$/m);
+  const relatedMatch = metadata.match(/^related_issues:[ \t]*(.*?)[ \t]*$/m);
+  if (!idMatch) {
+    fail('Plan front matter에 id가 없습니다.');
+  }
+  if (!relatedMatch) {
+    return { id: yamlScalar(idMatch[1]), relatedIssues: [] };
+  }
+  if (relatedMatch[1]) {
+    const inline = relatedMatch[1];
+    if (!inline.startsWith('[') || !inline.endsWith(']')) {
+      fail('Plan related_issues는 배열이어야 합니다.');
+    }
+    return {
+      id: yamlScalar(idMatch[1]),
+      relatedIssues: inline.slice(1, -1).split(',').map(yamlScalar).filter(Boolean)
+    };
+  }
+  const after = metadata.slice(relatedMatch.index + relatedMatch[0].length);
+  const relatedIssues = [];
+  for (const line of after.split(/\r?\n/)) {
+    if (/^\s*$/.test(line)) {
+      continue;
+    }
+    const item = line.match(/^\s+-\s+(.+?)\s*$/);
+    if (!item) {
+      break;
+    }
+    relatedIssues.push(yamlScalar(item[1]));
+  }
+  return { id: yamlScalar(idMatch[1]), relatedIssues };
+}
+
+function readSpecMetadata(content) {
+  try {
+    const metadata = JSON.parse(frontMatter(content, 'Spec'));
+    return {
+      id: metadata.id,
+      relatedIssues: Array.isArray(metadata.related_issues) ? metadata.related_issues : []
+    };
+  } catch (error) {
+    fail(`Spec front matter JSON을 읽지 못했습니다: ${error.message}`);
+  }
+}
+
+function validateWorkBacklink(issueId, work, projectRoot) {
+  const artifactPath = path.resolve(projectRoot, work.location.replace(/\\/g, '/'));
+  const label = work.kind === 'plan' ? 'Plan' : 'Spec';
+  if (!fs.existsSync(artifactPath) || !fs.statSync(artifactPath).isFile()) {
+    fail(`연결할 ${label} 문서가 없습니다: ${artifactPath}`);
+  }
+  const content = fs.readFileSync(artifactPath, 'utf8');
+  const metadata = work.kind === 'plan' ? readPlanMetadata(content) : readSpecMetadata(content);
+  if (metadata.id !== work.id) {
+    fail(`${label} 문서 ID가 일치하지 않습니다: ${metadata.id || '(없음)'}`);
+  }
+  if (!metadata.relatedIssues.includes(issueId)) {
+    fail(`${work.id} related_issues에서 ${issueId}을 찾지 못했습니다.`);
+  }
+}
+
 function writeV2Issue(filePath, issue) {
   const resolved = path.resolve(filePath);
   if (path.extname(resolved) !== '.json') {
@@ -270,6 +365,9 @@ function commandUpdate(options) {
     fail('레거시 Markdown은 먼저 검토 기반 마이그레이션이 필요합니다.');
   }
   const operation = loadJsonFile(options.operation, 'operation');
+  if (containsLinkWork(operation)) {
+    fail('link_work는 역링크를 검증하는 link-work 명령으로 실행해야 합니다.');
+  }
   const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   let result;
   try {
@@ -292,6 +390,59 @@ function commandUpdate(options) {
   console.log(filePath);
 }
 
+function commandLinkWork(options) {
+  const [id] = options._;
+  if (!id) {
+    fail('link-work 명령에는 이슈 ID가 필요합니다.');
+  }
+  const root = resolveIssuesRoot(options.root);
+  const filePath = findIssue(root, id);
+  if (path.extname(filePath) !== '.json') {
+    fail('레거시 Markdown은 먼저 검토 기반 마이그레이션이 필요합니다.');
+  }
+  const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  const operation = {
+    type: 'link_work',
+    current_summary: requireOption(options, 'current_summary', '--current-summary'),
+    next_action: requireOption(options, 'next_action', '--next-action'),
+    work: {
+      kind: requireOption(options, 'kind', '--kind'),
+      id: requireOption(options, 'work_id', '--work-id'),
+      location: requireOption(options, 'path', '--path')
+    }
+  };
+  for (const field of ['status', 'blocker', 'unblock_condition', 'transition_summary', 'updated_at']) {
+    if (options[field] !== undefined) {
+      operation[field] = options[field];
+    }
+  }
+
+  let result;
+  try {
+    result = model.applyOperation(raw, operation);
+  } catch (error) {
+    fail(error.message);
+  }
+  validateWorkBacklink(id, operation.work, path.resolve(options.project_root || process.cwd()));
+  const comparable = JSON.parse(JSON.stringify(result.issue));
+  comparable.updated_at = raw.updated_at;
+  if (model.serializeIssue(comparable) === model.serializeIssue(raw)) {
+    console.log(`no-op: ${filePath}`);
+    return;
+  }
+  writeV2Issue(filePath, result.issue);
+  result.validation.warnings.forEach((warning) => console.error(`warning: ${warning}`));
+  console.log(filePath);
+}
+
+function printLinkWorkHelp() {
+  console.log(`Usage:
+  issue-ledger.js link-work ID --kind plan|spec --work-id ID --path PATH \\
+    --current-summary TEXT --next-action TEXT [--status open|doing|blocked] \\
+    [--blocker TEXT --unblock-condition TEXT] [--updated-at ISO] \\
+    [--project-root DIR] [--root DIR]`);
+}
+
 function printHelp() {
   console.log(`Proofline Issue Ledger v2
 
@@ -301,6 +452,7 @@ Usage:
   issue-ledger.js validate [FILE] [--root DIR]
   issue-ledger.js create --input ISSUE.json [--root DIR]
   issue-ledger.js update ID --operation OPERATION.json [--root DIR]
+  issue-ledger.js link-work ID --help
 
 Update operation types:
   batch, set_state, add_evidence, link_evidence, add_event, set_milestone, add_relation`);
@@ -309,7 +461,9 @@ Update operation types:
 function main(argv = process.argv.slice(2)) {
   const { command, options } = parseArgs(argv);
 
-  if (!command || command === 'help' || options.help) {
+  if (command === 'link-work' && options.help) {
+    printLinkWorkHelp();
+  } else if (!command || command === 'help' || options.help) {
     printHelp();
   } else if (command === 'list') {
     commandList(options);
@@ -321,6 +475,8 @@ function main(argv = process.argv.slice(2)) {
     commandCreate(options);
   } else if (command === 'update') {
     commandUpdate(options);
+  } else if (command === 'link-work') {
+    commandLinkWork(options);
   } else {
     fail(`알 수 없는 명령입니다: ${command}`);
   }

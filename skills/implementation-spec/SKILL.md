@@ -7,7 +7,7 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 
 ## Scope
 
-- Modify only `.proofline/specs/**`; the sole exception is domain documentation maintained through an available `domain-modeling` skill. Never implement or migrate legacy `.proofline/prds/**`.
+- Modify only `.proofline/specs/**`; the exceptions are domain documentation maintained through an available `domain-modeling` skill and named issues updated through `../issue-ledger/references/work-link.md`. Apply that reference only when the request or target Spec identifies a `PL-*` work target. Never implement or migrate legacy `.proofline/prds/**`.
 - Write a standalone implementation document that gives an implementer the settled change and gives a reviewer an observable contract. Do not make either reconstruct the conversation, an issue, or a Plan to recover information required for the work.
 - Record product behavior, fixed design decisions, boundaries, and proof obligations. Leave repository-discoverable mechanics and ordinary build/test policy to the environment.
 

@@ -7,7 +7,7 @@ description: "Create or revise a project development Plan under .proofline/plan 
 
 ## Boundary
 
-Modify only `.proofline/plan/**`. Produce and report the Plan; leave review, specification, slicing, and implementation to separate user requests.
+Modify only `.proofline/plan/**`. For linked `PL-*`, apply `../issue-ledger/references/work-link.md`. Produce and report the Plan; leave review, specification, slicing, and implementation to separate user requests.
 
 Base project-specific claims on repository evidence and domain documents that affect the planning decision. Reuse evidence already inspected. Research externally when current facts, comparisons, standards, or available approaches materially affect the Plan, and cite the sources that influence it.
 
@@ -27,7 +27,7 @@ status: draft
 ---
 ```
 
-Use only `id`, `title`, and `status`; serialize YAML safely and set `status` to `draft | ready`.
+Use only `id`, `title`, `status`, and optional nonempty `related_issues` for explicit `PL-*` targets; omit it for standalone Plans. Serialize YAML safely and set `status` to `draft | ready`.
 
 ## Write the Plan
 

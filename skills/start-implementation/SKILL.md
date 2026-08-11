@@ -16,9 +16,10 @@ Coordinate one ready Spec through implementation completion. The coordinator doe
 ## Preparation
 
 1. Check `.proofline/specs/<SPEC-ID>-*/SPEC.md` (identity, schema, revision, requirements, project, and status).
-2. Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
-3. Proceed only with `ready` (`draft` → return to `implementation-spec`; `blocked` → inform the user of the prerequisite; terminal status → stop).
-4. If `$spec-slice` reports `Direct`, proceed in Direct mode. If it reports `Sliced`, use the current revision's Slice plan written by that skill.
+2. For linked `PL-*` targets, apply `../issue-ledger/references/work-link.md` once and keep issue content outside implementer and reviewer context.
+3. Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
+4. Proceed only with `ready` (`draft` → return to `implementation-spec`; `blocked` → inform the user of the prerequisite; terminal status → stop).
+5. If `$spec-slice` reports `Direct`, proceed in Direct mode. If it reports `Sliced`, use the current revision's Slice plan written by that skill.
 
 ## Common Implementation and Review Sequence
 
