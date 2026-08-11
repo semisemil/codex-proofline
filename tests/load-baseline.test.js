@@ -42,14 +42,17 @@ test('baseline hook reports a missing skill', (t) => {
   assert.match(entry.skillPath, /proofline-baseline-quality[\\/]SKILL\.md$/);
 });
 
-test('Spec v2 keeps lifecycle metadata separate from the contract body', () => {
+test('Spec v2 keeps a fixed envelope and writes an adaptive standalone implementation document', () => {
   const skill = read('skills', 'implementation-spec', 'SKILL.md');
   const template = read('skills', 'implementation-spec', 'assets', 'templates', 'spec.md');
 
   assert.match(skill, /\.proofline\/specs\/<SPEC-ID>-<slug>\/SPEC\.md/);
   assert.match(skill, /schema_version: 2/);
-  assert.match(skill, /nested `Behavior:` and observable `Done when:`/);
-  assert.match(skill, /`Verification` only when a check\/environment is contractual/);
+  assert.match(skill, /standalone implementation document/);
+  assert.match(skill, /Choose the structure, length, examples, scenarios, tables, and diagrams for the change/);
+  assert.match(skill, /one list item with nested `Behavior:` and observable `Done when:`/);
+  assert.match(skill, /an implementer can proceed without inventing product behavior/);
+  assert.doesNotMatch(skill, /`feature`: `Outcome`, `Contract`/);
   assert.doesNotMatch(skill, /assets\/templates\/prd\.md|REQ-001`\/`AC-001/);
 
   assert.match(template, /"schema_version": 2/);
