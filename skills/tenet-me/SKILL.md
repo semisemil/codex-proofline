@@ -5,7 +5,7 @@ description: "Review outcome paths in a Spec, plan, design, or stateful workflow
 
 # Tenet Me
 
-Review the target read-only as a conversation. Read `CONTEXT.md` and the reviewed area's ADRs first. If terminology conflicts or the user confirms a canonical term or important decision, maintain the domain model with `domain-modeling`.
+Review the target as a conversation. Read `CONTEXT.md` and the reviewed area's ADRs first. If terminology conflicts or the user confirms a canonical term or important decision, maintain the domain model with `domain-modeling`.
 
 ## Dependency graph
 
@@ -58,13 +58,7 @@ Wait for numbered answers, apply them, propagate their effects, and recompute th
 
 When neither a user decision nor an investigation can change a path judgment, briefly summarize the results and remaining evidence boundaries, then stop.
 
-## Output boundary
-
-Keep the target and supplied materials unchanged. Review authority does not authorize their implementation or revision. Exclude:
-
-- code-change review;
-- causal proof of business impact;
-- direct document changes.
+## Output
 
 Use natural Korean without unnecessary emoji or forced foreign-language headings. By default, omit:
 
