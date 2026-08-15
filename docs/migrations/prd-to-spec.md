@@ -34,18 +34,7 @@ Write each target with JSON front matter between `---` delimiters:
 
 Do not carry `created_at`, `updated_at`, or `archived_at` into Spec v2. Rewrite migrated `PRD-*` relationship values to their one-to-one `SPEC-*` IDs; leave non-PRD issue IDs unchanged. Add no model, reasoning, history, or migration metadata. Do not repeat the title or other metadata in the Markdown body.
 
-Convert the body to the smallest structure for its kind:
-- `feature`: `Outcome`, `Contract`
-- `bug | maintenance`: `Current`, `Contract`
-- `refactor`: `Current structure`, `Contract`, `Preserve`, `Verification`
-- `exact_port`: `Source and target`, `Contract`, optional `Approved deviations`, `Verification`
-
-Use stable `REQ-001` IDs. Put each requirement and its mapped acceptance condition together:
-- `REQ-001`
-  - Behavior: <required behavior>
-  - Done when: <observable completion condition>
-
-Create no separate `AC-*` items or acceptance mapping. Preserve every prohibition, condition, exception, material boundary, compatibility obligation, approved deviation, unknown, and validation obligation from the source. Invent no requirement or decision. Remove discussion history, investigation logs, rejected alternatives, and duplicated restatements. Keep a decision only as a concise `Constraint` when it limits valid implementations.
+Convert the body into a standalone implementation document. Group the contract by independently observable outcomes and keep each outcome with its required behavior, material conditions, boundaries, and minimum sufficient proof. Preserve every prohibition, condition, exception, compatibility obligation, approved deviation, unknown, and validation obligation from the source. Invent no requirement or decision. Remove discussion history, investigation logs, rejected alternatives, and duplicated restatements. Keep a decision only when it limits valid implementations.
 
 Add `Boundaries` only when needed to distinguish plausible adjacent scope, `Preserve` only for material invariants, and `Verification` only when a particular check or environment is contractual. Do not copy ordinary repository build/test policy. Omit empty sections and add no title heading.
 
@@ -54,7 +43,7 @@ After writing, validate:
 - directory, front-matter ID, main revision, and snapshot revision agree;
 - all JSON front matter parses and contains every required field with no placeholder;
 - every migrated relationship resolves to the intended Spec or retained issue ID;
-- all source requirements and acceptance conditions remain represented without added behavior;
+- all source outcomes, conditions, and acceptance obligations remain represented without added behavior;
 - `.proofline/prds/**` is byte-for-byte untouched;
 - `git diff --check` passes when Git is available.
 

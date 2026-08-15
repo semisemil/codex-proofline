@@ -25,11 +25,11 @@ If there are meaningful Slices, write the complete plan before product implement
 
 1. Create every Slice document from `assets/templates/slice.md`.
 2. Store them at `slices/SLICE-<NN>-<slug>.md` under the Spec directory.
-3. Record the independent outcome each Slice delivers and the corresponding `REQ-*`.
+3. Record the independent outcome each Slice delivers and point to the part of the Spec that defines it.
 4. Record only actual prerequisite Slices in `blocked_by` and make the dependency graph acyclic.
 5. Set the initial status of every Slice to `pending`.
 6. Add relative links to every Slice document in the Spec's `Slices` section.
 
-Do not copy requirements or completion conditions into a Slice. Add only boundaries or verification that are unique to the Slice and absent from the Spec. Do not change the Spec body outside the `Slices` section.
+Keep shared outcomes and completion conditions in the Spec. Record in a Slice only boundaries or verification unique to it. Change the Spec body only by adding links in its `Slices` section.
 
 After completion, report the execution mode as `Sliced` and provide the paths of the Slices that were created or reused.

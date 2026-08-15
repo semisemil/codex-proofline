@@ -49,11 +49,17 @@ test('Spec v2 keeps a fixed envelope and writes an adaptive standalone implement
   assert.match(skill, /\.proofline\/specs\/<SPEC-ID>-<slug>\/SPEC\.md/);
   assert.match(skill, /schema_version: 2/);
   assert.match(skill, /standalone implementation document/);
-  assert.match(skill, /Choose the structure, length, examples, scenarios, tables, and diagrams for the change/);
-  assert.match(skill, /one list item with nested `Behavior:` and observable `Done when:`/);
+  assert.match(skill, /Use telegraphic headings for each shared subject or rule/);
+  assert.match(skill, /independently observable outcomes/);
+  assert.match(skill, /Every product behavior in the contract is traceable/);
+  assert.match(skill, /Expose a material gap as an open decision and use `draft`/);
+  assert.match(skill, /each outcome one authoritative location/);
+  assert.match(skill, /minimum sufficient proof/);
+  assert.match(skill, /only when omitting them would change implementation or review judgment/);
   assert.match(skill, /an implementer can proceed without inventing product behavior/);
+  assert.doesNotMatch(skill, /Build a review path before writing details|Give a small change one compact block|Name sections after what changes or what the reader must judge/);
   assert.doesNotMatch(skill, /`feature`: `Outcome`, `Contract`/);
-  assert.doesNotMatch(skill, /assets\/templates\/prd\.md|REQ-001`\/`AC-001/);
+  assert.doesNotMatch(skill, /assets\/templates\/prd\.md|REQ-\d+|nested `Behavior:`|observable `Done when:`|plausible adjacent behavior/);
 
   assert.match(template, /"schema_version": 2/);
   assert.match(template, /{{spec_body}}/);
@@ -167,8 +173,9 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
   assert.match(slicing, /independent sub-goals \(Sub Goals\)/);
   assert.match(slicing, /no meaningful Slices, do not create any documents and report `Direct`/);
   assert.match(slicing, /write the complete plan before product implementation/);
+  assert.match(slicing, /point to the part of the Spec that defines it/);
   assert.match(slicing, /Spec's `Slices` section/);
-  assert.match(slicing, /Do not change the Spec body outside the `Slices` section/);
+  assert.match(slicing, /Change the Spec body only by adding links in its `Slices` section/);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'assets', 'templates', 'slice.md')), false);
 
   assert.match(template, /"schema_version": 1/);
@@ -182,7 +189,7 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
     .replace('{{spec_revision}}', '2')
     .replace('{{title_json}}', JSON.stringify('Deliver settings flow'))
     .replace('{{blocked_by_json}}', '[]')
-    .replace('{{slice_body}}', '## Delivers\n\nSettings can be saved.\n\n## Covers\n\n- REQ-001');
+    .replace('{{slice_body}}', '## Delivers\n\nSettings can be saved.\n\n## Spec section\n\nSettings flow');
   const metadata = JSON.parse(rendered.match(/^---\r?\n([\s\S]*?)\r?\n---/)[1]);
   assert.deepEqual(Object.keys(metadata), [
     'schema_version',
@@ -204,8 +211,14 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   const scope = read('skills', 'scope-integrity', 'SKILL.md');
   const growth = read('skills', 'capability-growth', 'SKILL.md');
 
-  assert.match(baseline, /Write all prose in the target language/);
-  assert.match(baseline, /Translate or conventionally transliterate technical terms, roles, actions, states, and workflow concepts/);
+  assert.match(baseline, /Write for readers of the target language/);
+  assert.match(baseline, /sentence structure, vocabulary, and document conventions they normally use/);
+  assert.match(baseline, /technical terms, roles, actions, states, and workflow concepts in the forms established for those readers/);
+  assert.match(baseline, /Prefer concise responses focused on the user's actual question/);
+  assert.match(baseline, /use additional detail when the user's purpose or requested depth requires it/);
+  assert.match(baseline, /Write headings and parallel information in the target language's conventional telegraphic style/);
+  assert.match(baseline, /Prefer a table when multiple items share the same fields or comparison axes/);
+  assert.doesNotMatch(baseline, /Write all prose in the target language|Translate or conventionally transliterate/);
   assert.doesNotMatch(baseline, /can be translated naturally|required for copying, execution, or matching/);
   assert.match(baseline, /change only what the requested transformation requires/);
   assert.match(baseline, /preserve its information, order, structure, tone and formality, useful headings and lists/);
@@ -217,12 +230,14 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /Acceptance requires the user's explicit acceptance of the specific choice/);
   assert.match(baseline, /Authority to decide does not authorize dependent action/);
   assert.match(baseline, /Review, audit, diagnosis, explanation, and recommendation are read-only/);
-  assert.match(baseline, /Ask one concise question only when unresolved live interpretations require different substantive answers/);
+  assert.match(baseline, /Ask one concise question only when ambiguity would materially change the answer or action/);
+  assert.match(baseline, /Otherwise proceed with the interpretation best supported by the context/);
   assert.match(baseline, /An example's communicative purpose determines its scope/);
   assert.match(baseline, /## Review and evidence\r?\n/);
   assert.match(baseline, /Address the actual claim within its scope, conditions, and exceptions/);
   assert.match(baseline, /Reuse inspected task evidence while relevant state is unchanged/);
-  assert.match(baseline, /Use the shortest natural whole expression that preserves meaning/);
+  assert.match(baseline, /Use the shortest form that preserves meaning/);
+  assert.doesNotMatch(baseline, /shortest natural whole expression/);
   assert.match(baseline, /Prefer the simplest design that preserves all information required for correct observable behavior/);
   assert.match(baseline, /Treat named protocol rules, untrusted-input boundaries, and lifecycle states as contracts/);
   assert.match(baseline, /Test each independently implemented path that changes a required observable result/);
@@ -251,5 +266,8 @@ test('the copyable migration is one-to-one, atomic, and leaves legacy PRDs untou
   assert.match(migration, /PRD-0007-<slug>\/PRD\.md` -> `SPEC-0007-<slug>\/SPEC\.md/);
   assert.match(migration, /write nothing and report every conflict/);
   assert.match(migration, /Do not edit, move, rename, or delete any source/);
+  assert.match(migration, /Group the contract by independently observable outcomes/);
+  assert.doesNotMatch(migration, /Give a small change one compact block|headings that name the outcomes or review questions|condition -> observable result/);
+  assert.doesNotMatch(migration, /REQ-\d+|Behavior:|Done when:|Create no separate `AC-/);
   assert.match(readme, /docs\/migrations\/prd-to-spec\.md/);
 });
