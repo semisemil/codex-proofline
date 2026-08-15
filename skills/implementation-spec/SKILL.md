@@ -7,45 +7,59 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 
 ## Scope
 
-- Modify only `.proofline/specs/**`; the exceptions are domain documentation maintained through an available `domain-modeling` skill and named issues updated through `../issue-ledger/references/work-link.md`. Apply that reference only when the request or target Spec identifies a `PL-*` work target. Never implement or migrate legacy `.proofline/prds/**`.
-- Write a standalone implementation document that gives an implementer the settled change and gives a reviewer an observable contract. Do not make either reconstruct the conversation, an issue, or a Plan to recover information required for the work.
-- Record product behavior, fixed design decisions, boundaries, and proof obligations. Leave repository-discoverable mechanics and ordinary build/test policy to the environment.
+- **Target:** `.proofline/specs/**` only
+- **Exceptions:** Domain documentation maintained through an available `domain-modeling` skill; named issues updated through `../issue-ledger/references/work-link.md` when the request or target Spec identifies a `PL-*` work target
+- **Excluded:** Product implementation; legacy `.proofline/prds/**` implementation or migration
+- **Output:** A standalone implementation document containing the settled change, product behavior, fixed design decisions, boundaries, and proof obligations, without requiring the conversation, an issue, or a Plan; repository-discoverable mechanics and ordinary build/test policy remain in the environment
 
 ## Project language
 
-Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
-
-When a project-specific term is ambiguous, conflicts with an existing definition, becomes canonical, or an important design decision settles, use the `domain-modeling` skill when available to maintain the domain model.
+- Read the project's domain glossary (`CONTEXT.md`) and relevant ADRs first
+- Use the available `domain-modeling` skill when a project term is ambiguous, conflicts with an existing definition, becomes canonical, or an important design decision settles
 
 ## Resolve
 
-Resolve an explicit path or ID directly. For creation, inspect Spec metadata and only plausible active `draft | ready | blocked` same-goal bodies. Stop on identity ambiguity.
-
-Compare contract, metadata, lifecycle, and links before writing. If already matched, report `no-op`; do not rewrite, snapshot, or revise.
-
-Use `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md`; allocate above the largest Spec ID, recheck, and never overwrite a collision. Keep ID/slug fixed. Store snapshots at `revisions/REV-<revision>.md`; create no global index.
+- **Existing Spec:** Resolve an explicit path or ID directly
+- **Creation:** Inspect metadata and only plausible active `draft | ready | blocked` bodies with the same goal; stop on identity ambiguity
+- **No-op:** Compare contract, metadata, lifecycle, and links before writing; when already matched, report `no-op` without rewriting, snapshotting, or revising
+- **Path:** `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md`
+- **ID:** Allocate above the largest Spec ID, recheck before writing, never overwrite a collision, and keep ID/slug fixed
+- **Snapshots:** `revisions/REV-<revision>.md`; no global index
 
 ## Write the Spec
 
-Create from `assets/templates/spec.md` and serialize its JSON safely. Require `schema_version: 2`; `SPEC-0001`-form `id`; stable `title`; `kind` in `feature | bug | refactor | exact_port | maintenance`; `status` in `draft | ready | blocked | completed | cancelled | superseded`; positive `revision`; arrays `supersedes`/`related_issues`; nullable `superseded_by`. Create no other metadata; preserve unknown keys in an existing valid Spec.
+### Envelope
 
-Synthesize the current contract from the request, authoritative linked documents, confirmed decisions, and current project evidence. Every product behavior in the contract is traceable to one of those sources. A link remains a pointer; include the information an implementer or reviewer must know rather than requiring them to follow the link. Keep discussion history, investigation logs, rejected alternatives, and repeated metadata out of the body. Expose a material gap as an open decision and use `draft` rather than resolving it in the document.
+- Create from `assets/templates/spec.md` and serialize its JSON safely
+- Require `schema_version: 2`; `SPEC-0001`-form `id`; stable `title`; `kind` in `feature | bug | refactor | exact_port | maintenance`; `status` in `draft | ready | blocked | completed | cancelled | superseded`; positive `revision`; arrays `supersedes`/`related_issues`; nullable `superseded_by`
+- Create no other metadata; preserve unknown keys in an existing valid Spec
 
-The document is complete enough to implement when it states every required outcome, the material conditions and boundaries that govern it, decisions implementation must not invent, and the minimum sufficient proof. Add current behavior, flows, state, responsibilities, preservation constraints, or open implementation choices only when omitting them would change implementation or review judgment.
+### Contract
 
-Do not force irrelevant categories into the document. A bug usually needs the observed current failure and regression behavior; a refactor needs current and intended responsibility and what remains observable; an exact port needs authoritative source and target, preserved behavior, approved deviations, and equivalence proof. These are information needs, not required headings.
+- **Sources:** Request, confirmed decisions, current project evidence, and authoritative domain or linked documents
+- **Standalone body:** Include linked information required for implementation or review
+- **Body:** Current contract only
 
-Group the contract by independently observable outcomes. Give each outcome one authoritative location containing its required behavior, material conditions, and minimum sufficient proof. Use telegraphic headings for each shared subject or rule. Omit a title heading because metadata already identifies the document.
+### Body style
+
+- Write the Spec body in the target language's conventional telegraphic style
+- Compress content as far as possible without loss of meaning
+- Use tables and bullets when they improve structure, preferring tables when either form works
+- Avoid terminal periods
+- Keep a short, dense development-document style
+
+### Contract structure
+
+- Keep material conditions, boundaries, fixed decisions, and minimum evidence with the part of the contract they qualify
+- Use Mermaid for graph-shaped relationships with multiple branches or actors
 
 ## Lifecycle
 
-Use `ready` only when an implementer can proceed without inventing product behavior, scope, cross-boundary ownership, state or data rules, compatibility obligations, or proof of the required results, and a reviewer can judge every required outcome from observable evidence. Repository-discoverable mechanics and ordinary validation commands do not prevent `ready`.
-
-Use `draft` while a material decision or unsupported current-state claim could change the contract; expose that gap in the document instead of filling it by inference. Use `blocked` only for an actual external prerequisite; transient task, tool, reviewer, or runtime failures never change status.
-
-- **Create:** Write revision `1` and apply the ready rule.
-- **Major revision:** Snapshot first, never overwrite a differing snapshot, increment once, and invalidate old evidence.
-- **Operational edit:** Do not revise for typo/formatting, relation links, or lifecycle-only changes.
-- **Terminal:** Complete only from same-revision evidence and a fresh passing post-review; cancel only by user; supersede by linking both Specs. Preserve body/location.
-
-Never ask for implementation approval. Report operation, ID/title/path, revision/status, snapshot, decisions, blockers, and that no implementation occurred.
+- **Ready:** The implementer can proceed without inventing product behavior, scope, cross-boundary ownership, state or data rules, compatibility obligations, or proof of the required results; the reviewer can judge every required outcome from observable evidence
+- **Draft:** A material decision or unsupported current-state claim could change the contract; expose the gap instead of filling it by inference
+- **Blocked:** An actual external prerequisite only; transient task, tool, reviewer, or runtime failures do not change status
+- **Create:** Revision `1`, with status determined by the ready rule
+- **Major revision:** Snapshot first, never overwrite a differing snapshot, increment once, and invalidate old evidence
+- **Operational edit:** No revision change for typo/formatting, relation links, or lifecycle-only changes
+- **Terminal:** Complete only from same-revision evidence and a fresh passing post-review; cancel only by user; supersede by linking both Specs; preserve body/location
+- **Report:** Operation, resulting ID/title/path/revision/status, any snapshot, material decisions or blockers, and that no implementation occurred; implementation requires a separate user request
