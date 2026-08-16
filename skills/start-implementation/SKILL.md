@@ -33,7 +33,8 @@ Specify the target for Direct (entire Spec) or Sliced (current Slice/final fixes
 6. **Create review:** When a completion report is received, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`).
    - **Pass:** Target Spec/Slice, project root containing the current implementation state, relevant domain documentation paths to read, repository instructions, user constraints, output language, and judgment criteria.
    - **Do not pass:** Implementer report, previous review, fix explanation, work history, or expected judgment.
-7. **Judge:** The reviewer compares against the project state and judges:
+7. **Wait for review:** In the coordinator task, call `wait_agent` until this reviewer returns its final result. Keep the coordinator turn active while review is running.
+8. **Judge:** The reviewer compares against the project state and judges:
    - `pass`: Requirements are satisfied and required verification succeeds → proceed with the pass procedure for that mode.
    - `fail`: Implementation defect or scope violation (give the reason and required fixes) → send to the same implementer and resume from step 2 (a fresh reviewer makes the next judgment).
    - `need_confirm`: A user decision is required → stop automatic progress and, after user confirmation, either proceed with the pass procedure or send to the same implementer and resume from step 2.
@@ -57,8 +58,8 @@ Process Slices whose dependencies are satisfied sequentially (run only one imple
 
 ### Git Repositories
 
-1. From a state containing the ready Spec and Slice plan, use `create_thread` to create a task based on a temporary worktree. Its entire prompt is: `<SPEC-ID> base session`.
-2. When creation returns a `threadId`, select a runnable Slice, fork the base task with `fork_thread` (`environment: { type: "same-directory" }`), and send the implementation instructions only to that fork. If creation returns only a `clientThreadId`, end the turn and resolve the ready task before forking it.
+1. From a state containing the ready Spec and Slice plan, use `create_thread` to create a task based on a temporary worktree. Its entire prompt is: `<SPEC-ID> base session. When this task starts, use send_message_to_thread to report ready to the coordinator identified by the enclosing <codex_delegation><source_thread_id>, then end the turn.`
+2. End the coordinator turn after task creation. When the callback arrives, use its `<codex_delegation><source_thread_id>` as the ready base `threadId`, select a runnable Slice, fork the base task with `fork_thread` (`environment: { type: "same-directory" }`), and send the implementation instructions only to the fork.
 3. Run the common sequence for that Slice.
 4. On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`, then end the turn. Change the Slice to `completed` only after receiving the SHA.
 5. Repeat with the next Slice (do not commit before `pass`; do not merge, rebase, squash, push, remove the worktree, or delete the branch).
@@ -70,7 +71,7 @@ Process Slices whose dependencies are satisfied sequentially (run only one imple
 
 ### Final Review of the Entire Spec
 
-1. When all Slices are `completed`, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`) (target: entire Spec; use the same pass/do-not-pass constraints as common step 6).
+1. When all Slices are `completed`, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`) (target: entire Spec; use the same pass/do-not-pass constraints as common step 6), then run common steps 7-8.
 2. Complete on `pass`.
 3. On `fail`, send it to the last Slice implementer → run common steps 2-5, then return to final review step 1.
 4. On `need_confirm`, obtain user confirmation → complete if passed; if changes are required, send them to the last Slice implementer, run common steps 2-5, and return to final review step 1.

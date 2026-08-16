@@ -124,6 +124,8 @@ test('implementation uses callback-driven implementers and one bounded blind rev
   assert.doesNotMatch(coordinator, /completion report (?:contains|includes)/i);
   assert.match(coordinator, /coordinator must not call `wait_threads`/);
   assert.match(coordinator, /`spawn_agent`\(`fork_turns: "none"`\)/);
+  assert.match(coordinator, /Wait for review:[\s\S]*call `wait_agent` until this reviewer returns its final result/);
+  assert.match(coordinator, /Keep the coordinator turn active while review is running/);
   assert.match(coordinator, /project root containing the current implementation state/);
   assert.match(coordinator, /Do not pass.*Implementer report, previous review, fix explanation, work history, or expected judgment/);
   assert.match(coordinator, /`pass`: Requirements are satisfied and required verification succeeds/);
@@ -173,9 +175,10 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
   assert.doesNotMatch(coordinator, /assets\/templates\/slice\.md|links to Slice documents/);
   assert.match(coordinator, /Sliced Mode[\s\S]*Process Slices whose dependencies are satisfied sequentially/);
   assert.match(coordinator, /Git Repositories[\s\S]*`create_thread` to create a task based on a temporary worktree/);
-  assert.match(coordinator, /Its entire prompt is: `<SPEC-ID> base session`/);
-  assert.match(coordinator, /When creation returns a `threadId`[\s\S]*send the implementation instructions only to that fork/);
-  assert.match(coordinator, /If creation returns only a `clientThreadId`, end the turn and resolve the ready task before forking it/);
+  assert.match(coordinator, /Its entire prompt is: `<SPEC-ID> base session\.[^`]*use send_message_to_thread to report ready[^`]*<codex_delegation><source_thread_id>[^`]*end the turn\.`/);
+  assert.match(coordinator, /End the coordinator turn after task creation/);
+  assert.match(coordinator, /When the callback arrives, use its `<codex_delegation><source_thread_id>` as the ready base `threadId`/);
+  assert.match(coordinator, /send the implementation instructions only to the fork/);
   assert.match(coordinator, /fork the base task with `fork_thread` \(`environment: \{ type: "same-directory" \}`\)/);
   assert.match(coordinator, /only one implementer at a time/);
   assert.match(coordinator, /On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`/);
@@ -185,6 +188,7 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
   assert.match(coordinator, /Non-Git Projects[\s\S]*create a shared local task/);
   assert.match(coordinator, /Non-Git Projects[\s\S]*no worktree, staging, or automatic commit is needed/);
   assert.match(coordinator, /Final Review of the Entire Spec[\s\S]*create a fresh reviewer with `spawn_agent`\(`fork_turns: "none"`\)/);
+  assert.match(coordinator, /Final Review of the Entire Spec[\s\S]*then run common steps 7-8/);
   assert.match(coordinator, /last Slice implementer[\s\S]*common steps 2-5/);
   assert.match(coordinator, /run common steps 2-5, then return to final review step 1/);
   assert.match(coordinator, /If there were final fixes, in Git the same implementer commits after `pass` and reports the SHA with `send_message_to_thread`/);
