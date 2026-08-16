@@ -8,4 +8,5 @@ dist/
 build/
 .cache/
 AGENTS.md
+CONTEXT.md
 !skills/AGENTS.md
