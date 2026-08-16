@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline"
+  short_description: "Apply Proofline baseline quality rules"
+  default_prompt: "Use $proofline to apply Proofline's shared baseline quality rules to this task."
+
+policy:
+  allow_implicit_invocation: false

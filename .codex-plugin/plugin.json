@@ -1,6 +1,6 @@
 {
   "name": "proofline",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Codex가 요청 범위를 놓치지 않고, 실제로 확인한 내용만 완료로 보고하도록 돕는 플러그인입니다.",
   "author": {
     "name": "semisemil",
@@ -16,15 +16,15 @@
     "codex"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Proofline",
     "shortDescription": "요청한 범위대로 작업하고 결과를 확인하는 Codex 플러그인",
-    "longDescription": "대화마다 기본 품질 규칙을 적용합니다. 거친 아이디어를 개발 기획으로 구체화하고, 필요하면 버그와 후속 작업을 기록하거나 구현 명세를 작성해 단계별로 작업합니다. 리팩터링이나 코드 이식이 의도대로 이루어졌는지 검증하고, 직접 확인한 결과를 바탕으로 완료 여부를 보고합니다.",
+    "longDescription": "대화마다 공통 품질 규칙을 적용하고 normal, focus, caveman 응답 모드를 작업별로 전환합니다. 거친 아이디어를 개발 기획으로 구체화하고, 필요하면 버그와 후속 작업을 기록하거나 구현 명세를 작성해 단계별로 작업합니다. 리팩터링이나 코드 이식이 의도대로 이루어졌는지 검증하고, 직접 확인한 결과를 바탕으로 완료 여부를 보고합니다.",
     "developerName": "semisemil",
     "category": "Productivity",
     "capabilities": [
       "대화와 결과물 품질 관리",
+      "작업별 응답 모드 전환",
       "요청한 범위대로 작업",
       "제품·기능·소프트웨어 개발 기획",
       "버그와 후속 작업 기록",
@@ -34,6 +34,8 @@
       "검증 결과와 완료 여부 보고"
     ],
     "defaultPrompt": [
+      "$proofline focus",
+      "$proofline:proofline 이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐 줘",
       "$proofline:development-plan 반복 업무를 자동화하는 내부 도구 아이디어를 개발 기획 Plan으로 구체화해 줘",
       "$proofline:issue-ledger 이 대화에서 나온 후속 작업을 프로젝트 이슈로 등록해 줘",
       "$proofline:implementation-spec 사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해 줘. 구현은 시작하지 마",

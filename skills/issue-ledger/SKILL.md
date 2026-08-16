@@ -9,7 +9,7 @@ description: Record and update concrete bugs, tasks, features, research, documen
 
 Record durable work with an origin, current state, next action, or completion criterion. An explicit user request and current context are sufficient origin; do not investigate solely to register it. A reported bug remains `reported` until direct evidence confirms or refutes it. Reject vague guesses, preferences, temporary notes, and immediately completed work without future value when registration was not requested.
 
-Store one v2 JSON file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/`. Before any write, read `../proofline-baseline-quality/SKILL.md` completely and apply it to the issue.
+Store one v2 JSON file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/`. Before any write, read `../proofline/SKILL.md` completely and apply it to the issue.
 
 Resolve bundled paths relative to this SKILL.md. Run the CLI from the project root as `node <skill-dir>/scripts/issue-ledger.js ...` so its default root is the project's `.proofline/issues`. Use `list` to inspect IDs and titles, avoid only obvious title duplicates, select the next `PL-0001`-style ID, and create from `assets/templates/issue-claim.json` for `bug | research` or `issue-objective.json` for other types. Replace every `REPLACE:` value and adapt the ID, type, mode, risk, arrays, and timestamps, then use the CLI `create` command. Infer available fields, but ask when identity or scope cannot be stated accurately. Cite the ID in the final report.
 

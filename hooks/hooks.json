@@ -18,10 +18,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/hooks/load-baseline.js\"",
-            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\load-baseline.js\"",
+            "command": "node \"${PLUGIN_ROOT}/hooks/load-proofline.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\load-proofline.js\"",
             "timeout": 5,
-            "statusMessage": "Loading Proofline baseline quality..."
+            "statusMessage": "Loading Proofline..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/proofline-mode.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\proofline-mode.js\"",
+            "timeout": 5,
+            "statusMessage": "Checking Proofline response mode..."
           }
         ]
       }

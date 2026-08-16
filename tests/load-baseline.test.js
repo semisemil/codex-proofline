@@ -6,40 +6,52 @@ const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
-const hookPath = path.join(repoRoot, 'hooks', 'load-baseline.js');
+const hookPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
 const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
 
 // 실제 패키지 구조에서 훅이 본문을 출력하는지 확인한다.
-test('baseline hook loads the packaged skill', () => {
-  const result = spawnSync(process.execPath, [hookPath], { encoding: 'utf8' });
+test('Proofline hook loads the packaged baseline and default mode once', () => {
+  const result = spawnSync(process.execPath, [hookPath], {
+    encoding: 'utf8',
+    input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup' }),
+  });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /# Proofline Baseline Quality/);
+  assert.match(result.stdout, /# Proofline/);
   assert.doesNotMatch(result.stdout, /^---/);
   assert.match(result.stdout, /## Language and compression/);
-  assert.match(result.stdout, /Treat named protocol rules, untrusted-input boundaries, and lifecycle states as contracts/);
+  assert.match(result.stdout, /Treat as owner-component contracts: named protocol rules, untrusted-input boundaries, and lifecycle states/);
+  assert.equal((result.stdout.match(/# Normal response mode/g) || []).length, 1);
+  assert.doesNotMatch(result.stdout, /# Focus response mode|# Caveman response mode/);
 });
 
 // 누락된 패키지 파일은 조용히 넘어가지 않고 진단 가능한 오류를 반환해야 한다.
-test('baseline hook reports a missing skill', (t) => {
+test('Proofline hook reports a missing skill', (t) => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-hook-'));
   const tempHookDir = path.join(tempRoot, 'hooks');
   const tempHome = path.join(tempRoot, 'home');
   // 성공과 실패에 관계없이 테스트용 훅과 로그를 제거한다.
   t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
   fs.mkdirSync(tempHookDir, { recursive: true });
-  fs.copyFileSync(hookPath, path.join(tempHookDir, 'load-baseline.js'));
+  fs.copyFileSync(hookPath, path.join(tempHookDir, 'load-proofline.js'));
+  fs.copyFileSync(
+    path.join(repoRoot, 'hooks', 'proofline-state.js'),
+    path.join(tempHookDir, 'proofline-state.js'),
+  );
 
-  const result = spawnSync(process.execPath, [path.join(tempHookDir, 'load-baseline.js')], {
+  const result = spawnSync(process.execPath, [path.join(tempHookDir, 'load-proofline.js')], {
     encoding: 'utf8',
     env: { ...process.env, HOME: tempHome, USERPROFILE: tempHome },
+    input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup' }),
   });
   const logPath = path.join(tempHome, '.codex', 'log', 'proofline-hook.log');
   const entry = JSON.parse(fs.readFileSync(logPath, 'utf8').trim());
 
   assert.equal(result.status, 1);
   assert.equal(entry.code, 'ENOENT');
-  assert.match(entry.skillPath, /proofline-baseline-quality[\\/]SKILL\.md$/);
+  assert.equal(entry.pluginRoot, tempRoot);
+  assert.match(entry.skillPath, /proofline[\\/]SKILL\.md$/);
+  assert.match(entry.filePath, /proofline[\\/]SKILL\.md$/);
 });
 
 test('Spec v2 keeps a fixed envelope and writes an adaptive standalone implementation document', () => {
@@ -212,47 +224,52 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
 });
 
 test('skill completion boundaries are single-sourced and checkable', () => {
-  const baseline = read('skills', 'proofline-baseline-quality', 'SKILL.md');
+  const baseline = read('skills', 'proofline', 'SKILL.md');
+  const baselineBody = baseline.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
   const completion = read('skills', 'completion-evidence', 'SKILL.md');
   const exactPortReport = read('skills', 'exact-port', 'assets', 'templates', 'exact-port-report.md');
   const refactorReport = read('skills', 'refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
   const scope = read('skills', 'scope-integrity', 'SKILL.md');
   const growth = read('skills', 'capability-growth', 'SKILL.md');
 
-  assert.match(baseline, /Compose directly in the target language/);
-  assert.match(baseline, /syntax, collocations, vocabulary, and technical terms conventional among its users/);
-  assert.match(baseline, /use the expression the target-language community actually uses rather than carrying over the source language's wording or structure/);
+  assert.match(baseline, /Apply rules within: explicit task, requested output, authorized target, and scope/);
+  assert.doesNotMatch(baseline, /Applicability: explicit task, requested output, authorized target, and scope only/);
+  assert.match(baseline, /Compose directly in the target language: use conventional syntax, collocations, vocabulary, and technical terms/);
+  assert.match(baseline, /use the target-language community's expression rather than source-language wording or structure/);
   assert.doesNotMatch(baseline, /Theory of mind|Use theory of mind|Correct the concrete misunderstanding/);
-  assert.match(baseline, /Prefer concise responses focused on the user's actual question/);
-  assert.match(baseline, /use additional detail when the user's purpose or requested depth requires it/);
-  assert.match(baseline, /Compress repetition, not content/);
-  assert.match(baseline, /Where context already carries the shared meaning, express only the distinctions/);
-  assert.match(baseline, /compact forms such as labels, noun phrases, state names, or action chains/);
-  assert.match(baseline, /Prefer a table when items repeat the same fields or comparison axes/);
+  assert.match(baseline, /Responses: concise and focused on the user's actual question/);
+  assert.match(baseline, /additional detail when purpose or requested depth requires it/);
+  assert.match(baseline, /Compression: repetition, not content/);
+  assert.match(baseline, /where context carries shared meaning, express only distinctions in compact forms such as labels, noun phrases, state names, or action chains/);
+  assert.match(baseline, /prefer tables for repeated fields or comparison axes/);
   assert.doesNotMatch(baseline, /State shared meaning once|Use full sentences|conventional telegraphic style|shortest conventional form/);
   assert.doesNotMatch(baseline, /Write all prose in the target language|Translate or conventionally transliterate/);
   assert.doesNotMatch(baseline, /can be translated naturally|required for copying, execution, or matching/);
-  assert.match(baseline, /change only what the requested transformation requires/);
-  assert.match(baseline, /preserve its information, order, structure, tone and formality, useful headings and lists/);
-  assert.match(baseline, /Output-language localization is not a style change/);
-  assert.match(baseline, /keep distinct propositions separate/);
-  assert.match(baseline, /Each retained source proposition keeps its actor, action, modality, status, conditions, exceptions, and decision authority/);
-  assert.match(baseline, /Add no unsupported requirement, gate, rationale, action, or decision/);
+  assert.match(baseline, /Source transformation: change only what the requested transformation requires/);
+  assert.match(baseline, /preserve information, order, structure, tone, formality, useful headings and lists, with distinct propositions separate/);
+  assert.match(baseline, /output-language localization is not a style change/);
+  assert.match(baseline, /preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority/);
+  assert.match(baseline, /add no unsupported requirement, gate, rationale, action, or decision/);
 
-  assert.match(baseline, /Acceptance requires the user's explicit acceptance of the specific choice/);
-  assert.match(baseline, /Authority to decide does not authorize dependent action/);
-  assert.match(baseline, /Review, audit, diagnosis, explanation, and recommendation are read-only/);
-  assert.match(baseline, /Ask one concise question only when ambiguity would materially change the answer or action/);
-  assert.match(baseline, /Otherwise proceed with the interpretation best supported by the context/);
-  assert.match(baseline, /An example's communicative purpose determines its scope/);
+  assert.match(baseline, /acceptance: explicit user acceptance of the specific choice required/);
+  assert.match(baseline, /Authority to decide: no authorization for dependent action/);
+  assert.match(baseline, /review, audit, diagnosis, explanation, and recommendation: read-only/);
+  assert.match(baseline, /Ambiguity: ask one concise question only when it would materially change the answer or action/);
+  assert.match(baseline, /otherwise use the interpretation best supported by context/);
+  assert.match(baseline, /Examples: communicative purpose determines scope/);
   assert.match(baseline, /## Review and evidence\r?\n/);
-  assert.match(baseline, /Address the actual claim within its scope, conditions, and exceptions/);
-  assert.match(baseline, /Reuse inspected task evidence while relevant state is unchanged/);
-  assert.match(baseline, /Use the shortest form that preserves meaning/);
+  assert.match(baseline, /Review target: actual claim within its scope, conditions, and exceptions/);
+  assert.match(baseline, /reuse inspected task evidence while relevant state is unchanged/);
+  assert.match(baseline, /User-facing form: shortest that preserves meaning/);
+  assert.match(baseline, /every string should identify, distinguish, require, prevent, explain, clarify, or provide a necessary next step/);
+  assert.match(baseline, /Consistent meaning across: visible labels, accessible names, icons, layout, order, color, and state cues/);
+  assert.doesNotMatch(baseline, /every string must identify|communicate the same meaning/);
   assert.doesNotMatch(baseline, /shortest natural whole expression/);
-  assert.match(baseline, /Prefer the simplest design that preserves all information required for correct observable behavior/);
-  assert.match(baseline, /Treat named protocol rules, untrusted-input boundaries, and lifecycle states as contracts/);
-  assert.match(baseline, /Test each independently implemented path that changes a required observable result/);
+  assert.match(baseline, /Design: simplest that preserves all information required for correct observable behavior/);
+  assert.match(baseline, /Treat as owner-component contracts: named protocol rules, untrusted-input boundaries, and lifecycle states/);
+  assert.match(baseline, /test each independently implemented path changing a required observable result/);
+  assert.doesNotMatch(baselineBody, /^\s*[-*+]\s+/m);
+  assert.doesNotMatch(baselineBody, /\.[ \t]*(?:\r?\n|$)/);
 
   assert.match(completion, /Report only evidence already available from the task without initiating verification/);
   assert.match(completion, /Do not repeat work solely to strengthen the report/);

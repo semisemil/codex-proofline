@@ -4,11 +4,11 @@ Proofline은 Codex가 처음 요청받은 작업 범위를 놓치지 않고 실�
 
 작업이 길어지고 대화가 쌓이면 Codex가 처음 요청의 세부 조건을 빠뜨리기 쉽습니다.
 확인하지 않은 작업까지 끝났다고 보고하거나, 작업 중 발견한 후속 문제를 대화에 남겨둔 채 넘어가기도 합니다.
-Proofline은 이런 누락을 줄이기 위해 `proofline-baseline-quality`를 세션마다 불러오고 작업 성격에 맞는 스킬을 제공합니다.
+Proofline은 이런 누락을 줄이기 위해 대표 스킬 `proofline`을 세션마다 불러오고 작업 성격에 맞는 스킬을 제공합니다. 공통 기준은 유지하면서 대화형 응답 표현만 `normal`, `focus`, `caveman` 모드로 전환할 수 있습니다.
 
 
 ## ✨ Proofline을 설치하면
-- 새 세션을 시작하거나 기존 세션을 다시 열 때 `proofline-baseline-quality`가 자동으로 적용됩니다.
+- 새 세션을 시작할 때 `proofline` 공통 기준과 현재 응답 모드가 자동으로 적용됩니다.
 - 큰 작업과 리팩터링, 정확한 이식, 작업 완료 보고에는 작업별 스킬을 사용해 정확도를 향상시키고, 시키지 않은 작업을 수행하지 않도록 막아줍니다.
 - 대화에서 발견한 버그와 후속 작업을 프로젝트 안에 남겨 다음 세션에서 이어갈 수 있습니다.
 
@@ -26,20 +26,33 @@ codex
 Codex가 열리면 다음 순서로 마무리합니다.
 
 1. `/hooks`를 엽니다.
-2. Proofline의 `SessionStart` 훅을 확인하고 승인합니다.
+2. Proofline의 `SessionStart`와 `UserPromptSubmit` 훅을 확인하고 승인합니다.
 3. 새 세션을 시작합니다.
 
 ## 🚀 빠르게 사용하기
 
-### `proofline-baseline-quality`
+### `proofline`과 응답 모드
 
-`proofline-baseline-quality`는 따로 호출하지 않아도 적용됩니다. 새 세션을 시작하거나 기존 세션을 다시 열 때, `/clear` 또는 `/compact`로 대화를 정리한 뒤에도 `SessionStart` 훅이 이 스킬을 다시 불러옵니다.
+`proofline`은 따로 호출하지 않아도 적용됩니다. 새 세션을 시작하거나 `/clear`, `/compact`로 대화를 정리하면 `SessionStart` 훅이 공통 기준과 현재 모드를 함께 불러옵니다. 재개(`resume`)에서는 다시 주입하지 않습니다.
 
 특정 요청에 이 기준을 확실히 적용하고 싶다면 프롬프트 첫 줄에 스킬 이름을 적으세요.
 ```text
-$proofline:proofline-baseline-quality
+$proofline:proofline
 이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐줘.
 ```
+
+프롬프트의 첫 비어 있지 않은 줄에서 다음 명령을 사용할 수 있습니다.
+
+| 명령 | 결과 |
+| --- | --- |
+| `$proofline` | 현재 모드와 기본 모드 조회 |
+| `$proofline normal` | 현재 작업을 일반 응답으로 전환 |
+| `$proofline focus` | 결론·다음 행동 우선의 집중 응답으로 전환 |
+| `$proofline caveman` | 기술적 정확성을 보존한 초압축 응답으로 전환 |
+| `$proofline default` | 새 작업에 적용할 기본 모드 조회 |
+| `$proofline default <mode>` | 기본 모드를 저장하고 현재 작업에도 적용 |
+
+초기 기본 모드는 `normal`입니다. 현재 모드는 작업별로 저장되므로 다른 작업에는 영향을 주지 않습니다. 잘못된 명령 뒤에 작업 요청이 있으면 오류를 한 줄로 표시하고 기존 현재 모드로 나머지 작업을 계속합니다.
 
 ### 작업에 맞는 스킬 직접 부르기
 
@@ -85,7 +98,7 @@ SPEC-0001 구현을 시작해줘.
 
 | 스킬 | 사용시점       |  개선사항|
 | --- | --- | --- |
-| `$proofline:proofline-baseline-quality` | 모든 대화와 결과물 | 대상 독자에 맞는 언어, 자연스러운 문장, 수정 권한, 근거가 있는 판단 |
+| `$proofline:proofline` | 모든 대화와 결과물 | 대상 독자에 맞는 언어, 자연스러운 문장, 수정 권한, 근거가 있는 판단 |
 | `$proofline:scope-integrity` | 크거나 위험하고 여러 단계로 이어지는 작업 | 처음 합의한 목표, 필수 조건, 중간 점검, 검증 계획, 범위 변경 승인 |
 | `$proofline:completion-evidence` | 완료 결과나 막힌 상황을 보고할 때 | 완료한 일과 검증 결과의 분리, 통과·실패·미실행 검사, 막힌 이유, 다음 조치 |
 | `$proofline:refactor-proof` | 책임, 의존 방향, 호출 경로, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경, 남은 기존 결합, 동작 보존 범위, 검증 근거 |
@@ -137,11 +150,12 @@ codex plugin marketplace upgrade proofline
 
 ## 🛠️ 문제가 생겼을 때
 
-### `proofline-baseline-quality`가 적용되지 않을 때
+### `proofline` 또는 응답 모드가 적용되지 않을 때
 
 1. 플러그인 설치 뒤 새 세션을 시작했는지 확인합니다.
-2. `/hooks`에서 Proofline의 `SessionStart` 훅이 승인되어 있는지 확인합니다.
+2. `/hooks`에서 Proofline의 `SessionStart`와 `UserPromptSubmit` 훅이 승인되어 있는지 확인합니다.
 3. 터미널에서 `node --version`이 실행되는지 확인합니다.
+4. 재개한 작업이라면 새 작업을 시작하세요. `resume`에서는 Proofline을 다시 주입하지 않습니다.
 
 ### 훅 실행에 실패할 때
 
