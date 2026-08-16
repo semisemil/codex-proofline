@@ -35,6 +35,13 @@
             "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\proofline-mode.js\"",
             "timeout": 5,
             "statusMessage": "Checking Proofline response mode..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/next-document-number.js\"",
+            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\next-document-number.js\"",
+            "timeout": 5,
+            "statusMessage": "Checking the next Proofline document number..."
           }
         ]
       }

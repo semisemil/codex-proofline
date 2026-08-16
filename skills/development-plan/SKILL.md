@@ -13,7 +13,7 @@ Base project-specific claims on repository evidence and domain documents that af
 
 ## Resolve the Plan
 
-Resolve an explicit Plan path or ID directly. For creation, inspect Plan IDs and plausible same-goal Plans, then allocate the next unused `PLAN-0001`-form ID. Stop on target ambiguity; otherwise preserve unresolved choices in a `draft` instead of starting an interview.
+Resolve an explicit Plan path or ID directly. For creation, inspect plausible same-goal Plans. Stop on target ambiguity; otherwise preserve unresolved choices in a `draft` instead of starting an interview.
 
 Store each Plan at `.proofline/plan/<PLAN-ID>-<slug>/PLAN.md`. Keep its ID and location stable, update it in place without revision snapshots, and never overwrite a collision. Report `no-op` when the requested planning state already matches.
 

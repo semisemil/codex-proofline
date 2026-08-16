@@ -56,10 +56,12 @@ test('hook registration keeps lifecycle boundaries and removes legacy owners', (
     hook.command.includes('load-proofline.js')
   )));
   const modeHook = hooks.UserPromptSubmit[0].hooks[0];
+  const numberHook = hooks.UserPromptSubmit[0].hooks[1];
 
   assert.equal(loader.matcher, 'startup|clear|compact');
   assert.doesNotMatch(loader.matcher, /resume/);
   assert.match(modeHook.command, /proofline-mode\.js/);
+  assert.match(numberHook.command, /next-document-number\.js/);
   assert.equal(hooks.SessionEnd, undefined);
   assert.equal(fs.existsSync(path.join(repoRoot, 'hooks', 'load-baseline.js')), false);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'proofline-baseline-quality')), false);

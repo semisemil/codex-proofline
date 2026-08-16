@@ -23,7 +23,7 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 - **Creation:** Inspect metadata and only plausible active `draft | ready | blocked` bodies with the same goal; stop on identity ambiguity
 - **No-op:** Compare contract, metadata, lifecycle, and links before writing; when already matched, report `no-op` without rewriting, snapshotting, or revising
 - **Path:** `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md`
-- **ID:** Allocate above the largest Spec ID, recheck before writing, never overwrite a collision, and keep ID/slug fixed
+- **ID:** Never overwrite a collision; keep ID/slug fixed
 - **Snapshots:** `revisions/REV-<revision>.md`; no global index
 
 ## Write the Spec
