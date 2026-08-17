@@ -10,7 +10,7 @@ const hookPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
 const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
 
 // 실제 패키지 구조에서 훅이 본문을 출력하는지 확인한다.
-test('Proofline hook loads the packaged baseline and default mode once', () => {
+test('Proofline hook loads the packaged baseline and one selected mode', () => {
   const result = spawnSync(process.execPath, [hookPath], {
     encoding: 'utf8',
     input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup' }),
@@ -21,8 +21,7 @@ test('Proofline hook loads the packaged baseline and default mode once', () => {
   assert.doesNotMatch(result.stdout, /^---/);
   assert.match(result.stdout, /## Language and compression/);
   assert.match(result.stdout, /Treat as owner-component contracts: named protocol rules, untrusted-input boundaries, and lifecycle states/);
-  assert.equal((result.stdout.match(/# Normal response mode/g) || []).length, 1);
-  assert.doesNotMatch(result.stdout, /# Focus response mode|# Caveman response mode/);
+  assert.equal((result.stdout.match(/^# (?:Normal|Focus|Caveman) response mode$/gm) || []).length, 1);
 });
 
 // 누락된 패키지 파일은 조용히 넘어가지 않고 진단 가능한 오류를 반환해야 한다.
@@ -157,16 +156,25 @@ test('Plan, Spec, and implementation share one conditional issue-link contract',
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'work-on-issue')), false);
 });
 
-test('Direct and Sliced modes keep different VCS behavior', () => {
+test('start-implementation owns the slicing decision and Direct/Sliced VCS behavior', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
   const slicing = read('skills', 'spec-slice', 'SKILL.md');
   const template = read('skills', 'spec-slice', 'assets', 'templates', 'slice.md');
+  const readme = read('README.md');
 
   assert.match(coordinator, /## Direct[\s\S]*shared-local implementer with routed `model` and `thinking`/);
   assert.match(coordinator, /## Direct[\s\S]*without staging or committing/);
-  assert.match(coordinator, /current revision's `\$spec-slice` result/);
-  assert.match(coordinator, /ask the user to run `\$spec-slice`; do not invoke it automatically/);
+  assert.match(coordinator, /Read and apply `\.\.\/spec-slice\/SKILL\.md` as an internal preparation step/);
+  assert.match(coordinator, /Direct\/Sliced decision is not implementation approval/);
+  assert.match(coordinator, /requires neither separate user approval nor a separate `\$spec-slice` call/);
+  assert.match(coordinator, /current revision has Slice documents[\s\S]*reuse an accepted plan/);
+  assert.match(coordinator, /Stop on an invalid plan; replace it only when the user explicitly requests re-slicing/);
+  assert.match(coordinator, /no Slice documents, decide from the ready Spec/);
+  assert.match(coordinator, /For `Direct`, continue without writing Slice artifacts/);
+  assert.match(coordinator, /For `Sliced`, create the complete plan and run the inspector/);
+  assert.match(coordinator, /Continue Sliced implementation only when the inspector accepts the current plan/);
   assert.match(coordinator, /inspect-slice-plan\.js <slice-directory>/);
+  assert.doesNotMatch(coordinator, /ask the user to run `\$spec-slice`|do not invoke it automatically/);
   assert.match(coordinator, /Non-Git projects[\s\S]*one Slice implementer at a time/);
   assert.match(coordinator, /v2 use at most two Slices from `dispatch`/);
   assert.match(coordinator, /temporary-worktree integration base/);
@@ -188,6 +196,11 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
   assert.match(slicing, /Slice-unique and integration-only checks/);
   assert.match(slicing, /relative links to the Spec's `Slices` section/);
   assert.match(slicing, /Create no Slice documents or other mode artifact/);
+  assert.match(readme, /`start-implementation`은 기존 Slice 계획을 검증하거나 `spec-slice`의 `Direct`\/`Sliced` 판정을 내부 단계로 수행하므로/);
+  assert.match(readme, /이 판정을 위한 별도 호출은 필요하지 않습니다/);
+  assert.match(readme, /유효하지 않으면 중단하며 명시적으로 다시 나누도록 요청받은 경우에만 교체합니다/);
+  assert.doesNotMatch(readme, /tenet-me` → `spec-slice` → `start-implementation/);
+  assert.doesNotMatch(readme, /\n\$proofline:spec-slice\r?\n/);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'assets', 'templates', 'slice.md')), false);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'spec-slice', 'scripts', 'inspect-slice-plan.js')), true);
 

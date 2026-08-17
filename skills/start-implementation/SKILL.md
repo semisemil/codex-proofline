@@ -12,7 +12,10 @@ Coordinate; do not implement or review product changes yourself. Write messages 
 1. Validate the Spec identity, revision, project, requirements, and `ready` status. Stop for missing prerequisites, terminal status, or revision change.
 2. Apply linked-issue handling from `../issue-ledger/references/work-link.md` once when needed; keep issue content outside implementer and reviewer context.
 3. Read the project domain document and applicable ADRs.
-4. Use the current revision's `$spec-slice` result. If it is unavailable, ask the user to run `$spec-slice`; do not invoke it automatically. For Sliced mode, run `node ../spec-slice/scripts/inspect-slice-plan.js <slice-directory>` and use its plan mode, dispatch, and integration order.
+4. Read and apply `../spec-slice/SKILL.md` as an internal preparation step. This Direct/Sliced decision is not implementation approval and requires neither separate user approval nor a separate `$spec-slice` call.
+   - When the current revision has Slice documents, run `node ../spec-slice/scripts/inspect-slice-plan.js <slice-directory>` and reuse an accepted plan. Stop on an invalid plan; replace it only when the user explicitly requests re-slicing.
+   - When it has no Slice documents, decide from the ready Spec. For `Direct`, continue without writing Slice artifacts. For `Sliced`, create the complete plan and run the inspector.
+   - Continue Sliced implementation only when the inspector accepts the current plan; use its plan mode, dispatch, and integration order.
 
 ## Gates
 

@@ -30,4 +30,4 @@ Create the complete v2 plan from `assets/templates/slice.md` before implementati
 4. Record only Slice-unique and integration-only checks; keep shared acceptance in the Spec.
 5. Add only the corresponding relative links to the Spec's `Slices` section.
 
-Run the Slice plan inspector. Complete only when it accepts the current revision and every concurrently runnable pair is safe or ordered. Report `Direct`, `Sliced (sequential)`, or `Sliced (max 2)` and the Slice paths when applicable, then return the result to `../figure-it-out/SKILL.md` when it owns the explicit workflow.
+Run the Slice plan inspector. Complete only when it accepts the current revision and every concurrently runnable pair is safe or ordered. Report `Direct`, `Sliced (sequential)`, or `Sliced (max 2)` and the Slice paths when applicable.

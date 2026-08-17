@@ -89,24 +89,23 @@ $proofline:exact-port
 | `$proofline:implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 작업별 최소 구조, 통합 요구사항·완료 조건, Spec 수명주기 |
 | `$proofline:tenet-me` | 구현 전에 Plan이나 Spec의 결과 경로와 결정 사항을 검토할 때 | 결과별 전제·전이·근거 추적, 누락된 연결과 사용자 결정 확인 |
 | `$proofline:spec-slice` | 준비된 Spec의 구현 단위를 나눌지 결정할 때 | Direct·Sliced 판정, 독립 Slice와 결과·실행 순서, 안전한 병렬 후보 |
-| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 역할별 검증, 조건부 병렬 Slice, 독립 검토, 최종 통합 판정 |
+| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 내부 Direct·Sliced 판정, 역할별 검증, 조건부 병렬 Slice, 독립 검토, 최종 통합 판정 |
 
 ## 🔁 Plan에서 구현까지
 
-한 번에 맡기려면 `figure-it-out`을 호출합니다. Plan 필요성을 판단한 뒤 `Plan ↔ tenet-me`와 `Spec ↔ tenet-me`를 필요한 만큼 반복하고, 준비된 Spec을 `spec-slice`와 `start-implementation`으로 이어갑니다. 저장소 근거로 결정할 수 없는 중요한 선택만 사용자에게 확인하며, 답변 뒤에는 새 스킬 호출 없이 중단한 단계부터 계속합니다.
+한 번에 맡기려면 `figure-it-out`을 호출합니다. Plan 필요성을 판단한 뒤 `Plan ↔ tenet-me`와 `Spec ↔ tenet-me`를 필요한 만큼 반복하고, 준비된 Spec을 `start-implementation`으로 이어갑니다. 저장소 근거로 결정할 수 없는 중요한 선택만 사용자에게 확인하며, 답변 뒤에는 새 스킬 호출 없이 중단한 단계부터 계속합니다.
 
 ```text
 $proofline:figure-it-out
 사용자 알림 설정 개선을 필요한 기획부터 구현과 독립 검토까지 맡아서 완료해 줘.
 ```
 
-각 단계를 직접 제어하려면 `development-plan` → `implementation-spec` → `tenet-me` → `spec-slice` → `start-implementation` 순서로 별도 호출합니다. 이 직접 호출들은 다음 단계를 자동으로 실행하거나 승인하지 않습니다.
+각 단계를 직접 제어하려면 `development-plan` → `implementation-spec` → `tenet-me` → `start-implementation` 순서로 별도 호출합니다. `start-implementation`은 기존 Slice 계획을 검증하거나 `spec-slice`의 `Direct`/`Sliced` 판정을 내부 단계로 수행하므로 이 판정을 위한 별도 호출은 필요하지 않습니다.
 
 1. `development-plan`: 거친 아이디어를 `.proofline/plan/`의 Plan으로 구체화합니다. `ready`는 Spec을 작성할 만큼 준비됐다는 뜻이며, Spec 작성이나 구현을 승인하지 않습니다.
 2. `implementation-spec`: 여러 작업이나 독립 검토가 필요한 구현을 독립적인 계약인 Spec으로 정리합니다. 구현은 시작하지 않습니다.
 3. `tenet-me`: 명시적으로 요청할 때 Plan이나 Spec의 각 결과에서 전제와 전이를 거슬러 검토하고, 근거가 없거나 사용자 결정이 필요한 연결을 확인합니다.
-4. `spec-slice`: 준비된 Spec을 한 번에 구현할 수 있으면 `Direct`로 판정합니다. 독립적으로 구현·검증할 하위 목표가 있으면 전체 Slice와 결과·실행 순서를 먼저 만들고 `Sliced`로 판정합니다. 제품 코드는 구현하지 않습니다.
-5. `start-implementation`: `Direct` 또는 `Sliced` 판정에 따라 구현자 검증과 독립 검토를 분리하고, 안전한 Git Slice는 최대 2개까지 병렬 진행합니다. 검토가 실패해도 자동으로 롤백하지 않습니다.
+4. `start-implementation`: 기존 Slice 문서가 없으면 내부 준비 단계에서 `Direct` 또는 `Sliced`를 판정하고, `Sliced`면 전체 계획을 생성·검증한 뒤 구현을 계속합니다. 기존 계획이 유효하면 재사용하고, 유효하지 않으면 중단하며 명시적으로 다시 나누도록 요청받은 경우에만 교체합니다. 판정 자체는 구현 승인이 아니며 별도 스킬 호출이나 사용자 승인이 필요하지 않습니다. 구현자 검증과 독립 검토를 분리하고, 안전한 Git Slice는 최대 2개까지 병렬 진행합니다. 검토가 실패해도 자동으로 롤백하지 않습니다.
 
 ```text
 $proofline:development-plan
@@ -117,9 +116,6 @@ PLAN-0001을 구현 가능한 Spec으로 정리해줘.
 
 $proofline:tenet-me
 SPEC-0001의 결과 경로를 검토해줘.
-
-$proofline:spec-slice
-SPEC-0001을 독립적으로 구현하고 검증할 Slice로 나눌지 판단해줘.
 
 $proofline:start-implementation
 SPEC-0001 구현을 시작해줘.

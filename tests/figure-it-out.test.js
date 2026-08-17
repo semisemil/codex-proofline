@@ -13,7 +13,8 @@ test('figure-it-out is a compact linked workflow without copied stage contracts'
   assert.match(skill, /Optional Plan\. If a ready Spec would require inventing the problem, intended outcome, scope, direction, or material tradeoffs/);
   assert.match(skill, /development-plan[\s\S]*tenet-me[\s\S]*Plan is `ready` and Tenet finds no material unresolved outcome path/);
   assert.match(skill, /implementation-spec[\s\S]*tenet-me[\s\S]*Spec `ready`/);
-  assert.match(skill, /spec-slice[\s\S]*start-implementation/);
+  assert.match(skill, /Run \[\$start-implementation\]\(\.\.\/start-implementation\/SKILL\.md\)/);
+  assert.doesNotMatch(skill, /\[\$spec-slice\]/);
   assert.match(skill, /Revise from findings and rerun Tenet/);
   assert.match(skill, /This invocation owns the full chain/);
   assert.match(skill, /Resolve facts from evidence\. Ask only for unresolved material decisions, then resume/);
@@ -22,7 +23,6 @@ test('figure-it-out is a compact linked workflow without copied stage contracts'
     'development-plan',
     'tenet-me',
     'implementation-spec',
-    'spec-slice',
     'start-implementation',
   ]) {
     assert.match(skill, new RegExp(`\\[\\$${stage}\\]\\(\\.\\.\\/${stage}\\/SKILL\\.md\\)`));
@@ -36,14 +36,12 @@ test('owned stages return to figure-it-out while standalone calls keep their bou
   const plan = read('skills', 'development-plan', 'SKILL.md');
   const spec = read('skills', 'implementation-spec', 'SKILL.md');
   const tenet = read('skills', 'tenet-me', 'SKILL.md');
-  const slice = read('skills', 'spec-slice', 'SKILL.md');
 
   assert.match(plan, /figure-it-out\/SKILL\.md` owns the explicit user request/);
   assert.match(plan, /otherwise report it and leave review, specification, slicing, and implementation to separate user requests/);
   assert.match(spec, /implementation requires a separate user request unless `\.\.\/figure-it-out\/SKILL\.md` owns the explicit request/);
   assert.match(tenet, /explicitly invokes \$tenet-me or \$figure-it-out owns the explicit workflow/);
   assert.match(tenet, /return the final result to it for the next revision or stage/);
-  assert.match(slice, /return the result to `\.\.\/figure-it-out\/SKILL\.md` when it owns the explicit workflow/);
 });
 
 test('figure-it-out is explicit-only and exposed by the plugin', () => {
