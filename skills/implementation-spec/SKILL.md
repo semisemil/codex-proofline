@@ -26,6 +26,8 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 - **ID:** Never overwrite a collision; keep ID/slug fixed
 - **Snapshots:** `revisions/REV-<revision>.md`; no global index
 
+After any Spec creation or change is successfully written, including operational or lifecycle edits, run `node <plugin-root>/dashboard/register-project.js register --project-root <absolute-project-root>`. Do not run it for reads, review, `no-op`, or failed writes. Report its result separately; registration failure does not change or roll back the completed Spec write.
+
 ## Write the Spec
 
 ### Envelope
@@ -62,4 +64,4 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 - **Major revision:** Snapshot first, never overwrite a differing snapshot, increment once, and invalidate old evidence
 - **Operational edit:** No revision change for typo/formatting, relation links, or lifecycle-only changes
 - **Terminal:** Complete only from same-revision evidence and a fresh passing post-review; cancel only by user; supersede by linking both Specs; preserve body/location
-- **Report:** Operation, resulting ID/title/path/revision/status, any snapshot, material decisions or blockers, and that no implementation occurred; implementation requires a separate user request unless `../figure-it-out/SKILL.md` owns the explicit request, in which case return the result to that workflow
+- **Report:** Operation, resulting ID/title/path/revision/status, registration result, any snapshot, material decisions or blockers, and that no implementation occurred; implementation requires a separate user request unless `../figure-it-out/SKILL.md` owns the explicit request, in which case return the result to that workflow

@@ -4,7 +4,8 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const model = require('../assets/state-starter/dashboard/issue-model.js');
+const { registerProject } = require('../../../dashboard/registry.js');
+const model = require('../lib/issue-model.js');
 
 function fail(message, code = 1) {
   console.error(message);
@@ -208,6 +209,33 @@ function writeV2Issue(filePath, issue) {
   fs.writeFileSync(resolved, model.serializeIssue(issue), 'utf8');
 }
 
+function resolveProjectRoot(issuesRoot, explicitProjectRoot) {
+  if (typeof explicitProjectRoot === 'string' && explicitProjectRoot.trim() !== '') {
+    return path.resolve(explicitProjectRoot);
+  }
+  const prooflineRoot = path.dirname(issuesRoot);
+  if (path.basename(issuesRoot) === 'issues' && path.basename(prooflineRoot) === '.proofline') {
+    return path.dirname(prooflineRoot);
+  }
+  return process.cwd();
+}
+
+function registerWrittenProject(issuesRoot, explicitProjectRoot) {
+  const projectRoot = resolveProjectRoot(issuesRoot, explicitProjectRoot);
+  try {
+    const result = registerProject(projectRoot);
+    console.error(`registration: ${JSON.stringify({
+      status: result.status,
+      project: result.project
+    })}`);
+  } catch (error) {
+    console.error(`registration-failed: ${JSON.stringify({
+      code: error.code || 'registration-failed',
+      message: error.message
+    })}`);
+  }
+}
+
 function commandList(options) {
   const root = resolveIssuesRoot(options.root);
   const { issues, errors } = readAllIssues(root);
@@ -350,6 +378,7 @@ function commandCreate(options) {
     fail(`이미 존재하는 파일입니다: ${filePath}`);
   }
   writeV2Issue(filePath, issue);
+  registerWrittenProject(root, options.project_root);
   validation.warnings.forEach((warning) => console.error(`warning: ${warning}`));
   console.log(filePath);
 }
@@ -386,6 +415,7 @@ function commandUpdate(options) {
     fail(relationErrors.join('\n'));
   }
   writeV2Issue(filePath, result.issue);
+  registerWrittenProject(root, options.project_root);
   result.validation.warnings.forEach((warning) => console.error(`warning: ${warning}`));
   console.log(filePath);
 }
@@ -431,6 +461,7 @@ function commandLinkWork(options) {
     return;
   }
   writeV2Issue(filePath, result.issue);
+  registerWrittenProject(root, options.project_root);
   result.validation.warnings.forEach((warning) => console.error(`warning: ${warning}`));
   console.log(filePath);
 }

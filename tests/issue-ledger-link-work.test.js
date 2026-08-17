@@ -11,11 +11,17 @@ const model = require(path.join(
   repoRoot,
   'skills',
   'issue-ledger',
-  'assets',
-  'state-starter',
-  'dashboard',
+  'lib',
   'issue-model.js'
 ));
+
+function configEnv(root) {
+  const projectRoot = path.dirname(path.dirname(root));
+  const configRoot = path.join(projectRoot, '.test-config');
+  return process.platform === 'win32'
+    ? { ...process.env, APPDATA: configRoot }
+    : { ...process.env, XDG_CONFIG_HOME: configRoot };
+}
 
 function makeIssue() {
   return {
@@ -119,7 +125,7 @@ function runLinkWork(root, overrides = {}) {
   if (values.status) {
     args.push('--status', values.status);
   }
-  return spawnSync(process.execPath, args, { encoding: 'utf8' });
+  return spawnSync(process.execPath, args, { encoding: 'utf8', env: configEnv(root) });
 }
 
 test('link-work stores one canonical context link and is idempotent', (t) => {
@@ -235,7 +241,7 @@ test('generic update cannot bypass linked-artifact validation', (t) => {
     'PL-0001',
     '--operation', operationPath,
     '--root', root
-  ], { encoding: 'utf8' });
+  ], { encoding: 'utf8', env: configEnv(root) });
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /link_work는 역링크를 검증하는 link-work 명령으로 실행해야 합니다/);
