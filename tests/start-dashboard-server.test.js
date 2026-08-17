@@ -1,0 +1,108 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const { randomUUID } = require('node:crypto');
+const test = require('node:test');
+
+const {
+  dashboardDirectory,
+  inspectServer,
+  stopServer,
+} = require('../dashboard/control');
+
+const repoRoot = path.resolve(__dirname, '..');
+const hookPath = path.join(repoRoot, 'hooks', 'start-dashboard-server.js');
+
+function isolatedEnvironment(root) {
+  return {
+    ...process.env,
+    APPDATA: path.join(root, 'appdata'),
+    HOME: path.join(root, 'home'),
+    USERPROFILE: path.join(root, 'home'),
+    XDG_CONFIG_HOME: path.join(root, 'config'),
+  };
+}
+
+test('all four SessionStart sources reuse one server without project mutation', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-hook-server-'));
+  const project = path.join(root, 'project');
+  const env = isolatedEnvironment(root);
+  const directory = dashboardDirectory({ env });
+  fs.mkdirSync(project, { recursive: true });
+  t.after(async () => {
+    await stopServer({ directory });
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  const instanceIds = [];
+
+  for (const source of ['startup', 'resume', 'clear', 'compact']) {
+    const result = spawnSync(process.execPath, [hookPath], {
+      encoding: 'utf8',
+      env,
+      input: JSON.stringify({
+        cwd: project,
+        hook_event_name: 'SessionStart',
+        source,
+      }),
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, '');
+    const status = await inspectServer({ directory });
+    assert.equal(status.status, 'running');
+    instanceIds.push(status.instance_id);
+  }
+
+  assert.equal(new Set(instanceIds).size, 1);
+  assert.equal(fs.existsSync(path.join(project, '.proofline')), false);
+  assert.equal(fs.existsSync(path.join(directory, 'projects.json')), false);
+});
+
+test('hook registration covers SessionStart only and all sources', () => {
+  const config = JSON.parse(fs.readFileSync(path.join(repoRoot, 'hooks', 'hooks.json'), 'utf8'));
+  const entry = config.hooks.SessionStart.find((candidate) => candidate.hooks.some((hook) => (
+    hook.command.includes('start-dashboard-server.js')
+  )));
+
+  assert.equal(entry.matcher, 'startup|resume|clear|compact');
+  assert.equal(config.hooks.SessionEnd, undefined);
+  assert.equal(entry.hooks[0].commandWindows.includes('start-dashboard-server.js'), true);
+});
+
+test('startup replaces an expired lock whose owner PID was reused', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-hook-stale-lock-'));
+  const project = path.join(root, 'project');
+  const env = isolatedEnvironment(root);
+  const directory = dashboardDirectory({ env });
+  const lockPath = path.join(directory, 'server-start.lock');
+  fs.mkdirSync(project, { recursive: true });
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(lockPath, JSON.stringify({
+    schema_version: 1,
+    instance_id: randomUUID(),
+    owner_pid: process.pid,
+    started_at: new Date(Date.now() - 60_000).toISOString(),
+  }));
+  t.after(async () => {
+    await stopServer({ directory });
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const result = spawnSync(process.execPath, [hookPath], {
+    encoding: 'utf8',
+    env,
+    input: JSON.stringify({
+      cwd: project,
+      hook_event_name: 'SessionStart',
+      source: 'startup',
+    }),
+  });
+  const status = await inspectServer({ directory });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.equal(status.status, 'running');
+  assert.equal(fs.existsSync(path.join(directory, 'server.json')), true);
+  assert.equal(fs.existsSync(lockPath), false);
+});
