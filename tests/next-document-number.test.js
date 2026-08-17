@@ -95,6 +95,17 @@ test('development-plan receives the next plan number and missing ledgers start a
   );
 });
 
+test('figure-it-out receives candidate Plan and Spec numbers', (t) => {
+  const root = fixture(t);
+  fs.mkdirSync(path.join(root, '.proofline/plan/PLAN-0003-roadmap'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.proofline/specs/SPEC-0011-settings'), { recursive: true });
+
+  assert.equal(
+    context(runHook(root, '$proofline:figure-it-out\nTake this change through implementation.')),
+    'Next plan number: PLAN-0004\nNext specification number: SPEC-0012',
+  );
+});
+
 test('a numbering read failure is logged and leaves the skill able to fall back', (t) => {
   const root = fixture(t);
   touch(root, '.proofline/issues');

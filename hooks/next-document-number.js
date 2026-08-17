@@ -4,22 +4,29 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { logDiagnostic } = require('./proofline-state');
 
+const ISSUE_DOCUMENT = Object.freeze({
+  directory: ['.proofline', 'issues'],
+  prefix: 'PL',
+  label: 'issue',
+});
+const SPEC_DOCUMENT = Object.freeze({
+  directory: ['.proofline', 'specs'],
+  prefix: 'SPEC',
+  label: 'specification',
+});
+const PLAN_DOCUMENT = Object.freeze({
+  directory: ['.proofline', 'plan'],
+  prefix: 'PLAN',
+  label: 'plan',
+});
+
 const DOCUMENT_SKILLS = Object.freeze({
-  '$proofline:issue-ledger': {
-    directory: ['.proofline', 'issues'],
-    prefix: 'PL',
-    label: 'issue',
-  },
-  '$proofline:implementation-spec': {
-    directory: ['.proofline', 'specs'],
-    prefix: 'SPEC',
-    label: 'specification',
-  },
-  '$proofline:development-plan': {
-    directory: ['.proofline', 'plan'],
-    prefix: 'PLAN',
-    label: 'plan',
-  },
+  '$proofline:issue-ledger': ISSUE_DOCUMENT,
+  '$proofline:implementation-spec': SPEC_DOCUMENT,
+  '$proofline:development-plan': PLAN_DOCUMENT,
+  '$proofline:figure-it-out': Object.freeze({
+    documents: Object.freeze([PLAN_DOCUMENT, SPEC_DOCUMENT]),
+  }),
 });
 
 function findDocumentSkill(prompt) {
@@ -61,11 +68,13 @@ function nextDocumentId(projectRoot, documentSkill) {
   return `${documentSkill.prefix}-${String(largest + 1n).padStart(4, '0')}`;
 }
 
-function output(documentSkill, id) {
+function output(documentSkills, ids) {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'UserPromptSubmit',
-      additionalContext: `Next ${documentSkill.label} number: ${id}`,
+      additionalContext: documentSkills
+        .map((documentSkill, index) => `Next ${documentSkill.label} number: ${ids[index]}`)
+        .join('\n'),
     },
   }));
 }
@@ -78,10 +87,14 @@ function main() {
     if (!documentSkill) {
       return;
     }
+    const documentSkills = documentSkill.documents || [documentSkill];
     const projectRoot = typeof input.cwd === 'string' && input.cwd.length > 0
       ? path.resolve(input.cwd)
       : process.cwd();
-    output(documentSkill, nextDocumentId(projectRoot, documentSkill));
+    output(
+      documentSkills,
+      documentSkills.map((candidate) => nextDocumentId(projectRoot, candidate)),
+    );
   } catch (error) {
     logDiagnostic({
       hook: 'next-document-number',

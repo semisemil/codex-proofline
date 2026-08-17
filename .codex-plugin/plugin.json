@@ -37,6 +37,7 @@
       "$proofline focus",
       "$proofline:proofline 이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐 줘",
       "$proofline:development-plan 반복 업무를 자동화하는 내부 도구 아이디어를 개발 기획 Plan으로 구체화해 줘",
+      "$proofline:figure-it-out 사용자 알림 설정 개선을 필요한 기획부터 구현과 독립 검토까지 맡아서 완료해 줘",
       "$proofline:issue-ledger 이 대화에서 나온 후속 작업을 프로젝트 이슈로 등록해 줘",
       "$proofline:implementation-spec 사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해 줘. 구현은 시작하지 마",
       "$proofline:start-implementation SPEC-0001 구현을 시작해 줘"

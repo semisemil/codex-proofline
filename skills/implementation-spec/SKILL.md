@@ -62,4 +62,4 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 - **Major revision:** Snapshot first, never overwrite a differing snapshot, increment once, and invalidate old evidence
 - **Operational edit:** No revision change for typo/formatting, relation links, or lifecycle-only changes
 - **Terminal:** Complete only from same-revision evidence and a fresh passing post-review; cancel only by user; supersede by linking both Specs; preserve body/location
-- **Report:** Operation, resulting ID/title/path/revision/status, any snapshot, material decisions or blockers, and that no implementation occurred; implementation requires a separate user request
+- **Report:** Operation, resulting ID/title/path/revision/status, any snapshot, material decisions or blockers, and that no implementation occurred; implementation requires a separate user request unless `../figure-it-out/SKILL.md` owns the explicit request, in which case return the result to that workflow

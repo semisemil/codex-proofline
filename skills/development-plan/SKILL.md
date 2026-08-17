@@ -7,7 +7,7 @@ description: "Create or revise a project development Plan under .proofline/plan 
 
 ## Boundary
 
-Modify only `.proofline/plan/**`. For linked `PL-*`, apply `../issue-ledger/references/work-link.md`. Produce and report the Plan; leave review, specification, slicing, and implementation to separate user requests.
+Modify only `.proofline/plan/**`. For linked `PL-*`, apply `../issue-ledger/references/work-link.md`. Produce the Plan. When `../figure-it-out/SKILL.md` owns the explicit user request, return the result to that workflow; otherwise report it and leave review, specification, slicing, and implementation to separate user requests.
 
 Base project-specific claims on repository evidence and domain documents that affect the planning decision. Reuse evidence already inspected. Research externally when current facts, comparisons, standards, or available approaches materially affect the Plan, and cite the sources that influence it.
 
@@ -47,4 +47,4 @@ Use `draft` while a material decision or uncertainty prevents that state. Preser
 
 ## Report
 
-Report the operation, Plan ID and title, path, status, and material unresolved decisions, then end.
+Report the operation, Plan ID and title, path, status, and material unresolved decisions, then return to the owning workflow or end.

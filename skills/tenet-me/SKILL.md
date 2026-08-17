@@ -1,6 +1,6 @@
 ---
 name: tenet-me
-description: "Review outcome paths in a Spec, plan, design, or stateful workflow using current evidence. Use only when the user explicitly invokes $tenet-me."
+description: "Review outcome paths in a Spec, plan, design, or stateful workflow using current evidence. Use only when the user explicitly invokes $tenet-me or $figure-it-out owns the explicit workflow."
 ---
 
 # Tenet Me
@@ -68,3 +68,5 @@ Use natural Korean without unnecessary emoji or forced foreign-language headings
 - whole-document verdicts.
 
 Show only the current decisions or final result.
+
+When `../figure-it-out/SKILL.md` owns the workflow, return the final result to it for the next revision or stage.
