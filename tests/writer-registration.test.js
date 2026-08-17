@@ -9,6 +9,7 @@ const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
 const issueCli = path.join(repoRoot, 'skills', 'issue-ledger', 'scripts', 'issue-ledger.js');
+const registerCli = path.join(repoRoot, 'dashboard', 'register-project.js');
 const { getRegistryPath } = require('../dashboard/registry.js');
 
 function makeFixture(t) {
@@ -44,6 +45,71 @@ function runIssue(args, env) {
   return spawnSync(process.execPath, [issueCli, ...args], { encoding: 'utf8', env });
 }
 
+function runRegister(projectRoot, env) {
+  return spawnSync(process.execPath, [
+    registerCli,
+    'register',
+    '--project-root',
+    projectRoot
+  ], { encoding: 'utf8', env });
+}
+
+const documentWriters = [
+  {
+    label: 'Plan',
+    skill: 'skills/development-plan/SKILL.md',
+    relativePath: '.proofline/plan/PLAN-0001-example/PLAN.md',
+    content: '---\nid: PLAN-0001\ntitle: 예시 Plan\nstatus: ready\n---\n\n# 예시 Plan\n'
+  },
+  {
+    label: 'Spec',
+    skill: 'skills/implementation-spec/SKILL.md',
+    relativePath: '.proofline/specs/SPEC-0001-example/SPEC.md',
+    content: `---\n${JSON.stringify({
+      schema_version: 2,
+      id: 'SPEC-0001',
+      title: '예시 Spec',
+      kind: 'feature',
+      status: 'ready',
+      revision: 1,
+      supersedes: [],
+      superseded_by: null,
+      related_issues: []
+    }, null, 2)}\n---\n\n# 예시 Spec\n`
+  }
+];
+
+function executeDocumentWriter(fixture, writer, content = writer.content) {
+  const target = path.join(fixture.projectRoot, writer.relativePath);
+  let existing = null;
+  try {
+    existing = fs.readFileSync(target, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      return {
+        writeStatus: 'write-failed', writeAttempted: false, writeError: error, registration: null, target
+      };
+    }
+  }
+  if (existing === content) {
+    return { writeStatus: 'no-op', writeAttempted: false, registration: null, target };
+  }
+  let writeAttempted = false;
+  try {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    writeAttempted = true;
+    fs.writeFileSync(target, content, 'utf8');
+  } catch (error) {
+    return { writeStatus: 'write-failed', writeAttempted, writeError: error, registration: null, target };
+  }
+  return {
+    writeStatus: 'written',
+    writeAttempted,
+    registration: runRegister(fixture.projectRoot, fixture.env),
+    target
+  };
+}
+
 test('Issue create registers only after the file write succeeds', (t) => {
   const fixture = makeFixture(t);
   const input = path.join(fixture.root, 'issue.json');
@@ -60,11 +126,15 @@ test('Issue create registers only after the file write succeeds', (t) => {
 
 test('Issue write failure does not register the project', (t) => {
   const fixture = makeFixture(t);
-  const input = path.join(fixture.root, 'invalid.json');
-  fs.writeFileSync(input, JSON.stringify({ schema_version: 2 }), 'utf8');
+  const input = path.join(fixture.root, 'issue.json');
+  const issue = makeIssue();
+  issue.identity.id = `PL-${'1'.repeat(300)}`;
+  fs.writeFileSync(input, JSON.stringify(issue), 'utf8');
   const result = runIssue(['create', '--input', input, '--root', fixture.issuesRoot], fixture.env);
 
   assert.equal(result.status, 1);
+  assert.match(result.stderr, /ENOENT|ENAMETOOLONG|name too long|filename or extension is too long/i);
+  assert.match(result.stderr, /at writeV2Issue/);
   assert.equal(fs.existsSync(getRegistryPath({ env: fixture.env })), false);
   assert.equal(fs.readdirSync(fixture.issuesRoot).length, 0);
 });
@@ -121,14 +191,71 @@ test('Issue link-work no-op does not register or rewrite', (t) => {
   assert.equal(fs.existsSync(getRegistryPath({ env: fixture.env })), false);
 });
 
-test('Plan and Spec writer contracts use the shared command only after successful writes', () => {
-  for (const relativePath of [
-    'skills/development-plan/SKILL.md',
-    'skills/implementation-spec/SKILL.md'
-  ]) {
-    const content = fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+test('Issue writer executes the shared register command instead of the registry module', () => {
+  const content = fs.readFileSync(issueCli, 'utf8');
+  assert.match(content, /register-project\.js/);
+  assert.match(content, /spawnSync\(process\.execPath/);
+  assert.doesNotMatch(content, /require\(['"]\.\.\/\.\.\/\.\.\/dashboard\/registry\.js['"]\)/);
+});
+
+for (const writer of documentWriters) {
+  test(`${writer.label} successful write executes the shared register command`, (t) => {
+    const fixture = makeFixture(t);
+    const result = executeDocumentWriter(fixture, writer);
+    assert.equal(result.writeStatus, 'written');
+    assert.equal(result.registration.status, 0, result.registration.stderr);
+    assert.equal(JSON.parse(result.registration.stdout).status, 'registered');
+    assert.equal(fs.readFileSync(result.target, 'utf8'), writer.content);
+    const registry = JSON.parse(fs.readFileSync(getRegistryPath({ env: fixture.env }), 'utf8'));
+    assert.equal(registry.projects.length, 1);
+    assert.equal(registry.projects[0].root, fs.realpathSync(fixture.projectRoot));
+  });
+
+  test(`${writer.label} no-op neither rewrites nor registers`, (t) => {
+    const fixture = makeFixture(t);
+    const target = path.join(fixture.projectRoot, writer.relativePath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, writer.content, 'utf8');
+    const before = fs.statSync(target).mtimeMs;
+    const result = executeDocumentWriter(fixture, writer);
+    assert.equal(result.writeStatus, 'no-op');
+    assert.equal(result.writeAttempted, false);
+    assert.equal(result.registration, null);
+    assert.equal(fs.statSync(target).mtimeMs, before);
+    assert.equal(fs.existsSync(getRegistryPath({ env: fixture.env })), false);
+  });
+
+  test(`${writer.label} filesystem write failure does not register`, (t) => {
+    const fixture = makeFixture(t);
+    const failingWriter = {
+      ...writer,
+      relativePath: path.join(path.dirname(writer.relativePath), `${'x'.repeat(300)}.md`)
+    };
+    const result = executeDocumentWriter(fixture, failingWriter);
+    assert.equal(result.writeStatus, 'write-failed');
+    assert.equal(result.writeAttempted, true);
+    assert.ok(result.writeError);
+    assert.equal(result.registration, null);
+    assert.equal(fs.existsSync(getRegistryPath({ env: fixture.env })), false);
+  });
+
+  test(`${writer.label} registration failure preserves the successful document write`, (t) => {
+    const fixture = makeFixture(t);
+    const registryPath = getRegistryPath({ env: fixture.env });
+    fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+    fs.writeFileSync(registryPath, '{bad json', 'utf8');
+    const result = executeDocumentWriter(fixture, writer);
+    assert.equal(result.writeStatus, 'written');
+    assert.equal(result.registration.status, 1);
+    assert.equal(JSON.parse(result.registration.stderr).error.code, 'registry-invalid');
+    assert.equal(fs.readFileSync(result.target, 'utf8'), writer.content);
+    assert.equal(fs.readFileSync(registryPath, 'utf8'), '{bad json');
+  });
+
+  test(`${writer.label} skill wires the executed shared command and result separation`, () => {
+    const content = fs.readFileSync(path.join(repoRoot, writer.skill), 'utf8');
     assert.match(content, /dashboard\/register-project\.js register --project-root <absolute-project-root>/);
     assert.match(content, /Do not run it for reads, review, `no-op`, or failed writes/);
     assert.match(content, /registration failure does not change or roll back the completed/);
-  }
-});
+  });
+}

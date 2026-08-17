@@ -2,10 +2,12 @@
 
 'use strict';
 
+const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const { registerProject } = require('../../../dashboard/registry.js');
 const model = require('../lib/issue-model.js');
+
+const registerProjectCli = path.resolve(__dirname, '../../../dashboard/register-project.js');
 
 function fail(message, code = 1) {
   console.error(message);
@@ -222,18 +224,29 @@ function resolveProjectRoot(issuesRoot, explicitProjectRoot) {
 
 function registerWrittenProject(issuesRoot, explicitProjectRoot) {
   const projectRoot = resolveProjectRoot(issuesRoot, explicitProjectRoot);
-  try {
-    const result = registerProject(projectRoot);
-    console.error(`registration: ${JSON.stringify({
-      status: result.status,
-      project: result.project
-    })}`);
-  } catch (error) {
+  const result = spawnSync(process.execPath, [
+    registerProjectCli,
+    'register',
+    '--project-root',
+    projectRoot
+  ], { encoding: 'utf8' });
+
+  if (result.error) {
     console.error(`registration-failed: ${JSON.stringify({
-      code: error.code || 'registration-failed',
-      message: error.message
+      error: {
+        code: 'registration-command-failed',
+        message: result.error.message
+      }
     })}`);
+    return;
   }
+  const output = (result.status === 0 ? result.stdout : result.stderr).trim();
+  console.error(`${result.status === 0 ? 'registration' : 'registration-failed'}: ${output || JSON.stringify({
+    error: {
+      code: 'registration-command-failed',
+      message: `등록 명령이 결과 없이 종료되었습니다: ${result.status}`
+    }
+  })}`);
 }
 
 function commandList(options) {
