@@ -1,2 +1,7 @@
+interface:
+  display_name: "Proofline Capability Growth"
+  short_description: "Turn repeated work into approved automation"
+  default_prompt: "Use $capability-growth to evaluate repeated work for automation without implementing it."
+
 policy:
   allow_implicit_invocation: false
