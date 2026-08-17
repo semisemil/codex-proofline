@@ -1,87 +1,59 @@
 ---
 name: start-implementation
-description: "Coordinate implementation sessions and independent reviews in Direct or Sliced mode when the user asks to start or resume implementation using a ready Spec ID or path."
+description: "Coordinate a ready Spec through implementation, independent review, and optional safe Slice concurrency."
 ---
 
 # Proofline Start Implementation
 
-Coordinate one ready Spec through implementation completion. The coordinator does not directly implement product code or tests or judge the result. Write all messages and reports in the user's language, and follow `assets/model-routing.md` for implementer and reviewer model and reasoning levels.
+Coordinate; do not implement or review product changes yourself. Write messages in the user's language. Before creating each implementer or reviewer, read `assets/model-routing.md` and pass its selected model and reasoning through the stated tool fields.
 
-## Participants
+## Prepare
 
-- **Coordinator (current Codex task):** Coordinate sessions and reviews and update Spec/Slice status.
-- **Implementer (created by the coordinator with `create_thread`/`fork_thread`):** Implement code and tests.
-- **Reviewer (`spawn_agent` subagent):** Do not participate in implementation; judge independently (blind and read-only).
+1. Validate the Spec identity, revision, project, requirements, and `ready` status. Stop for missing prerequisites, terminal status, or revision change.
+2. Apply linked-issue handling from `../issue-ledger/references/work-link.md` once when needed; keep issue content outside implementer and reviewer context.
+3. Read the project domain document and applicable ADRs.
+4. Use the current revision's `$spec-slice` result. If it is unavailable, ask the user to run `$spec-slice`; do not invoke it automatically. For Sliced mode, run `node ../spec-slice/scripts/inspect-slice-plan.js <slice-directory>` and use its plan mode, dispatch, and integration order.
 
-## Preparation
+## Gates
 
-1. Check `.proofline/specs/<SPEC-ID>-*/SPEC.md` (identity, schema, revision, requirements, project, and status).
-2. For linked `PL-*` targets, apply `../issue-ledger/references/work-link.md` once and keep issue content outside implementer and reviewer context.
-3. Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
-4. Proceed only with `ready` (`draft` → return to `implementation-spec`; `blocked` → inform the user of the prerequisite; terminal status → stop).
-5. If `$spec-slice` reports `Direct`, proceed in Direct mode. If it reports `Sliced`, use the current revision's Slice plan written by that skill.
+| Gate | Owner | Pass condition |
+| --- | --- | --- |
+| Implementation | Implementer | The smallest affected build, syntax, or type check and focused changed-behavior tests succeed. |
+| Review | Direct or Slice reviewer | The implementation satisfies the target without defect, omission, or scope violation. |
+| Integration | Direct or final reviewer | The integrated target satisfies its reviewer-owned Spec-wide checks. |
 
-## Common Implementation and Review Sequence
+A target passes only with a successful Implementation Gate and reviewer `pass`. Direct review owns Review and Integration; Slice review owns Review; final Sliced review owns Integration.
 
-Specify the target for Direct (entire Spec) or Sliced (current Slice/final fixes), then proceed:
+## Implementation loop
 
-1. **Instruct:** The coordinator sends the implementer the target path, relevant domain documentation paths to read, implementation work, user constraints, and required verification.
-2. **Execute:** The implementer implements only the specified target and performs the required verification. Do not change Spec/Slice status.
-3. **Report:** The implementer reports whether the work is complete (and the reason if incomplete) to the coordinator with `send_message_to_thread`.
-4. **Wait:** The coordinator must not call `wait_threads`. End the turn after instructing or creating the task, and resume when the report is received.
-5. **Handle incomplete work:** When an incomplete report is received, report the stop reason to the user without review.
-6. **Create review:** When a completion report is received, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`).
-   - **Pass:** Target Spec/Slice, project root containing the current implementation state, relevant domain documentation paths to read, repository instructions, user constraints, output language, and judgment criteria.
-   - **Do not pass:** Implementer report, previous review, fix explanation, work history, or expected judgment.
-7. **Wait for review:** In the coordinator task, call `wait_agent` until this reviewer returns its final result. Keep the coordinator turn active while review is running.
-8. **Judge:** The reviewer compares against the project state and judges:
-   - `pass`: Requirements are satisfied and required verification succeeds → proceed with the pass procedure for that mode.
-   - `fail`: Implementation defect or scope violation (give the reason and required fixes) → send to the same implementer and resume from step 2 (a fresh reviewer makes the next judgment).
-   - `need_confirm`: A user decision is required → stop automatic progress and, after user confirmation, either proceed with the pass procedure or send to the same implementer and resume from step 2.
+1. Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract. End the implementer message there.
+2. The implementer changes product and test paths within target scope, leaves Spec/Slice documents unchanged, runs the Gate, and reports changed paths, commands, results, completion state, and stop reason through `send_message_to_thread`.
+3. End the coordinator turn after instruction; resume on the callback. Do not call `wait_threads`.
+4. Review only a `complete` report whose Gate succeeded. Spawn a fresh blind, read-only reviewer with `fork_turns: "none"`; pass target/project/domain paths, repository instructions, user constraints, output language, the owned Gate, and this output contract: `pass` when the Gate is met, `fail` with findings, or `need_confirm` with the required decision. Exclude implementation history and expected judgment. Keep the coordinator turn active and call `wait_agent` until judgment returns.
+5. On `pass`, approve the target. On `fail`, send the same implementer only the target/domain paths, unresolved findings, constraint delta, and one-line Gate; then use a fresh reviewer. On `need_confirm`, obtain the decision and require a fresh reviewer `pass`.
 
-## Repetition Limits
+Stop on an unchanged or repeated failure, after three `fail` judgments for one target, or after a replacement reviewer also fails to return a valid judgment.
 
-- Review again only when the result has changed materially or new evidence exists. Stop immediately if the result is unchanged, a failure repeats, or a previous failure recurs.
-- Allow at most three `fail` judgments per target (one Direct target, one Slice, or the final entire Spec). Report a stop if the limit is exceeded.
-- If reviewer execution fails or the judgment is invalid, replace the reviewer with a fresh one at most once (stop if it fails again).
-- If task creation, forking, reporting, or review is unavailable, report the stop reason without changing status.
+## Direct
 
-## Direct Mode
+Create a shared-local implementer with routed `model` and `thinking`, then run the loop for the Spec. On approval, mark the Spec `completed`. Leave product/test edits in the shared working tree without staging or committing.
 
-1. Use `create_thread` to create a local task that shares the project (implementer).
-2. Run the common sequence for the entire Spec.
-3. Complete on `pass` (no worktree, staging, or automatic commit).
+## Sliced
 
-## Sliced Mode
+For Non-Git projects, run one Slice implementer at a time; approve and mark each Slice `completed` before starting the next.
 
-Process Slices whose dependencies are satisfied sequentially (run only one implementer at a time).
+For Git projects:
 
-### Git Repositories
+1. Follow the inspector's integration order. Use one active Slice for legacy or mixed plans; for v2 use at most two Slices from `dispatch` when their recorded boundaries are non-overlapping.
+2. Create a routed temporary-worktree integration base with this prompt: `<SPEC-ID> integration base. Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn.` Resume using the callback source ID as the base `threadId`. The base only cherry-picks, aborts conflicts, and reports Git state.
+3. Fork runnable Slice worktrees from the current base. Put routed `model` and `thinking` in each first implementation message and run the implementation loop.
+4. After approval, stage and commit only reviewed target-scope product/test paths. Cherry-pick approved commits into the base strictly in integration order; mark a Slice `completed` only after a clean pick. Later Slices wait for earlier ones.
+5. On conflict, abort cleanly and redo that Slice in a fresh worktree from the current base, followed by a fresh Review Gate. Rerun the inspector after each completion to dispatch newly runnable Slices.
 
-1. From a state containing the ready Spec and Slice plan, use `create_thread` to create a task based on a temporary worktree. Its entire prompt is: `<SPEC-ID> base session. When this task starts, use send_message_to_thread to report ready to the coordinator identified by the enclosing <codex_delegation><source_thread_id>, then end the turn.`
-2. End the coordinator turn after task creation. When the callback arrives, use its `<codex_delegation><source_thread_id>` as the ready base `threadId`, select a runnable Slice, fork the base task with `fork_thread` (`environment: { type: "same-directory" }`), and send the implementation instructions only to the fork.
-3. Run the common sequence for that Slice.
-4. On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`, then end the turn. Change the Slice to `completed` only after receiving the SHA.
-5. Repeat with the next Slice (do not commit before `pass`; do not merge, rebase, squash, push, remove the worktree, or delete the branch).
+Preserve pre-existing Git state. Do not push, merge, rebase, squash, remove worktrees, or delete branches automatically.
 
-### Non-Git Projects
+## Final review
 
-1. For each Slice, use `create_thread` to create a shared local task (implementer).
-2. Run the common sequence → on `pass`, change it to `completed` and proceed to the next Slice (no worktree, staging, or automatic commit is needed).
+After every Slice is completed, run a fresh entire-Spec Integration review. A final fix gets its own Implementation and Review Gates, is integrated through the same path, and is followed by another Integration review. Complete the Spec only after reviewer `pass`; change only lifecycle status in Spec/Slice documents.
 
-### Final Review of the Entire Spec
-
-1. When all Slices are `completed`, create a fresh reviewer with `spawn_agent`(`fork_turns: "none"`) (target: entire Spec; use the same pass/do-not-pass constraints as common step 6), then run common steps 7-8.
-2. Complete on `pass`.
-3. On `fail`, send it to the last Slice implementer → run common steps 2-5, then return to final review step 1.
-4. On `need_confirm`, obtain user confirmation → complete if passed; if changes are required, send them to the last Slice implementer, run common steps 2-5, and return to final review step 1.
-
-If there were final fixes, in Git the same implementer commits after `pass` and reports the SHA with `send_message_to_thread`. In non-Git projects, complete without a commit.
-
-## Completion
-
-- Direct: On review `pass`, change the Spec to `completed`.
-- Sliced: When every Slice is `completed` and the entire Spec receives `pass`, change the Spec to `completed`. In Git, all Slice SHAs and, if there were final fixes, that SHA must have been received.
-- Preserve the Spec body except for lifecycle status.
-- Report to the user: execution mode, tasks used, project/worktree root, changed paths, verification results, final judgment, and commit SHAs (when stopped, include the reason and the decision or prerequisite).
-- Stop immediately if the Spec revision changes (do not reuse previous implementation or review results, and do not roll back automatically; roll back only when explicitly requested by the user or permitted by the Spec procedure).
+Report mode, tasks and roots, changed paths, Gate results, reviewer judgment, integrated SHAs, or the exact stop reason.

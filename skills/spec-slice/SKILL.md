@@ -1,35 +1,33 @@
 ---
 name: spec-slice
-description: "Determine whether a ready Spec can be divided before implementation into Slices that can each be implemented and verified independently, and, when needed, create all Slice documents and Spec links. Use when the user requests that a Spec be divided or when start-implementation must decide the execution mode."
+description: "Choose Direct or create a complete dependency-aware Slice plan for one ready Spec."
 ---
 
 # Proofline Spec Slice
 
-Design only the execution units for one Spec. Do not implement product code or tests or create implementation sessions or reviewers.
+Decide execution units; do not implement product code, tests, or reviews.
 
-## Target
+## Inspect
 
-Locate the requested `.proofline/specs/<SPEC-ID>-*/SPEC.md`. Proceed only when its identity, schema, revision, requirements, project, and `ready` status are valid. Do not divide a Spec in a terminal state.
+Validate the target Spec identity, revision, project, requirements, and `ready` status. When the current revision already has Slice documents, run `node <this-skill>/scripts/inspect-slice-plan.js <slice-directory>`:
 
-If Slice documents for the current revision already exist, check the plan's completeness and dependencies and reuse them as-is. Do not reuse Slices from another revision.
+- Reuse a valid plan: v1 or mixed is sequential; v2 uses its concurrency limit.
+- Stop for an invalid plan. Do not upgrade or replace it unless the user explicitly requests re-slicing.
 
-## Decision
+## Decide
 
-Determine whether the Spec can be divided into independent sub-goals (Sub Goals), each of which can be implemented and verified in one pass. A Slice is one sub-goal for completing the entire Spec, not an arbitrary division by file, layer, component, or test type.
+Choose `Direct` when no independent sub-goal can deliver and verify a meaningful outcome. Create no Slice documents or other mode artifact.
 
-If there are no meaningful Slices, do not create any documents and report `Direct`.
+Choose `Sliced` when independent outcomes and their prerequisites can be defined before implementation. A Slice is an outcome, not a file, layer, component, or test category.
 
-## Writing Slices
+## Write Slices
 
-If there are meaningful Slices, write the complete plan before product implementation.
+Create the complete v2 plan from `assets/templates/slice.md` before implementation:
 
-1. Create every Slice document from `assets/templates/slice.md`.
-2. Store them at `slices/SLICE-<NN>-<slug>.md` under the Spec directory.
-3. Record the independent outcome each Slice delivers and point to the part of the Spec that defines it.
-4. Record only actual prerequisite Slices in `blocked_by` and make the dependency graph acyclic.
-5. Set the initial status of every Slice to `pending`.
-6. Add relative links to every Slice document in the Spec's `Slices` section.
+1. Record each outcome and its authoritative Spec section.
+2. Put result prerequisites in `blocked_by`; put unsafe or uncertain concurrent execution in `run_after`.
+3. Keep the combined graph acyclic and every initial status `pending`.
+4. Record only Slice-unique and integration-only checks; keep shared acceptance in the Spec.
+5. Add only the corresponding relative links to the Spec's `Slices` section.
 
-Keep shared outcomes and completion conditions in the Spec. Record in a Slice only boundaries or verification unique to it. Change the Spec body only by adding links in its `Slices` section.
-
-After completion, report the execution mode as `Sliced` and provide the paths of the Slices that were created or reused.
+Run the Slice plan inspector. Complete only when it accepts the current revision and every concurrently runnable pair is safe or ordered. Report `Direct`, `Sliced (sequential)`, or `Sliced (max 2)` and the Slice paths when applicable.

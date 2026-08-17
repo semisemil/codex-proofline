@@ -110,36 +110,31 @@ test('Spec v2 keeps a fixed envelope and writes an adaptive standalone implement
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
-test('implementation uses callback-driven implementers and one bounded blind review cycle', () => {
+test('implementation composes role-owned Gates with one bounded blind review cycle', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
   const modelRouting = read('skills', 'start-implementation', 'assets', 'model-routing.md');
 
-  assert.match(coordinator, /Coordinator \(current Codex task\).*Spec\/Slice status/);
-  assert.match(coordinator, /Implementer \(created by the coordinator with `create_thread`\/`fork_thread`\)/);
-  assert.match(coordinator, /Reviewer \(`spawn_agent` subagent\).*blind and read-only/);
-  assert.match(coordinator, /follow `assets\/model-routing\.md` for implementer and reviewer model and reasoning levels/);
-  assert.doesNotMatch(coordinator, /`(?:create|fork|spawn)\\_(?:thread|agent)`/);
-  assert.match(coordinator, /whether the work is complete \(and the reason if incomplete\).*`send_message_to_thread`/);
-  assert.match(coordinator, /reason if incomplete/);
-  assert.doesNotMatch(coordinator, /completion report (?:contains|includes)/i);
-  assert.match(coordinator, /coordinator must not call `wait_threads`/);
-  assert.match(coordinator, /`spawn_agent`\(`fork_turns: "none"`\)/);
-  assert.match(coordinator, /Wait for review:[\s\S]*call `wait_agent` until this reviewer returns its final result/);
-  assert.match(coordinator, /Keep the coordinator turn active while review is running/);
-  assert.match(coordinator, /project root containing the current implementation state/);
-  assert.match(coordinator, /Do not pass.*Implementer report, previous review, fix explanation, work history, or expected judgment/);
-  assert.match(coordinator, /`pass`: Requirements are satisfied and required verification succeeds/);
-  assert.match(coordinator, /`fail`: Implementation defect or scope violation/);
-  assert.match(coordinator, /`need_confirm`: A user decision is required/);
-  assert.match(coordinator, /same implementer and resume from step 2/);
-  assert.match(coordinator, /fresh reviewer makes the next judgment/);
-  assert.match(coordinator, /at most three `fail` judgments per target/);
-  assert.match(coordinator, /a failure repeats, or a previous failure recurs/);
-  assert.match(coordinator, /replace the reviewer with a fresh one at most once/);
-  assert.match(coordinator, /task creation, forking, reporting, or review is unavailable.*without changing status/);
-  assert.match(modelRouting, /Pass no task\/report\/review history or expected conclusion/);
-  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references')), false);
-  assert.doesNotMatch(coordinator, /pre-review|review-report-repair|changes_required|no_verdict|chain_key/);
+  assert.match(coordinator, /Before creating each implementer or reviewer, read `assets\/model-routing\.md`/);
+  assert.match(modelRouting, /Direct and base `create_thread`: set `model` and `thinking`/);
+  assert.match(modelRouting, /Forked implementer: set `model` and `thinking` in its first implementation `send_message_to_thread`/);
+  assert.match(modelRouting, /Reviewer `spawn_agent`: set `model`, `reasoning_effort`, and `fork_turns: "none"`/);
+  assert.match(coordinator, /Implementation[\s\S]*smallest affected build[\s\S]*focused changed-behavior tests/);
+  assert.match(coordinator, /Review[\s\S]*without defect, omission, or scope violation/);
+  assert.match(coordinator, /Integration[\s\S]*reviewer-owned Spec-wide checks/);
+  assert.match(coordinator, /successful Implementation Gate and reviewer `pass`/);
+  assert.match(coordinator, /Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract/);
+  assert.match(coordinator, /End the implementer message there/);
+  assert.match(coordinator, /reports changed paths, commands, results, completion state, and stop reason/);
+  assert.match(coordinator, /Review only a `complete` report whose Gate succeeded/);
+  assert.match(coordinator, /fresh blind, read-only reviewer with `fork_turns: "none"`/);
+  assert.match(coordinator, /`pass` when the Gate is met, `fail` with findings, or `need_confirm` with the required decision/);
+  assert.match(coordinator, /Exclude implementation history and expected judgment/);
+  assert.match(coordinator, /call `wait_agent` until judgment returns/);
+  assert.match(coordinator, /unresolved findings, constraint delta, and one-line Gate/);
+  assert.match(coordinator, /Do not call `wait_threads`/);
+  assert.match(coordinator, /three `fail` judgments/);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references', 'git-sliced.md')), false);
+  assert.doesNotMatch(modelRouting, /task\/report\/review history|expected conclusion/);
 });
 
 test('Plan, Spec, and implementation share one conditional issue-link contract', () => {
@@ -167,44 +162,43 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
   const slicing = read('skills', 'spec-slice', 'SKILL.md');
   const template = read('skills', 'spec-slice', 'assets', 'templates', 'slice.md');
 
-  assert.match(coordinator, /Direct Mode[\s\S]*`create_thread` to create a local task that shares the project/);
-  assert.match(coordinator, /Direct Mode[\s\S]*no worktree, staging, or automatic commit/);
-  assert.match(coordinator, /If `\$spec-slice` reports `Direct`, proceed in Direct mode/);
-  assert.match(coordinator, /reports `Sliced`.*current revision's Slice plan/);
-  assert.doesNotMatch(coordinator, /do not (?:decide on|write) Slices/i);
-  assert.doesNotMatch(coordinator, /assets\/templates\/slice\.md|links to Slice documents/);
-  assert.match(coordinator, /Sliced Mode[\s\S]*Process Slices whose dependencies are satisfied sequentially/);
-  assert.match(coordinator, /Git Repositories[\s\S]*`create_thread` to create a task based on a temporary worktree/);
-  assert.match(coordinator, /Its entire prompt is: `<SPEC-ID> base session\.[^`]*use send_message_to_thread to report ready[^`]*<codex_delegation><source_thread_id>[^`]*end the turn\.`/);
-  assert.match(coordinator, /End the coordinator turn after task creation/);
-  assert.match(coordinator, /When the callback arrives, use its `<codex_delegation><source_thread_id>` as the ready base `threadId`/);
-  assert.match(coordinator, /send the implementation instructions only to the fork/);
-  assert.match(coordinator, /fork the base task with `fork_thread` \(`environment: \{ type: "same-directory" \}`\)/);
-  assert.match(coordinator, /only one implementer at a time/);
-  assert.match(coordinator, /On `pass`, ask the implementer to commit and report the SHA with `send_message_to_thread`/);
-  assert.match(coordinator, /Change the Slice to `completed` only after receiving the SHA/);
-  assert.match(coordinator, /do not commit before `pass`/);
-  assert.match(coordinator, /do not merge, rebase, squash, push, remove the worktree, or delete the branch/);
-  assert.match(coordinator, /Non-Git Projects[\s\S]*create a shared local task/);
-  assert.match(coordinator, /Non-Git Projects[\s\S]*no worktree, staging, or automatic commit is needed/);
-  assert.match(coordinator, /Final Review of the Entire Spec[\s\S]*create a fresh reviewer with `spawn_agent`\(`fork_turns: "none"`\)/);
-  assert.match(coordinator, /Final Review of the Entire Spec[\s\S]*then run common steps 7-8/);
-  assert.match(coordinator, /last Slice implementer[\s\S]*common steps 2-5/);
-  assert.match(coordinator, /run common steps 2-5, then return to final review step 1/);
-  assert.match(coordinator, /If there were final fixes, in Git the same implementer commits after `pass` and reports the SHA with `send_message_to_thread`/);
-  assert.match(coordinator, /if there were final fixes, that SHA must have been received/);
+  assert.match(coordinator, /## Direct[\s\S]*shared-local implementer with routed `model` and `thinking`/);
+  assert.match(coordinator, /## Direct[\s\S]*without staging or committing/);
+  assert.match(coordinator, /current revision's `\$spec-slice` result/);
+  assert.match(coordinator, /ask the user to run `\$spec-slice`; do not invoke it automatically/);
+  assert.match(coordinator, /inspect-slice-plan\.js <slice-directory>/);
+  assert.match(coordinator, /Non-Git projects[\s\S]*one Slice implementer at a time/);
+  assert.match(coordinator, /v2 use at most two Slices from `dispatch`/);
+  assert.match(coordinator, /temporary-worktree integration base/);
+  assert.match(coordinator, /Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn/);
+  assert.match(coordinator, /callback source ID as the base `threadId`/);
+  assert.match(coordinator, /first implementation message/);
+  assert.match(coordinator, /stage and commit only reviewed target-scope product\/test paths/);
+  assert.match(coordinator, /strictly in integration order/);
+  assert.match(coordinator, /fresh worktree from the current base/);
+  assert.match(coordinator, /Rerun the inspector after each completion/);
+  assert.match(coordinator, /fresh entire-Spec Integration review/);
+  assert.match(coordinator, /Do not push, merge, rebase, squash, remove worktrees, or delete branches automatically/);
 
-  assert.match(slicing, /independent sub-goals \(Sub Goals\)/);
-  assert.match(slicing, /no meaningful Slices, do not create any documents and report `Direct`/);
-  assert.match(slicing, /write the complete plan before product implementation/);
-  assert.match(slicing, /point to the part of the Spec that defines it/);
-  assert.match(slicing, /Spec's `Slices` section/);
-  assert.match(slicing, /Change the Spec body only by adding links in its `Slices` section/);
+  assert.match(slicing, /Choose `Direct` when no independent sub-goal/);
+  assert.match(slicing, /Choose `Sliced` when independent outcomes/);
+  assert.match(slicing, /result prerequisites in `blocked_by`/);
+  assert.match(slicing, /unsafe or uncertain concurrent execution in `run_after`/);
+  assert.match(slicing, /combined graph acyclic/);
+  assert.match(slicing, /Slice-unique and integration-only checks/);
+  assert.match(slicing, /relative links to the Spec's `Slices` section/);
+  assert.match(slicing, /Create no Slice documents or other mode artifact/);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'assets', 'templates', 'slice.md')), false);
+  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'spec-slice', 'scripts', 'inspect-slice-plan.js')), true);
 
-  assert.match(template, /"schema_version": 1/);
+  assert.match(template, /"schema_version": 2/);
   assert.match(template, /"blocked_by": \{\{blocked_by_json\}\}/);
-  assert.match(template, /\{\{slice_body\}\}/);
+  assert.match(template, /"run_after": \{\{run_after_json\}\}/);
+  assert.match(template, /## Outcome[\s\S]*\{\{outcome\}\}/);
+  assert.match(template, /## Spec section[\s\S]*\{\{spec_section_link\}\}/);
+  assert.match(template, /## Concurrency boundary[\s\S]*\{\{concurrency_boundary\}\}/);
+  assert.match(template, /## Slice checks[\s\S]*\{\{slice_checks\}\}/);
+  assert.match(template, /## Integration checks[\s\S]*\{\{integration_checks\}\}/);
   assert.doesNotMatch(template, /created_at|updated_at|# .*\{\{title/);
 
   const rendered = template
@@ -213,7 +207,12 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
     .replace('{{spec_revision}}', '2')
     .replace('{{title_json}}', JSON.stringify('Deliver settings flow'))
     .replace('{{blocked_by_json}}', '[]')
-    .replace('{{slice_body}}', '## Delivers\n\nSettings can be saved.\n\n## Spec section\n\nSettings flow');
+    .replace('{{run_after_json}}', '[]')
+    .replace('{{outcome}}', 'Settings can be saved.')
+    .replace('{{spec_section_link}}', '[Settings flow](../SPEC.md#settings-flow)')
+    .replace('{{concurrency_boundary}}', 'No shared resources.')
+    .replace('{{slice_checks}}', 'Focused settings tests.')
+    .replace('{{integration_checks}}', 'None');
   const metadata = JSON.parse(rendered.match(/^---\r?\n([\s\S]*?)\r?\n---/)[1]);
   assert.deepEqual(Object.keys(metadata), [
     'schema_version',
@@ -223,6 +222,7 @@ test('Direct and Sliced modes keep different VCS behavior', () => {
     'title',
     'status',
     'blocked_by',
+    'run_after',
   ]);
   assert.equal(metadata.status, 'pending');
 });
