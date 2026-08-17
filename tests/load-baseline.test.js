@@ -10,7 +10,7 @@ const hookPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
 const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
 
 // 실제 패키지 구조에서 훅이 본문을 출력하는지 확인한다.
-test('Proofline hook loads the packaged baseline and one selected mode', () => {
+test('Proofline hook loads the packaged baseline and one supported response mode', () => {
   const result = spawnSync(process.execPath, [hookPath], {
     encoding: 'utf8',
     input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup' }),
@@ -118,7 +118,9 @@ test('implementation composes role-owned Gates with one bounded blind review cyc
   assert.match(modelRouting, /Forked implementer: set `model` and `thinking` in its first implementation `send_message_to_thread`/);
   assert.match(modelRouting, /Reviewer `spawn_agent`: set `model`, `reasoning_effort`, and `fork_turns: "none"`/);
   assert.match(coordinator, /Implementation[\s\S]*smallest affected build[\s\S]*focused changed-behavior tests/);
-  assert.match(coordinator, /Review[\s\S]*without defect, omission, or scope violation/);
+  assert.match(coordinator, /Review[\s\S]*Every target requirement is satisfied, the implementation introduces no defect or regression, and its changes stay within authorized scope/);
+  assert.match(coordinator, /pre-existing issue blocks only when it prevents a required target outcome/);
+  assert.doesNotMatch(coordinator, /without defect, omission, or scope violation/);
   assert.match(coordinator, /Integration[\s\S]*reviewer-owned Spec-wide checks/);
   assert.match(coordinator, /successful Implementation Gate and reviewer `pass`/);
   assert.match(coordinator, /Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract/);
@@ -126,10 +128,13 @@ test('implementation composes role-owned Gates with one bounded blind review cyc
   assert.match(coordinator, /reports changed paths, commands, results, completion state, and stop reason/);
   assert.match(coordinator, /Review only a `complete` report whose Gate succeeded/);
   assert.match(coordinator, /fresh blind, read-only reviewer with `fork_turns: "none"`/);
-  assert.match(coordinator, /`pass` when the Gate is met, `fail` with findings, or `need_confirm` with the required decision/);
+  assert.match(coordinator, /`pass` when the Gate holds, `fail` with evidence-backed blocking findings that identify Gate violations/);
+  assert.match(coordinator, /`need_confirm` for an unresolved decision outside authorized scope/);
+  assert.match(coordinator, /out-of-scope issue already evidenced by the target review[\s\S]*separate `observation`[\s\S]*affects neither judgment nor blocking findings/);
   assert.match(coordinator, /Exclude implementation history and expected judgment/);
   assert.match(coordinator, /call `wait_agent` until judgment returns/);
-  assert.match(coordinator, /unresolved findings, constraint delta, and one-line Gate/);
+  assert.match(coordinator, /unresolved blocking findings, constraint delta, and one-line Gate/);
+  assert.match(coordinator, /Record each non-duplicate `observation` through `\.\.\/issue-ledger\/SKILL\.md`/);
   assert.match(coordinator, /Do not call `wait_threads`/);
   assert.match(coordinator, /three `fail` judgments/);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references', 'git-sliced.md')), false);

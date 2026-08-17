@@ -22,7 +22,7 @@ Coordinate; do not implement or review product changes yourself. Write messages 
 | Gate | Owner | Pass condition |
 | --- | --- | --- |
 | Implementation | Implementer | The smallest affected build, syntax, or type check and focused changed-behavior tests succeed. |
-| Review | Direct or Slice reviewer | The implementation satisfies the target without defect, omission, or scope violation. |
+| Review | Direct or Slice reviewer | Every target requirement is satisfied, the implementation introduces no defect or regression, and its changes stay within authorized scope. A pre-existing issue blocks only when it prevents a required target outcome. |
 | Integration | Direct or final reviewer | The integrated target satisfies its reviewer-owned Spec-wide checks. |
 
 A target passes only with a successful Implementation Gate and reviewer `pass`. Direct review owns Review and Integration; Slice review owns Review; final Sliced review owns Integration.
@@ -32,8 +32,8 @@ A target passes only with a successful Implementation Gate and reviewer `pass`. 
 1. Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract. End the implementer message there.
 2. The implementer changes product and test paths within target scope, leaves Spec/Slice documents unchanged, runs the Gate, and reports changed paths, commands, results, completion state, and stop reason through `send_message_to_thread`.
 3. End the coordinator turn after instruction; resume on the callback. Do not call `wait_threads`.
-4. Review only a `complete` report whose Gate succeeded. Spawn a fresh blind, read-only reviewer with `fork_turns: "none"`; pass target/project/domain paths, repository instructions, user constraints, output language, the owned Gate, and this output contract: `pass` when the Gate is met, `fail` with findings, or `need_confirm` with the required decision. Exclude implementation history and expected judgment. Keep the coordinator turn active and call `wait_agent` until judgment returns.
-5. On `pass`, approve the target. On `fail`, send the same implementer only the target/domain paths, unresolved findings, constraint delta, and one-line Gate; then use a fresh reviewer. On `need_confirm`, obtain the decision and require a fresh reviewer `pass`.
+4. Review only a `complete` report whose Gate succeeded. Spawn a fresh blind, read-only reviewer with `fork_turns: "none"`; pass target/project/domain paths, repository instructions, user constraints, output language, the owned Gate, and this output contract: `pass` when the Gate holds, `fail` with evidence-backed blocking findings that identify Gate violations, or `need_confirm` for an unresolved decision outside authorized scope. A concrete out-of-scope issue already evidenced by the target review is a separate `observation`; it affects neither judgment nor blocking findings. Exclude implementation history and expected judgment. Keep the coordinator turn active and call `wait_agent` until judgment returns.
+5. On `pass`, approve the target. On `fail`, send the same implementer only the target/domain paths, unresolved blocking findings, constraint delta, and one-line Gate; then use a fresh reviewer. On `need_confirm`, obtain the decision and require a fresh reviewer `pass`. Record each non-duplicate `observation` through `../issue-ledger/SKILL.md`.
 
 Stop on an unchanged or repeated failure, after three `fail` judgments for one target, or after a replacement reviewer also fails to return a valid judgment.
 
