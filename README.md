@@ -10,7 +10,7 @@ Proofline은 이런 누락을 줄이기 위해 대표 스킬 `proofline`을 세�
 ## ✨ Proofline을 설치하면
 - 새 세션을 시작할 때 `proofline` 공통 기준과 현재 응답 모드가 자동으로 적용됩니다.
 - 큰 작업과 리팩터링, 정확한 이식, 작업 완료 보고에는 작업별 스킬을 사용해 정확도를 향상시키고, 시키지 않은 작업을 수행하지 않도록 막아줍니다.
-- 대화에서 발견한 버그와 후속 작업을 프로젝트 안에 남겨 다음 세션에서 이어갈 수 있습니다.
+- 대화에서 발견한 버그와 후속 작업을 이슈로 등록해 프로젝트 안에 남겨 다음 세션에서 이어갈 수 있습니다.
 
 ## 📦 설치
 ### Codex CLI에서 설치
@@ -71,28 +71,7 @@ $proofline:exact-port
 이 원본 구현을 대상 프로젝트로 동작 변경 없이 이식해줘.
 ```
 
-거친 제품·기능·소프트웨어·업무 시스템 아이디어를 개발 기획으로 구체화하려면 `development-plan`으로 Plan을 만듭니다. Plan 본문은 대상과 판단에 맞게 구성되며 `.proofline/plan/` 아래에 저장됩니다. `ready`는 구현 Spec의 입력으로 충분하다는 뜻이며 후속 작업의 승인은 아닙니다.
-
-```text
-$proofline:development-plan
-반복 업무를 자동화하는 내부 도구 아이디어를 개발 기획 Plan으로 구체화해줘.
-```
-
-여러 작업과 독립 검토가 필요한 구현은 먼저 `implementation-spec`으로 Spec을 만듭니다.
-
-```text
-$proofline:implementation-spec
-사용자 알림 설정 개선 작업을 구현 가능한 Spec으로 정리해줘.
-```
-
-준비된 Spec을 구현하려면 `start-implementation`을 사용합니다. 작은 작업은 바로 구현하고, 한 작업 컨텍스트를 넘는 경우에만 Spec 아래에 `Work Slice`를 만들어 Slice별 구현·검토 후 통합 검토를 수행합니다. 사전 검토는 사용자가 요청할 때만 실행하며, 검토가 실패해도 자동 롤백하지 않습니다.
-
-```text
-$proofline:start-implementation
-SPEC-0001 구현을 시작해줘.
-```
-
-기존 `.proofline/prds/**`는 새 스킬이 읽지 않습니다. 필요한 프로젝트에서는 새 Spec을 만들기 전에 [PRD → Spec 일회성 마이그레이션 프롬프트](docs/migrations/prd-to-spec.md)를 복사해 프로젝트 루트에서 실행하세요. 원본 PRD는 변경하거나 삭제하지 않습니다.
+기획부터 구현까지 이어지는 작업에는 아래의 [개발 루프](#-plan에서-구현까지)를 사용합니다.
 
 ## 🧩 포함된 스킬
 
@@ -107,7 +86,38 @@ SPEC-0001 구현을 시작해줘.
 | `$proofline:capability-growth` | 반복되는 수작업을 자동화할지 검토할 때 | 반복 근거, 기존 도구, 가장 작은 자동화 후보, 등록 전 사용자 승인 |
 | `$proofline:development-plan` | 거친 제품·기능·소프트웨어·업무 시스템 아이디어를 개발 기획으로 구체화할 때 | 자유 형식 Plan, 결정·불확실성·범위 구분, Spec 작성 준비 상태 |
 | `$proofline:implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 작업별 최소 구조, 통합 요구사항·완료 조건, Spec 수명주기 |
-| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 조건부 Work Slice, 작업 귀속 diff, Slice 검토, 최종 통합 판정 |
+| `$proofline:tenet-me` | 구현 전에 Spec의 결과 경로와 결정 사항을 검토할 때 | 결과별 전제·전이·근거 추적, 누락된 연결과 사용자 결정 확인 |
+| `$proofline:spec-slice` | 준비된 Spec의 구현 단위를 나눌지 결정할 때 | Direct·Sliced 판정, 독립 Slice와 결과·실행 순서, 안전한 병렬 후보 |
+| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 역할별 검증, 조건부 병렬 Slice, 독립 검토, 최종 통합 판정 |
+
+## 🔁 Plan에서 구현까지
+
+Proofline의 개발 루프는 `development-plan` → `implementation-spec` → `tenet-me` → `spec-slice` → `start-implementation`으로 이어집니다. 각 단계는 다음 단계를 자동으로 실행하거나 승인하지 않으므로, 필요한 단계마다 별도로 요청합니다.
+
+1. `development-plan`: 거친 아이디어를 `.proofline/plan/`의 Plan으로 구체화합니다. `ready`는 Spec을 작성할 만큼 준비됐다는 뜻이며, Spec 작성이나 구현을 승인하지 않습니다.
+2. `implementation-spec`: 여러 작업이나 독립 검토가 필요한 구현을 독립적인 계약인 Spec으로 정리합니다. 구현은 시작하지 않습니다.
+3. `tenet-me`: 명시적으로 요청할 때 Spec의 각 결과에서 전제와 전이를 거슬러 검토하고, 근거가 없거나 사용자 결정이 필요한 연결을 확인합니다.
+4. `spec-slice`: 준비된 Spec을 한 번에 구현할 수 있으면 `Direct`로 판정합니다. 독립적으로 구현·검증할 하위 목표가 있으면 전체 Slice와 결과·실행 순서를 먼저 만들고 `Sliced`로 판정합니다. 제품 코드는 구현하지 않습니다.
+5. `start-implementation`: `Direct` 또는 `Sliced` 판정에 따라 구현자 검증과 독립 검토를 분리하고, 안전한 Git Slice는 최대 2개까지 병렬 진행합니다. 검토가 실패해도 자동으로 롤백하지 않습니다.
+
+```text
+$proofline:development-plan
+반복 업무를 자동화하는 내부 도구 아이디어를 개발 기획 Plan으로 구체화해줘.
+
+$proofline:implementation-spec
+PLAN-0001을 구현 가능한 Spec으로 정리해줘.
+
+$proofline:tenet-me
+SPEC-0001의 결과 경로를 검토해줘.
+
+$proofline:spec-slice
+SPEC-0001을 독립적으로 구현하고 검증할 Slice로 나눌지 판단해줘.
+
+$proofline:start-implementation
+SPEC-0001 구현을 시작해줘.
+```
+
+기존 `.proofline/prds/**`는 새 스킬이 읽지 않습니다. 필요한 프로젝트에서는 새 Spec을 만들기 전에 [PRD → Spec 일회성 마이그레이션 프롬프트](docs/migrations/prd-to-spec.md)를 복사해 프로젝트 루트에서 실행하세요. 원본 PRD는 변경하거나 삭제하지 않습니다.
 
 ## 🗂️ `issue-ledger`로 이슈 남기기
 
