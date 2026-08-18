@@ -762,7 +762,7 @@ test('HTTP discards a cached index when the registry maps the same project ID to
   const projects = await request(server, { path: '/api/v1/projects' });
   const listed = JSON.parse(projects.body).projects.find((project) => project.id === AVAILABLE_ID);
   assert.equal(listed.root, canonicalB);
-  assert.equal(projectService.cache.get(AVAILABLE_ID).canonicalRootIdentity, pathKey(availableRoot));
+  assert.equal(projectService.cache.has(AVAILABLE_ID), false);
 
   const fromB = await request(server, { path: `/api/v1/projects/${AVAILABLE_ID}/index` });
   assert.equal(fromB.status, 200);

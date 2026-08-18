@@ -28,6 +28,7 @@
     expandedIssues: new Set(),
     selectedDocument: null,
     documents: new Map(),
+    documentErrors: new Map(),
     loading: false,
     notice: null,
     error: null,
@@ -38,6 +39,7 @@
     backgroundUrl: null,
   };
   const indexRequestGate = core.createLatestRequestGate();
+  const documentRequestGate = core.createDocumentRequestGate();
 
   const byId = (id) => document.getElementById(id);
   const elements = {
@@ -89,6 +91,14 @@
       'version-mismatch': '실행 서버 버전이 열려고 한 버전과 다릅니다. 서버를 재시작해야 합니다.',
     };
     return messages[error?.code] || error?.message || fallback;
+  }
+
+  function errorTitle(error) {
+    if (error?.code === 'server-unreachable') return '서버 연결 끊김';
+    if (error?.code?.startsWith('registry-')) return '프로젝트 레지스트리 오류';
+    if (error?.code?.startsWith('project-')) return '프로젝트 오류';
+    if (error?.code?.startsWith('record-')) return '문서 오류';
+    return '오류';
   }
 
   async function api(path, options = {}) {
@@ -144,7 +154,7 @@
     if (state.error) {
       const error = make('section', 'status-message status-error');
       error.setAttribute('role', 'alert');
-      error.append(make('strong', '', '오류'), make('span', '', state.error.message));
+      error.append(make('strong', '', errorTitle(state.error)), make('span', '', state.error.message));
       elements.status.append(error);
     } else if (state.loading || state.notice) {
       const info = make('section', 'status-message');
@@ -198,11 +208,25 @@
     }
     const requestProjectId = project.id;
     const request = indexRequestGate.begin(requestProjectId);
+    const previousReadAt = state.index?.read_at || null;
+    let reloadDocument = null;
     setLoading(true, refresh ? '프로젝트 원본을 다시 읽습니다.' : '프로젝트 작업을 읽습니다.');
     setError(null);
     try {
       const index = await api(`/api/v1/projects/${requestProjectId}/index${refresh ? '?refresh=1' : ''}`);
       if (!indexRequestGate.isCurrent(request, state.selectedProjectId)) return;
+      const projectPosition = state.projects.findIndex((item) => item.id === requestProjectId);
+      if (projectPosition >= 0) {
+        state.projects[projectPosition] = { ...state.projects[projectPosition], ...index.project };
+      }
+      if (refresh || previousReadAt !== index.read_at) {
+        documentRequestGate.invalidate();
+        state.documents.clear();
+        state.documentErrors.clear();
+        reloadDocument = index.project.availability === 'available'
+          ? state.selectedDocument
+          : null;
+      }
       state.index = index;
       state.loading = false;
       state.notice = refresh ? '프로젝트를 다시 읽었습니다.' : null;
@@ -216,6 +240,14 @@
     updateContext();
     renderProjects();
     renderView();
+    if (reloadDocument && reloadDocument === state.selectedDocument) {
+      const separator = reloadDocument.indexOf(':');
+      await openDocument(
+        reloadDocument.slice(0, separator),
+        reloadDocument.slice(separator + 1),
+        { force: true },
+      );
+    }
   }
 
   async function selectProject(projectId, options = {}) {
@@ -228,7 +260,9 @@
     state.index = null;
     state.expandedIssues.clear();
     state.selectedDocument = null;
+    documentRequestGate.invalidate();
     state.documents.clear();
+    state.documentErrors.clear();
     if (options.save !== false) localStorage.setItem(STORAGE.project, project.id);
     if (mobile) closeDrawer(options.focusReturn !== false);
     renderProjects(focusKey);
@@ -535,6 +569,11 @@
       region.append(emptyState('문서를 선택하세요', 'Plan 또는 Spec을 선택하면 같은 화면에서 본문을 읽을 수 있습니다.'));
       return region;
     }
+    const documentError = state.documentErrors.get(state.selectedDocument);
+    if (documentError) {
+      region.append(emptyState('문서를 읽을 수 없음', documentError.message));
+      return region;
+    }
     const detail = state.documents.get(state.selectedDocument);
     if (!detail) {
       region.append(emptyState('문서를 읽는 중', '선택한 문서 본문을 요청했습니다.'));
@@ -562,7 +601,7 @@
     return region;
   }
 
-  async function openDocument(kind, id) {
+  async function openDocument(kind, id, options = {}) {
     const project = selectedProject();
     if (!project) return;
     const requestProjectId = project.id;
@@ -570,29 +609,35 @@
     const focusKey = core.documentOptionFocusKey(kind, id);
     state.view = 'documents';
     state.selectedDocument = requestKey;
+    state.documentErrors.delete(requestKey);
     updateTabs();
     renderView(focusKey, 'documents:kind');
-    if (state.documents.has(requestKey)) return;
+    if (!options.force && state.documents.has(requestKey)) return;
+    state.documents.delete(requestKey);
+    const documentRequest = documentRequestGate.begin(requestProjectId, requestKey);
     try {
       const detail = await api(`/api/v1/projects/${requestProjectId}/documents/${kind}/${id}`);
-      const disposition = core.documentRequestDisposition(
-        requestProjectId,
-        requestKey,
+      const disposition = documentRequestGate.disposition(
+        documentRequest,
         state.selectedProjectId,
         state.selectedDocument,
       );
       if (!disposition.cache) return;
       state.documents.set(requestKey, detail);
+      state.documentErrors.delete(requestKey);
       if (!disposition.render) return;
       setError(null);
     } catch (error) {
-      const disposition = core.documentRequestDisposition(
-        requestProjectId,
-        requestKey,
+      const disposition = documentRequestGate.disposition(
+        documentRequest,
         state.selectedProjectId,
         state.selectedDocument,
       );
       if (!disposition.render) return;
+      state.documentErrors.set(requestKey, {
+        code: error.code,
+        message: readableError(error, '문서 본문을 읽지 못했습니다.'),
+      });
       setError(error, '문서 본문을 읽지 못했습니다.');
     }
     renderView(focusKey, 'documents:kind');

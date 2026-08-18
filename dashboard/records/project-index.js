@@ -33,6 +33,11 @@ const SIGNAL_ORDER = [
   'state-mismatch',
   'link-mismatch',
 ];
+const RECORD_DIRECTORY_DEFINITIONS = Object.freeze([
+  { directoryName: 'issues', fileName: null, idPattern: null },
+  { directoryName: 'plan', fileName: 'PLAN.md', idPattern: PLAN_ID },
+  { directoryName: 'specs', fileName: 'SPEC.md', idPattern: SPEC_ID },
+]);
 
 const SIGNAL_TEXT = {
   'work-definition-only': {
@@ -405,6 +410,137 @@ function canonicalProjectRootIdentity(project) {
   return rootKey(path.normalize(path.resolve(project.root)));
 }
 
+function appendPathSignature(parts, filePath, label) {
+  try {
+    const status = fs.lstatSync(filePath, { bigint: true });
+    parts.push([
+      label,
+      status.mode,
+      status.size,
+      status.mtimeNs,
+      status.ctimeNs,
+      status.ino,
+    ].join(':'));
+    return status;
+  } catch (error) {
+    parts.push(`${label}:error:${error.code || 'unknown'}`);
+    return null;
+  }
+}
+
+function sortedDirectoryEntries(directory, parts, label) {
+  try {
+    const entries = fs.readdirSync(directory, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name));
+    parts.push(`${label}:entries:${entries.map((entry) => entry.name).join(',')}`);
+    return entries;
+  } catch (error) {
+    parts.push(`${label}:entries-error:${error.code || 'unknown'}`);
+    return [];
+  }
+}
+
+function projectSourceSignature(project) {
+  const state = projectAvailability(project);
+  if (state.availability === 'unavailable') {
+    return `${canonicalProjectRootIdentity(project)}\0unavailable`;
+  }
+  const parts = [canonicalProjectRootIdentity(project), 'available'];
+  appendPathSignature(parts, state.prooflineReal, '.proofline');
+  for (const definition of RECORD_DIRECTORY_DEFINITIONS) {
+    const directory = path.join(state.prooflineReal, definition.directoryName);
+    appendPathSignature(parts, directory, definition.directoryName);
+    const entries = sortedDirectoryEntries(directory, parts, definition.directoryName);
+    if (definition.directoryName === 'issues') {
+      for (const entry of entries) {
+        if (issueModel.isIssueFileName(entry.name)) {
+          appendPathSignature(parts, path.join(directory, entry.name), `${definition.directoryName}/${entry.name}`);
+        }
+      }
+      continue;
+    }
+    for (const entry of entries) {
+      const id = entry.name.match(/^([A-Z]+-\d{4,})-[^/\\]+$/)?.[1];
+      if (!id || !definition.idPattern.test(id)) {
+        continue;
+      }
+      const recordDirectory = path.join(directory, entry.name);
+      appendPathSignature(parts, recordDirectory, `${definition.directoryName}/${entry.name}`);
+      appendPathSignature(
+        parts,
+        path.join(recordDirectory, definition.fileName),
+        `${definition.directoryName}/${entry.name}/${definition.fileName}`,
+      );
+    }
+  }
+  return parts.join('\0');
+}
+
+function projectWatcherPaths(project) {
+  const state = projectAvailability(project);
+  if (state.availability === 'unavailable') {
+    return [];
+  }
+  const watchedPaths = new Set([state.prooflineReal]);
+  for (const definition of RECORD_DIRECTORY_DEFINITIONS) {
+    const directory = path.join(state.prooflineReal, definition.directoryName);
+    let directoryReal;
+    try {
+      directoryReal = realpath(directory);
+      if (!fs.statSync(directoryReal).isDirectory() || !isInside(state.rootReal, directoryReal)) {
+        continue;
+      }
+      watchedPaths.add(directoryReal);
+    } catch {
+      continue;
+    }
+    let entries;
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    if (definition.directoryName === 'issues') {
+      for (const entry of entries) {
+        if (!issueModel.isIssueFileName(entry.name)) {
+          continue;
+        }
+        try {
+          const candidateReal = realpath(path.join(directory, entry.name));
+          if (isInside(state.rootReal, candidateReal) && fs.statSync(candidateReal).isFile()) {
+            watchedPaths.add(candidateReal);
+          }
+        } catch {
+          // Invalid or unavailable records remain parser diagnostics, not watcher failures.
+        }
+      }
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      try {
+        const childReal = realpath(path.join(directory, entry.name));
+        if (fs.statSync(childReal).isDirectory() && isInside(state.rootReal, childReal)) {
+          watchedPaths.add(childReal);
+          try {
+            const recordReal = realpath(path.join(childReal, definition.fileName));
+            if (isInside(state.rootReal, recordReal) && fs.statSync(recordReal).isFile()) {
+              watchedPaths.add(recordReal);
+            }
+          } catch {
+            // Missing or invalid current documents remain independently readable diagnostics.
+          }
+        }
+      } catch {
+        // One unavailable document directory must not disable the others.
+      }
+    }
+  }
+  return [...watchedPaths];
+}
+
 function unavailableSummary(project) {
   return {
     id: project.id,
@@ -571,14 +707,102 @@ class ProjectIndexService {
   constructor(options = {}) {
     this.registryOptions = options.registryOptions || {};
     this.now = options.now || (() => new Date().toISOString());
+    this.watch = options.watch || ((target, listener) => {
+      const changed = (current, previous) => {
+        if (current.mtimeMs !== previous.mtimeMs
+            || current.ctimeMs !== previous.ctimeMs
+            || current.size !== previous.size
+            || current.ino !== previous.ino) {
+          listener('change', path.basename(target));
+        }
+      };
+      fs.watchFile(target, { persistent: false, interval: 1000 }, changed);
+      return { close: () => fs.unwatchFile(target, changed) };
+    });
     this.cache = new Map();
+    this.summaryCache = new Map();
+    this.watchers = new Map();
   }
 
   readProjects() {
     try {
-      return readRegistry(this.registryOptions).registry.projects;
+      const projects = readRegistry(this.registryOptions).registry.projects;
+      this.syncProjects(projects);
+      return projects;
     } catch (error) {
       throw new ProjectApiError(error.code || 'registry-read-failed', '프로젝트 레지스트리를 읽을 수 없습니다.', 500, error);
+    }
+  }
+
+  invalidateProject(projectId) {
+    this.cache.delete(projectId);
+    this.summaryCache.delete(projectId);
+  }
+
+  closeProjectWatchers(projectId) {
+    const state = this.watchers.get(projectId);
+    if (!state) {
+      return;
+    }
+    for (const watcher of state.handles.values()) {
+      try {
+        watcher.close();
+      } catch {
+        // Watcher shutdown is best-effort and cannot affect other projects.
+      }
+    }
+    this.watchers.delete(projectId);
+  }
+
+  ensureProjectWatchers(project) {
+    const identity = canonicalProjectRootIdentity(project);
+    let state = this.watchers.get(project.id);
+    if (state && state.identity !== identity) {
+      this.closeProjectWatchers(project.id);
+      this.invalidateProject(project.id);
+      state = null;
+    }
+    if (!state) {
+      state = { identity, handles: new Map() };
+      this.watchers.set(project.id, state);
+    }
+    const desired = new Set(projectWatcherPaths(project));
+    for (const [directory, watcher] of state.handles) {
+      if (desired.has(directory)) {
+        continue;
+      }
+      try {
+        watcher.close();
+      } catch {
+        // A failed watcher remains isolated from reads and other watchers.
+      }
+      state.handles.delete(directory);
+    }
+    for (const directory of desired) {
+      if (state.handles.has(directory)) {
+        continue;
+      }
+      try {
+        const watcher = this.watch(directory, () => this.invalidateProject(project.id));
+        if (watcher && typeof watcher.close === 'function') {
+          state.handles.set(directory, watcher);
+        }
+      } catch {
+        // Polling, source signatures, and manual refresh remain available.
+      }
+    }
+  }
+
+  syncProjects(projects) {
+    const registeredIds = new Set(projects.map((project) => project.id));
+    for (const projectId of this.watchers.keys()) {
+      if (!registeredIds.has(projectId)) {
+        this.closeProjectWatchers(projectId);
+        this.invalidateProject(projectId);
+      }
+    }
+    for (const project of projects) {
+      this.ensureProjectWatchers(project);
     }
   }
 
@@ -594,25 +818,46 @@ class ProjectIndexService {
   }
 
   loadIndex(project, refresh = false) {
+    this.ensureProjectWatchers(project);
+    const sourceSignature = projectSourceSignature(project);
     if (!refresh && this.cache.has(project.id)) {
       const cached = this.cache.get(project.id);
       if (cached.canonicalRootIdentity === canonicalProjectRootIdentity(project)
-          && cached.index.publicIndex.project.availability === projectAvailability(project).availability) {
+          && cached.sourceSignature === sourceSignature) {
         return cached.index;
       }
-      this.cache.delete(project.id);
+      this.invalidateProject(project.id);
     }
     const result = buildProjectIndex(project, { now: this.now });
     this.cache.set(project.id, {
       canonicalRootIdentity: canonicalProjectRootIdentity(project),
       index: result,
+      sourceSignature,
     });
     return result;
   }
 
+  loadSummary(project) {
+    this.ensureProjectWatchers(project);
+    const sourceSignature = projectSourceSignature(project);
+    const cached = this.summaryCache.get(project.id);
+    if (cached
+        && cached.canonicalRootIdentity === canonicalProjectRootIdentity(project)
+        && cached.sourceSignature === sourceSignature) {
+      return cached.summary;
+    }
+    const summary = buildProjectSummary(project, { now: this.now });
+    this.summaryCache.set(project.id, {
+      canonicalRootIdentity: canonicalProjectRootIdentity(project),
+      sourceSignature,
+      summary,
+    });
+    return summary;
+  }
+
   listProjects() {
     return this.readProjects()
-      .map((project) => buildProjectSummary(project, { now: this.now }))
+      .map((project) => this.loadSummary(project))
       .sort((left, right) => left.name.localeCompare(right.name) || left.root.localeCompare(right.root));
   }
 
@@ -648,7 +893,7 @@ class ProjectIndexService {
       });
       return publicDocument(current);
     } catch (error) {
-      this.cache.delete(project.id);
+      this.invalidateProject(project.id);
       throw new ProjectApiError('record-unavailable', '기록을 읽을 수 없습니다.', 409, error);
     }
   }
@@ -666,9 +911,16 @@ class ProjectIndexService {
       };
       validateRegistry(next, this.registryOptions);
       writeRegistry(registryPath, next);
-      this.cache.delete(project.id);
+      this.closeProjectWatchers(project.id);
+      this.invalidateProject(project.id);
     } catch (error) {
       throw new ProjectApiError(error.code || 'registry-write-failed', '프로젝트 레지스트리를 변경할 수 없습니다.', 500, error);
+    }
+  }
+
+  close() {
+    for (const projectId of [...this.watchers.keys()]) {
+      this.closeProjectWatchers(projectId);
     }
   }
 }
@@ -682,5 +934,6 @@ module.exports = {
   calculateFlow,
   canonicalProjectRootIdentity,
   canonicalDocumentPath,
+  projectSourceSignature,
   projectAvailability,
 };

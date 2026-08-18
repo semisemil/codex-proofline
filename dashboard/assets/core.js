@@ -176,6 +176,44 @@
     });
   }
 
+  function createDocumentRequestGate() {
+    let generation = 0;
+    let sequence = 0;
+    const latestByProject = new Map();
+    return Object.freeze({
+      begin(projectId, key) {
+        sequence += 1;
+        let latestByKey = latestByProject.get(projectId);
+        if (!latestByKey) {
+          latestByKey = new Map();
+          latestByProject.set(projectId, latestByKey);
+        }
+        latestByKey.set(key, sequence);
+        return Object.freeze({ generation, projectId, key, sequence });
+      },
+      invalidate() {
+        generation += 1;
+        latestByProject.clear();
+      },
+      disposition(request, currentProjectId, currentKey) {
+        const latestSequence = request
+          ? latestByProject.get(request.projectId)?.get(request.key)
+          : null;
+        if (!request
+          || request.generation !== generation
+          || request.sequence !== latestSequence) {
+          return Object.freeze({ cache: false, render: false });
+        }
+        return documentRequestDisposition(
+          request.projectId,
+          request.key,
+          currentProjectId,
+          currentKey,
+        );
+      },
+    });
+  }
+
   function compareIssues(left, right, sort) {
     const [field, direction = 'asc'] = String(sort || 'id-asc').split('-');
     let result;
@@ -407,6 +445,7 @@
     SIGNALS,
     STATUSES,
     compareText,
+    createDocumentRequestGate,
     createLatestRequestGate,
     documentOptionFocusKey,
     documentRequestDisposition,

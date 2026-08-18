@@ -144,13 +144,31 @@ PL-0012의 진행 상황과 확인 근거를 갱신해줘.
   STATE.md
   issues/
     PL-0001.json
-  dashboard/
-    index.html
 ```
 
 각 신규 이슈는 구조화된 JSON 파일 하나로 저장됩니다. 현재 요약과 상태별 필드, 완료 조건, 핵심 결정, 판정 근거를 중복 없이 보존합니다. 상세 로그와 실험 보고서는 별도 산출물로 연결하고, 기존 Markdown 이슈는 점진적 전환을 위해 계속 읽을 수 있습니다.
 
-대시보드를 보려면 `.proofline/dashboard/index.html`을 열고 `.proofline/issues/` 폴더를 한 번 연결하세요. 브라우저가 연결한 폴더를 기억하고 JSON 및 레거시 Markdown 이슈를 함께 읽습니다. 상세 화면은 진행 중·보류·완료·취소·대체 상태에 맞춰 현재 상황과 판정 근거를 다르게 보여줍니다. Proofline 원장이 없는 프로젝트에는 대시보드 파일을 만들지 않습니다. 원장이 있는 프로젝트에서는 새 세션을 시작할 때 더 최신인 번들 대시보드로 갱신합니다.
+새 기록은 프로젝트별 `.proofline/dashboard/`를 만들거나 갱신하지 않습니다. 기존 프로젝트에 정적 대시보드가 있으면 삭제하거나 변경하지 않습니다.
+
+## 🖥️ 통합 작업 대시보드
+
+통합 대시보드는 등록된 여러 프로젝트의 Issue·Plan·Spec 원본과 흐름 점검을 한 `127.0.0.1` 로컬 화면에서 제공합니다. LAN이나 외부 interface에 바인딩하지 않고 외부 요청을 보내지 않습니다. Issue·Plan·Spec 쓰기에 성공한 프로젝트만 등록되며, SessionStart 훅은 프로젝트 파일을 건드리지 않고 전역 로컬 서버만 확인해 시작합니다.
+
+명시 호출 `$proofline:dashboard-server`는 다음 세 동작만 제공합니다.
+
+| 동작 | 결과 |
+| --- | --- |
+| `open` | 검증된 실행 서버를 현재 플러그인 version 확인 주소로 엽니다. 중지 상태에서는 시작하지 않습니다. |
+| `status` | 실행 URL·instance·version 또는 중지 원인을 표시합니다. |
+| `stop` | health의 instance가 실행 상태와 일치하는 현재 서버만 종료합니다. 등록 프로젝트는 유지합니다. |
+
+```text
+$proofline:dashboard-server open
+$proofline:dashboard-server status
+$proofline:dashboard-server stop
+```
+
+파일 변경은 프로젝트별 cache만 무효화합니다. 화면이 보이는 동안 30초마다 확인하고, 탭 복귀 시 한 번 확인하며, `다시 읽기`는 watcher 상태와 무관하게 선택 프로젝트 원본을 재파싱합니다. 기존 `.proofline/dashboard/`는 직접 열 수 있지만 새 기능과 지원 진입점은 통합 로컬 서버입니다.
 
 ## 🔄 업데이트
 
@@ -177,7 +195,7 @@ codex plugin marketplace upgrade proofline
 
 ### 대시보드에 이슈가 표시되지 않을 때
 
-대시보드에서 `.proofline/issues/` 폴더를 연결했는지 확인한 뒤 다시 읽기를 누르세요. 아직 이슈 원장을 만들지 않았다면 먼저 `issue-ledger`로 이슈를 하나 등록해야 합니다.
+`$proofline:dashboard-server status`로 서버 상태를 확인하고 통합 대시보드에서 `다시 읽기`를 누르세요. 프로젝트가 목록에 없다면 먼저 `issue-ledger`, `development-plan`, `implementation-spec` 중 하나로 기록을 성공적으로 작성해야 합니다.
 
 
 ## 라이선스

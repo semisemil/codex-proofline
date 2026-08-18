@@ -196,7 +196,7 @@ test('mismatched links and duplicate IDs are diagnosed and excluded without chan
   assert.equal(fs.readFileSync(path.join(root, '.proofline', 'issues', 'PL-0001.json'), 'utf8'), before);
 });
 
-test('index cache changes only on refresh and documents load bodies on demand', (t) => {
+test('source changes invalidate the index cache and documents load bodies on demand', (t) => {
   const root = makeRoot(t);
   const planPath = writePlan(root, 'PLAN-0001', 'cache', { body: '<script>alert(1)</script>' });
   writeIssue(root, issue({ context: [{ kind: 'Plan', location: planPath }] }));
@@ -207,11 +207,66 @@ test('index cache changes only on refresh and documents load bodies on demand', 
 
   assert.equal(service.getIndex(PROJECT_ID).plans[0].status, 'ready');
   writePlan(root, 'PLAN-0001', 'cache', { status: 'draft', body: 'changed' });
-  assert.equal(service.getIndex(PROJECT_ID).plans[0].status, 'ready');
+  assert.equal(service.getIndex(PROJECT_ID).plans[0].status, 'draft');
   assert.equal(service.getIndex(PROJECT_ID, { refresh: true }).plans[0].status, 'draft');
   const document = service.getDocument(PROJECT_ID, 'plan', 'PLAN-0001');
   assert.equal(document.body, 'changed');
   assert.equal(document.content_type, 'text/markdown');
+});
+
+test('watchers invalidate only one project and watcher failure leaves signature refresh available', (t) => {
+  const firstRoot = makeRoot(t);
+  const secondRoot = makeRoot(t);
+  const secondId = '22222222-2222-4222-8222-222222222222';
+  writeIssue(firstRoot, issue());
+  writeIssue(secondRoot, issue({
+    identity: { ...issue().identity, id: 'PL-0002', title: 'Second' },
+  }));
+  const registryPath = path.join(firstRoot, 'config', 'projects.json');
+  fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+  fs.writeFileSync(registryPath, JSON.stringify({
+    schema_version: 1,
+    projects: [
+      project(firstRoot),
+      { id: secondId, root: secondRoot, registered_at: '2026-08-17T00:00:00.000Z' },
+    ],
+  }), 'utf8');
+
+  const listeners = new Map();
+  const service = new ProjectIndexService({
+    registryOptions: { registryPath },
+    watch: (directory, listener) => {
+      listeners.set(directory, listener);
+      return { close() {} };
+    },
+  });
+  t.after(() => service.close());
+  service.listProjects();
+  service.getIndex(PROJECT_ID);
+  service.getIndex(secondId);
+  assert.equal(service.summaryCache.size, 2);
+  assert.equal(service.cache.size, 2);
+
+  const firstIssues = fs.realpathSync(path.join(firstRoot, '.proofline', 'issues'));
+  listeners.get(firstIssues)('change', 'PL-0001.json');
+  assert.equal(service.summaryCache.has(PROJECT_ID), false);
+  assert.equal(service.cache.has(PROJECT_ID), false);
+  assert.equal(service.summaryCache.has(secondId), true);
+  assert.equal(service.cache.has(secondId), true);
+
+  const failingService = new ProjectIndexService({
+    registryOptions: { registryPath },
+    watch: () => {
+      throw Object.assign(new Error('watch unavailable'), { code: 'ENOSPC' });
+    },
+  });
+  t.after(() => failingService.close());
+  assert.equal(failingService.getIndex(PROJECT_ID).issues[0].status, 'open');
+  const changed = issue();
+  changed.state = { status: 'blocked', current_summary: 'Watcher failed', next_action: 'Poll source', blocker: 'watch', unblock_condition: 'poll' };
+  writeIssue(firstRoot, changed);
+  assert.equal(failingService.getIndex(PROJECT_ID).issues[0].status, 'blocked');
+  assert.equal(failingService.getIndex(secondId).issues[0].title, 'Second');
 });
 
 test('record directory symlinks cannot expose files outside the registered project', (t) => {

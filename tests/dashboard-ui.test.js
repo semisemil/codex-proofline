@@ -360,15 +360,16 @@ test('document response disposition caches captured key without replacing curren
   const projectId = AVAILABLE_ID;
   const plan = deferred();
   const spec = deferred();
+  const gate = core.createDocumentRequestGate();
   const view = { projectId, selected: 'plan:PLAN-0002', detail: null, cache: new Map() };
   const renderOrder = [];
   const load = async (key, pending) => {
     const requestProjectId = view.projectId;
     const requestKey = key;
+    const request = gate.begin(requestProjectId, requestKey);
     const detail = await pending;
-    const disposition = core.documentRequestDisposition(
-      requestProjectId,
-      requestKey,
+    const disposition = gate.disposition(
+      request,
       view.projectId,
       view.selected,
     );
@@ -391,6 +392,133 @@ test('document response disposition caches captured key without replacing curren
   assert.deepEqual(renderOrder, ['spec:SPEC-0005']);
   assert.deepEqual(view.cache.get('plan:PLAN-0002'), { id: 'PLAN-0002' });
   assert.deepEqual(view.cache.get('spec:SPEC-0005'), { id: 'SPEC-0005' });
+});
+
+test('newest same-document success wins over an older late success', async () => {
+  const projectId = AVAILABLE_ID;
+  const older = deferred();
+  const newest = deferred();
+  const gate = core.createDocumentRequestGate();
+  const key = 'plan:PLAN-0002';
+  const view = { projectId, selected: key, detail: null, cache: new Map() };
+  const renderOrder = [];
+  const load = async (pending) => {
+    const request = gate.begin(projectId, key);
+    const detail = await pending;
+    const disposition = gate.disposition(request, view.projectId, view.selected);
+    if (!disposition.cache) return;
+    view.cache.set(key, detail);
+    if (!disposition.render) return;
+    view.detail = detail;
+    renderOrder.push(detail.body);
+  };
+
+  const olderLoad = load(older.promise);
+  const newestLoad = load(newest.promise);
+  newest.resolve({ id: 'PLAN-0002', body: 'newest detail' });
+  await newestLoad;
+  older.resolve({ id: 'PLAN-0002', body: 'older late detail' });
+  await olderLoad;
+
+  assert.equal(view.cache.get(key).body, 'newest detail');
+  assert.equal(view.detail.body, 'newest detail');
+  assert.deepEqual(renderOrder, ['newest detail']);
+});
+
+test('newest same-document success is not replaced by an older late error', async () => {
+  const projectId = AVAILABLE_ID;
+  const older = deferred();
+  const newest = deferred();
+  const gate = core.createDocumentRequestGate();
+  const key = 'plan:PLAN-0002';
+  const view = {
+    projectId,
+    selected: key,
+    detail: null,
+    error: null,
+    cache: new Map(),
+  };
+  const load = async (pending) => {
+    const request = gate.begin(projectId, key);
+    try {
+      const detail = await pending;
+      const disposition = gate.disposition(request, view.projectId, view.selected);
+      if (!disposition.cache) return;
+      view.cache.set(key, detail);
+      if (!disposition.render) return;
+      view.detail = detail;
+      view.error = null;
+    } catch (error) {
+      const disposition = gate.disposition(request, view.projectId, view.selected);
+      if (!disposition.render) return;
+      view.error = error.message;
+    }
+  };
+
+  const olderLoad = load(older.promise);
+  const newestLoad = load(newest.promise);
+  newest.resolve({ id: 'PLAN-0002', body: 'newest detail' });
+  await newestLoad;
+  older.reject(new Error('record-unavailable'));
+  await olderLoad;
+
+  assert.equal(view.cache.get(key).body, 'newest detail');
+  assert.equal(view.detail.body, 'newest detail');
+  assert.equal(view.error, null);
+});
+
+test('index completion reloads the document selected during refresh after clearing its early detail', async () => {
+  const projectId = AVAILABLE_ID;
+  const index = deferred();
+  const earlyPlan = deferred();
+  const reloadedPlan = deferred();
+  const gate = core.createDocumentRequestGate();
+  const view = {
+    projectId,
+    selected: 'plan:PLAN-0001',
+    cache: new Map(),
+    detail: null,
+  };
+  let reloadStarted = false;
+
+  const loadDocument = async (key, pending) => {
+    const request = gate.begin(view.projectId, key);
+    const detail = await pending;
+    const disposition = gate.disposition(request, view.projectId, view.selected);
+    if (!disposition.cache) return;
+    view.cache.set(key, detail);
+    if (disposition.render) view.detail = detail;
+  };
+  const refresh = async () => {
+    await index.promise;
+    gate.invalidate();
+    view.cache.clear();
+    view.detail = null;
+    const reloadKey = view.selected;
+    if (reloadKey && reloadKey === view.selected) {
+      reloadStarted = true;
+      await loadDocument(reloadKey, reloadedPlan.promise);
+    }
+  };
+
+  const pendingRefresh = refresh();
+  view.selected = 'plan:PLAN-0002';
+  const pendingEarlyPlan = loadDocument(view.selected, earlyPlan.promise);
+  earlyPlan.resolve({ id: 'PLAN-0002', body: 'detail before index completion' });
+  await pendingEarlyPlan;
+  assert.equal(view.cache.get('plan:PLAN-0002').body, 'detail before index completion');
+
+  index.resolve({ read_at: '2026-08-19T00:00:01.000Z' });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(reloadStarted, true);
+  assert.equal(view.selected, 'plan:PLAN-0002');
+  assert.equal(view.cache.has('plan:PLAN-0002'), false);
+  assert.equal(view.detail, null);
+
+  reloadedPlan.resolve({ id: 'PLAN-0002', body: 'detail after index completion' });
+  await pendingRefresh;
+  assert.equal(view.cache.get('plan:PLAN-0002').body, 'detail after index completion');
+  assert.equal(view.detail.body, 'detail after index completion');
 });
 
 test('collapsed rail cues distinguish same-name projects before selection', () => {
@@ -593,7 +721,11 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(app, /method: 'DELETE'/);
   assert.match(app, /indexRequestGate\.isCurrent\(request, state\.selectedProjectId\)/);
   assert.match(app, /state\.documents\.set\(requestKey, detail\)/);
-  assert.match(app, /documentRequestDisposition\([\s\S]*?requestKey,[\s\S]*?state\.selectedDocument/);
+  assert.match(app, /documentRequestGate\.invalidate\(\)[\s\S]*state\.documents\.clear\(\)[\s\S]*state\.selectedDocument/);
+  assert.match(app, /openDocument\([\s\S]*\{ force: true \}/);
+  assert.match(app, /state\.documentErrors\.set\(requestKey/);
+  assert.match(app, /문서를 읽을 수 없음/);
+  assert.match(app, /documentRequestGate\.disposition\([\s\S]*?documentRequest,[\s\S]*?state\.selectedDocument/);
   assert.match(app, /elements\.panel\.inert = true/);
   assert.match(app, /setWorkspaceInert\(true\)/);
   assert.match(app, /event\.key === 'Tab'[\s\S]*?containDrawerFocus\(event\)/);
@@ -605,6 +737,7 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(app, /ArrowLeft/);
   assert.match(app, /indexedDB\.open\('proofline-dashboard'/);
   assert.match(app, /setInterval\([\s\S]*?30000/);
+  assert.match(app, /visibilitychange[\s\S]*?visibilityState === 'visible'[\s\S]*?loadIndex\(false\)/);
   assert.equal((app.match(/\.innerHTML\s*=/g) || []).length, 1);
   assert.match(app, /body\.innerHTML = core\.renderMarkdown/);
   assert.match(app, /core\.signalLabels\(issue\.flow_signal_ids\)/);

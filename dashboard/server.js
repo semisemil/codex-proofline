@@ -455,10 +455,19 @@ function endSocketJson(socket, statusLine, value, extraHeaders = {}) {
 }
 
 function createDashboardHttpServer(options) {
+  const service = options.projectService || new ProjectIndexService({
+    registryOptions: options.registryOptions,
+    now: options.now,
+  });
   const server = http.createServer(
     { requireHostHeader: false },
-    createRequestHandler(options),
+    createRequestHandler({ ...options, projectService: service }),
   );
+  server.once('close', () => {
+    if (typeof service.close === 'function') {
+      service.close();
+    }
+  });
   server.on('clientError', (_error, socket) => {
     endSocketJson(socket, '400 Bad Request', {
       error: {
