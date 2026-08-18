@@ -16,6 +16,20 @@ const SECURITY_HEADERS = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
   'Cache-Control': 'no-store',
 });
+const STATIC_CONTENT_TYPES = Object.freeze({
+  '.css': 'text/css; charset=utf-8',
+  '.gif': 'image/gif',
+  '.html': 'text/html; charset=utf-8',
+  '.ico': 'image/x-icon',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+});
+const DEFAULT_ASSET_ROOT = path.join(__dirname, 'assets');
 
 function parseArguments(argv) {
   const values = {};
@@ -120,6 +134,139 @@ function sendError(request, response, status, code, message, extraHeaders = {}) 
   sendJson(request, response, status, { error: { code, message } }, extraHeaders);
 }
 
+function isContainedPath(rootPath, candidatePath) {
+  const relative = path.relative(rootPath, candidatePath);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`)
+    && relative !== '..'
+    && !path.isAbsolute(relative));
+}
+
+function comparablePath(filePath) {
+  const normalized = path.normalize(filePath);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function sameFileIdentity(expected, actual) {
+  return expected.dev === actual.dev && expected.ino === actual.ino;
+}
+
+function closeDescriptor(descriptor) {
+  if (descriptor === undefined) {
+    return;
+  }
+  try {
+    fs.closeSync(descriptor);
+  } catch {
+    // The descriptor may already have been closed after an I/O failure.
+  }
+}
+
+function resolveStaticAsset(assetRoot, relativePath) {
+  let descriptor;
+  try {
+    const resolvedRoot = path.resolve(assetRoot);
+    const rootStatus = fs.lstatSync(resolvedRoot, { bigint: true });
+    if (!rootStatus.isDirectory() || rootStatus.isSymbolicLink()) {
+      return null;
+    }
+    const canonicalRoot = fs.realpathSync.native(resolvedRoot);
+    if (comparablePath(canonicalRoot) !== comparablePath(resolvedRoot)) {
+      return null;
+    }
+
+    const candidatePath = path.resolve(resolvedRoot, relativePath);
+    if (!isContainedPath(resolvedRoot, candidatePath)) {
+      return null;
+    }
+    const canonicalCandidate = fs.realpathSync.native(candidatePath);
+    if (!isContainedPath(canonicalRoot, canonicalCandidate)) {
+      return null;
+    }
+    const candidateStatus = fs.statSync(canonicalCandidate, { bigint: true });
+    const contentType = STATIC_CONTENT_TYPES[path.extname(canonicalCandidate).toLowerCase()];
+    if (!candidateStatus.isFile() || !contentType) {
+      return null;
+    }
+
+    descriptor = fs.openSync(canonicalCandidate, fs.constants.O_RDONLY);
+    const openedStatus = fs.fstatSync(descriptor, { bigint: true });
+    if (!openedStatus.isFile() || !sameFileIdentity(candidateStatus, openedStatus)) {
+      closeDescriptor(descriptor);
+      descriptor = undefined;
+      return null;
+    }
+
+    const currentCanonicalCandidate = fs.realpathSync.native(candidatePath);
+    if (!isContainedPath(canonicalRoot, currentCanonicalCandidate)) {
+      closeDescriptor(descriptor);
+      descriptor = undefined;
+      return null;
+    }
+    const currentCandidateStatus = fs.statSync(currentCanonicalCandidate, { bigint: true });
+    if (!currentCandidateStatus.isFile()
+        || !sameFileIdentity(openedStatus, currentCandidateStatus)) {
+      closeDescriptor(descriptor);
+      descriptor = undefined;
+      return null;
+    }
+
+    const currentRootStatus = fs.lstatSync(resolvedRoot, { bigint: true });
+    const currentCanonicalRoot = fs.realpathSync.native(resolvedRoot);
+    if (!currentRootStatus.isDirectory()
+        || currentRootStatus.isSymbolicLink()
+        || !sameFileIdentity(rootStatus, currentRootStatus)
+        || comparablePath(currentCanonicalRoot) !== comparablePath(canonicalRoot)) {
+      closeDescriptor(descriptor);
+      descriptor = undefined;
+      return null;
+    }
+    return {
+      contentType,
+      descriptor,
+      size: openedStatus.size.toString(),
+    };
+  } catch {
+    closeDescriptor(descriptor);
+    return null;
+  }
+}
+
+function staticRelativePath(target) {
+  if (target.pathname === '/') {
+    const queryEntries = [...target.searchParams.entries()];
+    if (queryEntries.length !== 0
+        && (queryEntries.length !== 1
+          || queryEntries[0][0] !== 'expected_version'
+          || queryEntries[0][1].length === 0)) {
+      throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+    }
+    return 'index.html';
+  }
+  if (target.search !== '') {
+    throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+  }
+  return target.pathname.slice(1);
+}
+
+function serveStaticAsset(request, response, target, assetRoot) {
+  const asset = resolveStaticAsset(assetRoot, staticRelativePath(target));
+  if (!asset) {
+    return false;
+  }
+  try {
+    const body = request.method === 'HEAD' ? undefined : fs.readFileSync(asset.descriptor);
+    response.writeHead(200, {
+      ...SECURITY_HEADERS,
+      'Content-Type': asset.contentType,
+      'Content-Length': body ? body.length : asset.size,
+    });
+    response.end(body);
+    return true;
+  } finally {
+    closeDescriptor(asset.descriptor);
+  }
+}
+
 function parseRequestTarget(rawTarget) {
   if (typeof rawTarget !== 'string'
       || !rawTarget.startsWith('/')
@@ -161,11 +308,71 @@ function validateRequestBoundary(request) {
   return { expectedOrigin, origin };
 }
 
+function routeApiRequest(request, response, target, options, service) {
+  if (!target.pathname.startsWith('/api/')) {
+    return false;
+  }
+
+  if ((request.method === 'GET' || request.method === 'HEAD')
+      && target.pathname === '/api/v1/health'
+      && target.search === '') {
+    sendJson(request, response, 200, {
+      schema_version: 1,
+      instance_id: options.instanceId,
+      version: options.version,
+    });
+    return true;
+  }
+
+  if ((request.method === 'GET' || request.method === 'HEAD')
+      && target.pathname === '/api/v1/projects'
+      && target.search === '') {
+    sendJson(request, response, 200, { projects: service.listProjects() });
+    return true;
+  }
+
+  const indexMatch = target.pathname.match(/^\/api\/v1\/projects\/([0-9a-f-]+)\/index$/i);
+  if ((request.method === 'GET' || request.method === 'HEAD') && indexMatch) {
+    if (target.search !== '' && target.search !== '?refresh=1') {
+      throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+    }
+    sendJson(request, response, 200, service.getIndex(indexMatch[1], {
+      refresh: target.search === '?refresh=1',
+    }));
+    return true;
+  }
+
+  const documentMatch = target.pathname.match(
+    /^\/api\/v1\/projects\/([0-9a-f-]+)\/documents\/(issue|plan|spec)\/([A-Z]+-\d{4,})$/,
+  );
+  if ((request.method === 'GET' || request.method === 'HEAD')
+      && documentMatch
+      && target.search === '') {
+    sendJson(request, response, 200, service.getDocument(
+      documentMatch[1],
+      documentMatch[2],
+      documentMatch[3],
+    ));
+    return true;
+  }
+
+  const deleteMatch = target.pathname.match(/^\/api\/v1\/projects\/([0-9a-f-]+)$/i);
+  if (request.method === 'DELETE' && deleteMatch && target.search === '') {
+    service.forgetUnavailableProject(deleteMatch[1]);
+    sendEmpty(response, 204);
+    return true;
+  }
+
+  sendError(request, response, 404, 'not-found', 'Not found.');
+  return true;
+}
+
 function createRequestHandler(options) {
   const service = options.projectService || new ProjectIndexService({
     registryOptions: options.registryOptions,
     now: options.now,
   });
+  const assetRoot = options.assetRoot ?? DEFAULT_ASSET_ROOT;
 
   return (request, response) => {
     const boundary = validateRequestBoundary(request);
@@ -203,53 +410,11 @@ function createRequestHandler(options) {
     }
 
     try {
+      if (routeApiRequest(request, response, target, options, service)) {
+        return;
+      }
       if ((request.method === 'GET' || request.method === 'HEAD')
-          && target.pathname === '/api/v1/health'
-          && target.search === '') {
-        sendJson(request, response, 200, {
-          schema_version: 1,
-          instance_id: options.instanceId,
-          version: options.version,
-        });
-        return;
-      }
-
-      if ((request.method === 'GET' || request.method === 'HEAD')
-          && target.pathname === '/api/v1/projects'
-          && target.search === '') {
-        sendJson(request, response, 200, { projects: service.listProjects() });
-        return;
-      }
-
-      const indexMatch = target.pathname.match(/^\/api\/v1\/projects\/([0-9a-f-]+)\/index$/i);
-      if ((request.method === 'GET' || request.method === 'HEAD') && indexMatch) {
-        if (target.search !== '' && target.search !== '?refresh=1') {
-          throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
-        }
-        sendJson(request, response, 200, service.getIndex(indexMatch[1], {
-          refresh: target.search === '?refresh=1',
-        }));
-        return;
-      }
-
-      const documentMatch = target.pathname.match(
-        /^\/api\/v1\/projects\/([0-9a-f-]+)\/documents\/(issue|plan|spec)\/([A-Z]+-\d{4,})$/,
-      );
-      if ((request.method === 'GET' || request.method === 'HEAD')
-          && documentMatch
-          && target.search === '') {
-        sendJson(request, response, 200, service.getDocument(
-          documentMatch[1],
-          documentMatch[2],
-          documentMatch[3],
-        ));
-        return;
-      }
-
-      const deleteMatch = target.pathname.match(/^\/api\/v1\/projects\/([0-9a-f-]+)$/i);
-      if (request.method === 'DELETE' && deleteMatch && target.search === '') {
-        service.forgetUnavailableProject(deleteMatch[1]);
-        sendEmpty(response, 204);
+          && serveStaticAsset(request, response, target, assetRoot)) {
         return;
       }
 

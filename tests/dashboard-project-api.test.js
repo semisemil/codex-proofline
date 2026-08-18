@@ -34,13 +34,19 @@ function makeIssue() {
   };
 }
 
-async function fixture(t) {
+async function fixture(t, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-project-api-'));
   const availableRoot = path.join(root, 'available');
   const unavailableRoot = path.join(root, 'missing');
+  const assetRoot = path.join(root, 'assets');
   const issues = path.join(availableRoot, '.proofline', 'issues');
   fs.mkdirSync(issues, { recursive: true });
   fs.writeFileSync(path.join(issues, 'PL-0001.json'), JSON.stringify(makeIssue()), 'utf8');
+  for (const [relativePath, contents] of Object.entries(options.assetFiles || {})) {
+    const filePath = path.join(assetRoot, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, contents);
+  }
 
   const registryPath = path.join(root, 'config', 'projects.json');
   fs.mkdirSync(path.dirname(registryPath), { recursive: true });
@@ -57,6 +63,7 @@ async function fixture(t) {
     now: () => '2026-08-18T00:00:00.000Z',
   });
   const server = createDashboardHttpServer({
+    assetRoot,
     instanceId: INSTANCE_ID,
     version: '0.6.2',
     projectService,
@@ -69,7 +76,7 @@ async function fixture(t) {
     await new Promise((resolve) => server.close(resolve));
     fs.rmSync(root, { recursive: true, force: true });
   });
-  return { availableRoot, projectService, root, registryPath, server };
+  return { assetRoot, availableRoot, projectService, root, registryPath, server };
 }
 
 function rawRequest(server, bytes) {
@@ -130,6 +137,58 @@ function request(server, values = {}) {
 function pathKey(filePath) {
   const normalized = path.normalize(String(filePath));
   return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function instrumentAssetDescriptors(assetRoot, beforeOpen, beforeStat) {
+  const originalOpen = fs.openSync;
+  const originalClose = fs.closeSync;
+  const originalStat = fs.statSync;
+  const assetPrefix = `${pathKey(assetRoot)}${path.sep}`;
+  const descriptors = new Set();
+  let opened = 0;
+  let closed = 0;
+  let restored = false;
+
+  fs.openSync = function instrumentedOpen(filePath, ...args) {
+    const fileKey = pathKey(filePath);
+    if (!fileKey.startsWith(assetPrefix)) {
+      return originalOpen.call(fs, filePath, ...args);
+    }
+    if (beforeOpen) {
+      beforeOpen(filePath);
+    }
+    const descriptor = originalOpen.call(fs, filePath, ...args);
+    descriptors.add(descriptor);
+    opened += 1;
+    return descriptor;
+  };
+  fs.closeSync = function instrumentedClose(descriptor) {
+    if (descriptors.delete(descriptor)) {
+      closed += 1;
+    }
+    return originalClose.call(fs, descriptor);
+  };
+  fs.statSync = function instrumentedStat(filePath, ...args) {
+    const fileKey = pathKey(filePath);
+    if (fileKey.startsWith(assetPrefix) && beforeStat) {
+      beforeStat(filePath);
+    }
+    return originalStat.call(fs, filePath, ...args);
+  };
+
+  return {
+    restore() {
+      if (!restored) {
+        fs.openSync = originalOpen;
+        fs.closeSync = originalClose;
+        fs.statSync = originalStat;
+        restored = true;
+      }
+    },
+    snapshot() {
+      return { closed, opened, outstanding: descriptors.size };
+    },
+  };
 }
 
 async function measureReadBytes(action) {
@@ -194,6 +253,187 @@ test('HTTP boundary enforces Host, Origin, methods, raw paths, security headers,
   assert.equal(head.status, 200);
   assert.equal(head.body, '');
   assert.ok(Number(head.headers['content-length']) > 0);
+});
+
+test('static dashboard serves root, expected_version entry, and same-origin assets for GET and HEAD', async (t) => {
+  const index = '<!doctype html><link rel="stylesheet" href="/styles.css"><script src="/app.js"></script>';
+  const script = "document.documentElement.dataset.ready = 'true';";
+  const stylesheet = ':root { color-scheme: light dark; }';
+  const { assetRoot, server } = await fixture(t, {
+    assetFiles: {
+      'app.js': script,
+      'index.html': index,
+      'styles.css': stylesheet,
+    },
+  });
+  const descriptors = instrumentAssetDescriptors(assetRoot);
+  t.after(() => descriptors.restore());
+
+  const root = await request(server, { path: '/' });
+  assert.equal(root.status, 200);
+  assert.equal(root.body, index);
+  assert.equal(root.headers['content-type'], 'text/html; charset=utf-8');
+  assert.equal(Number(root.headers['content-length']), Buffer.byteLength(index));
+  assert.equal(root.headers['content-security-policy'], SECURITY_HEADERS['Content-Security-Policy']);
+  assert.equal(root.headers['x-content-type-options'], 'nosniff');
+  assert.equal(root.headers['cache-control'], 'no-store');
+  assert.equal(root.headers['access-control-allow-origin'], undefined);
+
+  const entry = await request(server, { path: '/?expected_version=0.6.2' });
+  assert.equal(entry.status, 200);
+  assert.equal(entry.body, index);
+
+  const head = await request(server, { method: 'HEAD', path: '/' });
+  assert.equal(head.status, 200);
+  assert.equal(head.body, '');
+  assert.equal(Number(head.headers['content-length']), Buffer.byteLength(index));
+  assert.equal(head.headers['content-type'], 'text/html; charset=utf-8');
+
+  const app = await request(server, { path: '/app.js' });
+  assert.equal(app.status, 200);
+  assert.equal(app.body, script);
+  assert.equal(app.headers['content-type'], 'text/javascript; charset=utf-8');
+  assert.equal(Number(app.headers['content-length']), Buffer.byteLength(script));
+
+  const css = await request(server, { path: '/styles.css' });
+  assert.equal(css.status, 200);
+  assert.equal(css.body, stylesheet);
+  assert.equal(css.headers['content-type'], 'text/css; charset=utf-8');
+  assert.equal(Number(css.headers['content-length']), Buffer.byteLength(stylesheet));
+
+  assert.equal((await request(server, { path: '/?unexpected=1' })).status, 400);
+  assert.equal((await request(server, { path: '/api/v1/health?expected_version=0.6.2' })).status, 404);
+  descriptors.restore();
+  assert.deepEqual(descriptors.snapshot(), { closed: 5, opened: 5, outstanding: 0 });
+});
+
+test('static dashboard rejects unknown files, directories, traversal, encoded separators, and symlink escape', async (t) => {
+  const { assetRoot, root, server } = await fixture(t, {
+    assetFiles: {
+      'index.html': '<!doctype html>',
+      'nested/asset.js': 'safe',
+    },
+  });
+  const externalDirectory = path.join(root, 'external-static');
+  const externalFile = path.join(externalDirectory, 'escape.js');
+  fs.mkdirSync(externalDirectory, { recursive: true });
+  fs.writeFileSync(externalFile, 'external secret', 'utf8');
+  const linkedFile = path.join(assetRoot, 'linked', 'escape.js');
+  fs.mkdirSync(path.dirname(linkedFile), { recursive: true });
+  linkExternalFile(externalFile, linkedFile);
+
+  assert.equal((await request(server, { path: '/missing.js' })).status, 404);
+  assert.equal((await request(server, { path: '/nested/' })).status, 404);
+  assert.equal((await request(server, { path: '/linked/escape.js' })).status, 404);
+  assert.equal((await request(server, { path: '/nested%2fasset.js' })).status, 400);
+  assert.equal((await request(server, { path: '/app.js?cache=1' })).status, 400);
+
+  const { port } = server.address();
+  const traversal = await rawRequest(
+    server,
+    `GET /../external-static/escape.js HTTP/1.1\r\nHost: 127.0.0.1:${port}\r\nConnection: close\r\n\r\n`,
+  );
+  const [headerText, body] = traversal.split('\r\n\r\n');
+  assert.match(headerText, /^HTTP\/1\.1 400 Bad Request\r\n/);
+  assert.equal(JSON.parse(body).error.code, 'request-target-invalid');
+  assert.doesNotMatch(traversal, /external secret/);
+});
+
+test('static GET and HEAD reject an asset-root replacement between stat and open', async (t) => {
+  for (const method of ['GET', 'HEAD']) {
+    const { assetRoot, root, server } = await fixture(t, {
+      assetFiles: { 'index.html': '<!doctype html>SAFE' },
+    });
+    const originalAssetRoot = path.join(root, `assets-before-${method.toLowerCase()}`);
+    const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-static-external-'));
+    const externalSecret = 'OUTSIDE-SECRET';
+    fs.writeFileSync(path.join(externalRoot, 'index.html'), externalSecret, 'utf8');
+    t.after(() => fs.rmSync(externalRoot, { recursive: true, force: true }));
+
+    let replaced = false;
+    const descriptors = instrumentAssetDescriptors(assetRoot, () => {
+      if (replaced) {
+        return;
+      }
+      fs.renameSync(assetRoot, originalAssetRoot);
+      fs.symlinkSync(
+        externalRoot,
+        assetRoot,
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
+      replaced = true;
+    });
+    t.after(() => descriptors.restore());
+
+    let response;
+    try {
+      response = await request(server, { method, path: '/' });
+    } finally {
+      descriptors.restore();
+    }
+
+    assert.equal(replaced, true);
+    assert.equal(response.status, 404);
+    assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
+    assert.doesNotMatch(response.body, /OUTSIDE-SECRET/);
+    assert.deepEqual(descriptors.snapshot(), { closed: 1, opened: 1, outstanding: 0 });
+    assert.equal(fs.readFileSync(path.join(externalRoot, 'index.html'), 'utf8'), externalSecret);
+  }
+});
+
+test('static GET and HEAD reject a nested component replacement between realpath and stat', async (t) => {
+  for (const method of ['GET', 'HEAD']) {
+    const { assetRoot, server } = await fixture(t, {
+      assetFiles: { 'nested/index.html': '<!doctype html>SAFE-NESTED' },
+    });
+    const originalNestedRoot = path.join(assetRoot, `nested-before-${method.toLowerCase()}`);
+    const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-static-nested-external-'));
+    const externalSecret = 'OUTSIDE-SECRET-REPRO';
+    fs.writeFileSync(path.join(externalRoot, 'index.html'), externalSecret, 'utf8');
+    t.after(() => fs.rmSync(externalRoot, { recursive: true, force: true }));
+
+    let replaced = false;
+    const descriptors = instrumentAssetDescriptors(assetRoot, undefined, () => {
+      if (replaced) {
+        return;
+      }
+      fs.renameSync(path.join(assetRoot, 'nested'), originalNestedRoot);
+      fs.symlinkSync(
+        externalRoot,
+        path.join(assetRoot, 'nested'),
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
+      replaced = true;
+    });
+    t.after(() => descriptors.restore());
+
+    let response;
+    try {
+      response = await request(server, { method, path: '/nested/index.html' });
+    } finally {
+      descriptors.restore();
+    }
+
+    assert.equal(replaced, true);
+    assert.equal(response.status, 404);
+    assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
+    assert.doesNotMatch(response.body, /OUTSIDE-SECRET-REPRO/);
+    assert.deepEqual(descriptors.snapshot(), { closed: 1, opened: 1, outstanding: 0 });
+    assert.equal(fs.readFileSync(path.join(externalRoot, 'index.html'), 'utf8'), externalSecret);
+  }
+});
+
+test('missing asset root leaves lifecycle health available and returns UI 404', async (t) => {
+  const { assetRoot, server } = await fixture(t);
+  assert.equal(fs.existsSync(assetRoot), false);
+  assert.equal((await request(server, { path: '/api/v1/health' })).status, 200);
+
+  const root = await request(server, { path: '/' });
+  assert.equal(root.status, 404);
+  assert.equal(root.headers['content-security-policy'], SECURITY_HEADERS['Content-Security-Policy']);
+  assert.equal(root.headers['x-content-type-options'], 'nosniff');
+  assert.equal(root.headers['cache-control'], 'no-store');
+  assert.equal(root.headers['access-control-allow-origin'], undefined);
 });
 
 test('raw NUL request targets receive the JSON clientError boundary response', async (t) => {
