@@ -190,5 +190,6 @@ module.exports = {
   readRegistry,
   registerProject,
   rootKey,
-  validateRegistry
+  validateRegistry,
+  writeRegistry
 };
