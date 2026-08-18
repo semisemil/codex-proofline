@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko" data-theme="light" data-background="color">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Proofline Pulse</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/core.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
+  <div id="background-shade" aria-hidden="true"></div>
+  <div class="app-shell" id="app-shell">
+    <aside class="project-panel glass" id="project-panel" aria-label="등록 프로젝트">
+      <div class="project-panel-heading">
+        <div>
+          <p class="eyebrow">Proofline</p>
+          <h1>Pulse</h1>
+        </div>
+        <button class="icon-button rail-toggle" id="rail-toggle" type="button"
+          aria-label="프로젝트 레일 펼치기" aria-expanded="false" data-tooltip="프로젝트 레일 펼치기">›</button>
+        <button class="icon-button drawer-close" id="drawer-close" type="button"
+          aria-label="프로젝트 drawer 닫기" data-tooltip="프로젝트 drawer 닫기">×</button>
+      </div>
+      <label class="project-search">
+        <span>프로젝트 찾기</span>
+        <input id="project-search" type="search" autocomplete="off" placeholder="이름 또는 경로">
+      </label>
+      <div class="project-list" id="project-list" role="listbox" aria-label="등록 프로젝트 목록"></div>
+      <p class="panel-footnote">프로젝트 원본은 이 화면에서 변경하지 않습니다.</p>
+    </aside>
+
+    <button class="scrim" id="drawer-scrim" type="button" aria-label="프로젝트 drawer 닫기" tabindex="-1"></button>
+
+    <div class="workspace">
+      <header class="context-bar glass">
+        <div class="context-main">
+          <button class="icon-button menu-button" id="menu-button" type="button"
+            aria-label="프로젝트 drawer 열기" aria-expanded="false" aria-controls="project-panel"
+            data-tooltip="프로젝트 drawer 열기">☰</button>
+          <div class="current-context">
+            <span>현재 프로젝트</span>
+            <strong id="current-project">선택 안 됨</strong>
+          </div>
+        </div>
+        <label class="global-search">
+          <span class="visually-hidden">선택 프로젝트 통합 검색</span>
+          <input id="global-search" type="search" autocomplete="off"
+            placeholder="Issue, Plan, Spec 검색" disabled>
+        </label>
+        <div class="context-actions">
+          <button id="refresh-button" type="button" disabled>다시 읽기</button>
+          <button class="icon-button" id="theme-button" type="button"
+            aria-label="다크 테마로 전환" data-tooltip="다크 테마로 전환">◐</button>
+          <button class="icon-button" id="background-button" type="button"
+            aria-label="배경 이미지 선택" data-tooltip="배경 이미지 선택">▧</button>
+          <input id="background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"
+            tabindex="-1" aria-hidden="true" hidden>
+          <label class="accent-control" data-tooltip="강조색 선택">
+            <span class="visually-hidden">강조색</span>
+            <input id="accent-color" type="color" value="#a55c3b" aria-label="강조색 선택">
+          </label>
+        </div>
+      </header>
+
+      <div class="status-stack" id="status-stack" aria-live="polite" aria-atomic="true"></div>
+
+      <nav class="view-tabs" aria-label="대시보드 보기">
+        <div role="tablist" aria-label="대시보드 보기" id="view-tabs">
+          <button id="tab-work" role="tab" aria-selected="true" aria-controls="view-panel" tabindex="0" data-view="work">작업</button>
+          <button id="tab-documents" role="tab" aria-selected="false" aria-controls="view-panel" tabindex="-1" data-view="documents">문서</button>
+          <button id="tab-flow" role="tab" aria-selected="false" aria-controls="view-panel" tabindex="-1" data-view="flow">흐름 점검</button>
+        </div>
+      </nav>
+
+      <main class="main-panel glass" id="main-content" tabindex="-1">
+        <div id="view-panel" role="tabpanel" aria-labelledby="tab-work"></div>
+      </main>
+    </div>
+  </div>
+  <template id="loading-template">
+    <div class="empty-state" role="status"><h2>불러오는 중</h2><p>등록 프로젝트와 작업 기록을 확인합니다.</p></div>
+  </template>
+</body>
+</html>
