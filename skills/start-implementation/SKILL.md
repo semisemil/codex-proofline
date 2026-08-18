@@ -48,12 +48,12 @@ For Non-Git projects, run one Slice implementer at a time; approve and mark each
 For Git projects:
 
 1. Follow the inspector's integration order. Use one active Slice for legacy or mixed plans; for v2 use at most two Slices from `dispatch` when their recorded boundaries are non-overlapping.
-2. Create a routed temporary-worktree integration base with this prompt: `<SPEC-ID> integration base. Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn.` Resume using the callback source ID as the base `threadId`. The base only cherry-picks, aborts conflicts, and reports Git state.
+2. Create a routed temporary-worktree integration base with this prompt: `<SPEC-ID> integration base. Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn.` Resume using the callback source ID as the base `threadId`. The base only cherry-picks, aborts conflicts, removes completed Slice worktrees under step 4, and reports Git state.
 3. Fork runnable Slice worktrees from the current base. Put routed `model` and `thinking` in each first implementation message and run the implementation loop.
-4. After approval, stage and commit only reviewed target-scope product/test paths. Cherry-pick approved commits into the base strictly in integration order; mark a Slice `completed` only after a clean pick. Later Slices wait for earlier ones.
+4. After approval, stage and commit only reviewed target-scope product/test paths. Cherry-pick approved commits into the base strictly in integration order; mark a Slice `completed` only after a clean pick. Treat its implementer task as terminal, send it no further messages, and archive it with `set_thread_archived`. Only after archival succeeds, use the base to verify `git -C <slice-root> rev-parse HEAD` equals the approved commit and `git -C <slice-root> status --porcelain` is empty, then run `git worktree remove <slice-root>` without `--force`. On archive failure, check mismatch, or removal failure, preserve the worktree and report the exact path and reason. Later Slices wait for earlier ones.
 5. On conflict, abort cleanly and redo that Slice in a fresh worktree from the current base, followed by a fresh Review Gate. Rerun the inspector after each completion to dispatch newly runnable Slices.
 
-Preserve pre-existing Git state. Do not push, merge, rebase, squash, remove worktrees, or delete branches automatically.
+Keep the integration base through final review. Preserve pre-existing Git state. Do not push, merge, rebase, squash, force-remove worktrees, or delete branches automatically.
 
 ## Final review
 

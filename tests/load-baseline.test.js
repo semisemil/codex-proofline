@@ -185,13 +185,22 @@ test('start-implementation owns the slicing decision and Direct/Sliced VCS behav
   assert.match(coordinator, /temporary-worktree integration base/);
   assert.match(coordinator, /Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn/);
   assert.match(coordinator, /callback source ID as the base `threadId`/);
+  assert.match(coordinator, /base only cherry-picks, aborts conflicts, removes completed Slice worktrees under step 4/);
   assert.match(coordinator, /first implementation message/);
   assert.match(coordinator, /stage and commit only reviewed target-scope product\/test paths/);
   assert.match(coordinator, /strictly in integration order/);
+  assert.match(coordinator, /Treat its implementer task as terminal, send it no further messages/);
+  assert.match(coordinator, /archive it with `set_thread_archived`/);
+  assert.match(coordinator, /Only after archival succeeds, use the base/);
+  assert.match(coordinator, /`git -C <slice-root> rev-parse HEAD` equals the approved commit/);
+  assert.match(coordinator, /`git -C <slice-root> status --porcelain` is empty/);
+  assert.match(coordinator, /`git worktree remove <slice-root>` without `--force`/);
+  assert.match(coordinator, /On archive failure, check mismatch, or removal failure, preserve the worktree and report the exact path and reason/);
   assert.match(coordinator, /fresh worktree from the current base/);
   assert.match(coordinator, /Rerun the inspector after each completion/);
   assert.match(coordinator, /fresh entire-Spec Integration review/);
-  assert.match(coordinator, /Do not push, merge, rebase, squash, remove worktrees, or delete branches automatically/);
+  assert.match(coordinator, /Keep the integration base through final review/);
+  assert.match(coordinator, /Do not push, merge, rebase, squash, force-remove worktrees, or delete branches automatically/);
 
   assert.match(slicing, /Choose `Direct` when no independent sub-goal/);
   assert.match(slicing, /Choose `Sliced` when independent outcomes/);
