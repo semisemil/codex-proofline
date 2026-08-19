@@ -54,12 +54,14 @@ test('transition sources never target an existing project dashboard', (t) => {
   assert.equal(fs.readFileSync(marker, 'utf8'), 'preserve user dashboard');
 });
 
-test('plugin version stays unchanged while manifest exposes the local integrated dashboard', () => {
+test('plugin version stays unchanged without dashboard implementation details in product info', () => {
   const manifest = JSON.parse(fs.readFileSync(
     path.join(repoRoot, '.codex-plugin', 'plugin.json'),
     'utf8',
   ));
   assert.equal(manifest.version, '0.6.4');
-  assert.match(`${manifest.description} ${manifest.interface.longDescription}`, /127\.0\.0\.1/);
-  assert.match(manifest.interface.longDescription, /open, status, stop/);
+  assert.doesNotMatch(
+    `${manifest.description} ${manifest.interface.longDescription} ${manifest.interface.capabilities.join(' ')}`,
+    /127\.0\.0\.1|통합 작업 대시보드/,
+  );
 });
