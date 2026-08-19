@@ -60,6 +60,7 @@
     scrim: byId('drawer-scrim'),
     rail: byId('rail-toggle'),
     theme: byId('theme-button'),
+    backgroundMode: byId('background-mode'),
     background: byId('background-button'),
     backgroundFile: byId('background-file'),
     accent: byId('accent-color'),
@@ -477,13 +478,13 @@
 
   function renderIssueFlow(issue) {
     const section = make('section', 'issue-flow');
-    section.append(make('h3', '', 'Issue → Plan → Spec'));
+    section.append(make('h3', '', '이슈 → 플랜 → 스펙'));
     const chain = make('div', 'flow-chain');
     chain.append(make('span', 'flow-node current', issue.id));
     for (const [kind, ids] of [['plan', issue.plan_ids || []], ['spec', issue.spec_ids || []]]) {
       chain.append(make('span', 'flow-arrow', '→'));
       if (ids.length === 0) {
-        chain.append(make('span', 'flow-node missing', kind === 'plan' ? 'Plan 없음' : 'Spec 없음'));
+        chain.append(make('span', 'flow-node missing', kind === 'plan' ? '플랜 없음' : '스펙 없음'));
       } else {
         const group = make('span', 'flow-node-group');
         for (const id of ids) {
@@ -505,7 +506,7 @@
     const controls = make('section', 'filters document-filters');
     controls.setAttribute('aria-label', '문서 필터와 정렬');
     const kind = controlGroup('종류', 'axis-filter');
-    kind.append(selectControl('종류', state.documentKind, [['all', 'Plan과 Spec'], ['plan', 'Plan'], ['spec', 'Spec']], (value) => {
+    kind.append(selectControl('종류', state.documentKind, [['all', '플랜과 스펙'], ['plan', '플랜'], ['spec', '스펙']], (value) => {
       state.documentKind = value; renderView();
     }, 'documents:kind'));
     const status = controlGroup('상태', 'axis-filter');
@@ -549,7 +550,7 @@
     option.dataset.focusKey = core.documentOptionFocusKey(item.document_kind, item.id);
     option.setAttribute('aria-pressed', String(selected));
     const identity = make('span', 'document-identity');
-    identity.append(make('span', 'document-kind', item.document_kind === 'plan' ? 'Plan' : 'Spec'), make('strong', '', item.id));
+    identity.append(make('span', 'document-kind', item.document_kind === 'plan' ? '플랜' : '스펙'), make('strong', '', item.id));
     const related = core.relatedState(item);
     option.append(
       identity,
@@ -566,7 +567,7 @@
     const region = make('article', 'document-detail');
     region.setAttribute('aria-label', '문서 본문');
     if (!state.selectedDocument) {
-      region.append(emptyState('문서를 선택하세요', 'Plan 또는 Spec을 선택하면 같은 화면에서 본문을 읽을 수 있습니다.'));
+      region.append(emptyState('문서를 선택하세요', '플랜 또는 스펙을 선택하면 같은 화면에서 본문을 읽을 수 있습니다.'));
       return region;
     }
     const documentError = state.documentErrors.get(state.selectedDocument);
@@ -581,7 +582,7 @@
     }
     const header = make('header', 'document-detail-header');
     header.append(
-      make('p', 'eyebrow', detail.kind === 'plan' ? 'Plan' : 'Spec'),
+      make('p', 'eyebrow', detail.kind === 'plan' ? '플랜' : '스펙'),
       make('h2', '', detail.title),
       make('p', 'document-path', detail.relative_path),
     );
@@ -715,7 +716,7 @@
     elements.viewPanel.replaceChildren();
     const project = selectedProject();
     if (!project) {
-      commitView(emptyState('등록 프로젝트 없음', 'Issue, Plan 또는 Spec을 성공적으로 작성하면 프로젝트가 등록됩니다.'), focusKey, fallbackFocusKey);
+      commitView(emptyState('등록 프로젝트 없음', '이슈, 플랜 또는 스펙 추가 시 프로젝트가 등록됩니다.'), focusKey, fallbackFocusKey);
       return;
     }
     if (project.availability !== 'available') {
@@ -861,7 +862,8 @@
     const image = mode === 'image' && state.backgroundUrl;
     document.documentElement.dataset.background = image ? 'image' : 'color';
     localStorage.setItem(STORAGE.background, image ? 'image' : 'color');
-    const label = image ? '단색 배경 사용' : '배경 이미지 선택';
+    elements.backgroundMode.value = image ? 'image' : 'color';
+    const label = state.backgroundUrl ? '배경 이미지 변경' : '배경 이미지 선택';
     elements.background.setAttribute('aria-label', label);
     elements.background.dataset.tooltip = label;
   }
@@ -980,11 +982,15 @@
       if (event.key === 'Escape' && state.drawerOpen) closeDrawer(true);
     });
     elements.theme.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
-    elements.background.addEventListener('click', () => {
-      if (document.documentElement.dataset.background === 'image') setBackgroundMode('color');
-      else if (state.backgroundUrl) setBackgroundMode('image');
-      else elements.backgroundFile.click();
+    elements.backgroundMode.addEventListener('change', () => {
+      if (elements.backgroundMode.value === 'image' && !state.backgroundUrl) {
+        elements.backgroundFile.click();
+        elements.backgroundMode.value = document.documentElement.dataset.background;
+        return;
+      }
+      setBackgroundMode(elements.backgroundMode.value);
     });
+    elements.background.addEventListener('click', () => elements.backgroundFile.click());
     elements.backgroundFile.addEventListener('change', async () => {
       const file = elements.backgroundFile.files?.[0];
       if (!file || !/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return;

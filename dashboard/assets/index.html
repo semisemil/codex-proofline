@@ -12,7 +12,6 @@
 </head>
 <body>
   <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
-  <div id="background-shade" aria-hidden="true"></div>
   <div class="app-shell" id="app-shell">
     <aside class="project-panel glass" id="project-panel" aria-label="등록 프로젝트">
       <div class="project-panel-heading">
@@ -30,7 +29,6 @@
         <input id="project-search" type="search" autocomplete="off" placeholder="이름 또는 경로">
       </label>
       <div class="project-list" id="project-list" role="listbox" aria-label="등록 프로젝트 목록"></div>
-      <p class="panel-footnote">프로젝트 원본은 이 화면에서 변경하지 않습니다.</p>
     </aside>
 
     <button class="scrim" id="drawer-scrim" type="button" aria-label="프로젝트 drawer 닫기" tabindex="-1"></button>
@@ -49,12 +47,19 @@
         <label class="global-search">
           <span class="visually-hidden">선택 프로젝트 통합 검색</span>
           <input id="global-search" type="search" autocomplete="off"
-            placeholder="Issue, Plan, Spec 검색" disabled>
+            placeholder="이슈, 플랜, 스펙 검색" disabled>
         </label>
         <div class="context-actions">
           <button id="refresh-button" type="button" disabled>다시 읽기</button>
           <button class="icon-button" id="theme-button" type="button"
             aria-label="다크 테마로 전환" data-tooltip="다크 테마로 전환">◐</button>
+          <label class="background-mode-control">
+            <span class="visually-hidden">배경 종류</span>
+            <select id="background-mode" aria-label="배경 종류">
+              <option value="color">단색 배경</option>
+              <option value="image">이미지 배경</option>
+            </select>
+          </label>
           <button class="icon-button" id="background-button" type="button"
             aria-label="배경 이미지 선택" data-tooltip="배경 이미지 선택">▧</button>
           <input id="background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"

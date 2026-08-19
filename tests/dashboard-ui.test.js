@@ -641,28 +641,44 @@ test('document DOM replacements restore focus for loading, success, failure, fal
   assert.equal(focusDocument.activeElement, currentSpec);
 });
 
-test('hidden background file input leaves Tab order but remains button-activated', () => {
+test('background mode and image replacement are separate keyboard controls', () => {
   const html = readAsset('index.html');
   const app = readAsset('app.js');
   const fileInput = html.match(/<input id="background-file"[\s\S]*?>/)?.[0] || '';
   const visibleButton = html.match(/<button class="icon-button" id="background-button"[\s\S]*?<\/button>/)?.[0] || '';
+  const modeSelect = html.match(/<select id="background-mode"[\s\S]*?<\/select>/)?.[0] || '';
   assert.match(fileInput, /tabindex="-1"/);
   assert.match(fileInput, /aria-hidden="true"/);
   assert.match(fileInput, /\shidden(?:\s|>)/);
   assert.doesNotMatch(visibleButton, /tabindex="-1"|aria-hidden="true"|\shidden(?:\s|>)/);
-  assert.match(app, /else elements\.backgroundFile\.click\(\)/);
+  assert.match(modeSelect, /단색 배경/);
+  assert.match(modeSelect, /이미지 배경/);
+  assert.match(app, /elements\.background\.addEventListener\('click', \(\) => elements\.backgroundFile\.click\(\)\)/);
+  assert.match(app, /elements\.backgroundMode\.addEventListener\('change'/);
 
   let pickerActivations = 0;
   const focusNodes = [
+    { id: 'background-mode', tabIndex: 0, ariaHidden: false, hidden: false, click() {} },
     { id: 'background-button', tabIndex: 0, ariaHidden: false, hidden: false, click() { pickerActivations += 1; } },
     { id: 'background-file', tabIndex: -1, ariaHidden: true, hidden: true, click() { pickerActivations += 1; } },
   ];
   assert.deepEqual(
     focusNodes.filter((node) => node.tabIndex >= 0 && !node.ariaHidden && !node.hidden).map((node) => node.id),
-    ['background-button'],
+    ['background-mode', 'background-button'],
   );
-  focusNodes[1].click();
+  focusNodes[2].click();
   assert.equal(pickerActivations, 1);
+});
+
+test('dashboard user-facing artifact names are Korean and registration guidance is direct', () => {
+  const html = readAsset('index.html');
+  const app = readAsset('app.js');
+  const visibleSource = `${html}\n${app}`;
+
+  assert.match(html, /placeholder="이슈, 플랜, 스펙 검색"/);
+  assert.match(app, /이슈, 플랜 또는 스펙 추가 시 프로젝트가 등록됩니다\./);
+  assert.doesNotMatch(html, /프로젝트 원본은 이 화면에서 변경하지 않습니다\./);
+  assert.doesNotMatch(visibleSource, /['">](?:Issue|Plan|Spec)(?:\s|<|없음|과|또는|→)/);
 });
 
 test('safe Markdown escapes HTML and only creates hardened HTTP links', () => {

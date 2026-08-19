@@ -35,7 +35,7 @@
   const SIGNALS = Object.freeze({
     'work-definition-only': '작업 정의만 있음',
     'plan-draft': '설계 결정이 남음',
-    'spec-needed': 'Spec 작성 대기',
+    'spec-needed': '스펙 작성 대기',
     'implementation-not-ready': '구현 준비 안 됨',
     'implementation-ready': '구현 가능',
     'state-mismatch': '상태 불일치 가능성',
