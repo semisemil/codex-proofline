@@ -17,7 +17,7 @@ Resolve an explicit Plan path or ID directly. For creation, inspect plausible sa
 
 Store each Plan at `.proofline/plan/<PLAN-ID>-<slug>/PLAN.md`. Keep its ID and location stable, update it in place without revision snapshots, and never overwrite a collision. Report `no-op` when the requested planning state already matches.
 
-After a Plan creation or revision is successfully written, run `node <plugin-root>/dashboard/register-project.js register --project-root <absolute-project-root>`. Do not run it for reads, review, `no-op`, or failed writes. Report its result separately; registration failure does not change or roll back the completed Plan write.
+Write Plan files only through `node <plugin-root>/writers/document-writer.js write --kind plan --project-root <absolute-project-root> --relative-path <project-relative-plan-path>`, passing the complete UTF-8 Markdown on stdin in one tool call. Report its separate `write` and `registration` results.
 
 Use only this frontmatter:
 
@@ -49,4 +49,4 @@ Use `draft` while a material decision or uncertainty prevents that state. Preser
 
 ## Report
 
-Report the operation, Plan ID and title, path, status, registration result, and material unresolved decisions, then return to the owning workflow or end.
+Report the writer operation, Plan ID and title, path, status, registration result, and material unresolved decisions, then return to the owning workflow or end.

@@ -154,15 +154,17 @@ PL-0012의 진행 상황과 확인 근거를 갱신해줘.
 
 통합 대시보드는 등록된 여러 프로젝트의 Issue·Plan·Spec 원본과 흐름 점검을 한 `127.0.0.1` 로컬 화면에서 제공합니다. LAN이나 외부 interface에 바인딩하지 않고 외부 요청을 보내지 않습니다. Issue·Plan·Spec 쓰기에 성공한 프로젝트만 등록되며, SessionStart 훅은 프로젝트 파일을 건드리지 않고 전역 로컬 서버만 확인해 시작합니다.
 
-명시 호출 `$proofline:dashboard-server`는 다음 세 동작만 제공합니다.
+명시 호출 `$proofline:dashboard-server`는 다음 네 동작을 제공합니다.
 
 | 동작 | 결과 |
 | --- | --- |
+| `add` | 현재 작업 디렉터리에 `.proofline/`이 있으면 해당 프로젝트를 통합 대시보드에 등록합니다. 다른 경로를 탐색하거나 프로젝트 상태를 만들지 않습니다. |
 | `open` | 검증된 실행 서버를 현재 플러그인 version 확인 주소로 엽니다. 중지 상태에서는 시작하지 않습니다. |
 | `status` | 실행 URL·instance·version 또는 중지 원인을 표시합니다. |
 | `stop` | health의 instance가 실행 상태와 일치하는 현재 서버만 종료합니다. 등록 프로젝트는 유지합니다. |
 
 ```text
+$proofline:dashboard-server add
 $proofline:dashboard-server open
 $proofline:dashboard-server status
 $proofline:dashboard-server stop
@@ -195,7 +197,7 @@ codex plugin marketplace upgrade proofline
 
 ### 대시보드에 이슈가 표시되지 않을 때
 
-`$proofline:dashboard-server status`로 서버 상태를 확인하고 통합 대시보드에서 `다시 읽기`를 누르세요. 프로젝트가 목록에 없다면 먼저 `issue-ledger`, `development-plan`, `implementation-spec` 중 하나로 기록을 성공적으로 작성해야 합니다.
+`$proofline:dashboard-server status`로 서버 상태를 확인하고 통합 대시보드에서 `다시 읽기`를 누르세요. `.proofline/`이 있는 현재 프로젝트가 목록에 없다면 `$proofline:dashboard-server add`로 등록하세요.
 
 
 ## 라이선스
