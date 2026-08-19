@@ -1,7 +1,7 @@
 {
   "name": "proofline",
-  "version": "0.6.3",
-  "description": "요청 범위와 완료 근거를 관리하고 등록 프로젝트를 127.0.0.1 통합 작업 대시보드에서 확인하는 플러그인입니다.",
+  "version": "0.6.4",
+  "description": "Codex가 요청 범위를 놓치지 않고, 실제로 확인한 내용만 완료로 보고하도록 돕는 플러그인입니다.",
   "author": {
     "name": "semisemil",
     "url": "https://github.com/semisemil"

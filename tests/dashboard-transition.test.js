@@ -59,7 +59,7 @@ test('plugin version stays unchanged while manifest exposes the local integrated
     path.join(repoRoot, '.codex-plugin', 'plugin.json'),
     'utf8',
   ));
-  assert.equal(manifest.version, '0.6.3');
+  assert.equal(manifest.version, '0.6.4');
   assert.match(`${manifest.description} ${manifest.interface.longDescription}`, /127\.0\.0\.1/);
   assert.match(manifest.interface.longDescription, /open, status, stop/);
 });
