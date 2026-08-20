@@ -65,15 +65,19 @@ test('Spec v2 keeps a fixed envelope and writes an adaptive standalone implement
   assert.match(skill, /Use tables and bullets when they improve structure, preferring tables when either form works/);
   assert.match(skill, /Avoid terminal periods/);
   assert.match(skill, /Keep a short, dense development-document style/);
-  assert.match(skill, /Keep material conditions, boundaries, fixed decisions, and minimum evidence with the part of the contract they qualify/);
+  assert.match(skill, /Keep each acceptance condition, its material boundaries and fixed decisions, and its planned evidence together enough for implementation and review/);
   assert.match(skill, /Use Mermaid for graph-shaped relationships with multiple branches or actors/);
   assert.doesNotMatch(skill, /Organize by outcomes that can be observed independently|Name each outcome for the result it defines|Match information to the work|Treat these as information needs rather than required headings/);
   assert.doesNotMatch(skill, /Use Mermaid when state transitions/);
   assert.doesNotMatch(skill, /let its information determine the internal structure|State constraints and evidence shared by several outcomes once for all of them|Omit a title heading|one authoritative location|minimum sufficient proof|telegraphic contract|compact items/);
-  assert.match(skill, /Request, confirmed decisions, current project evidence, and authoritative domain or linked documents/);
+  assert.match(skill, /When a ready Plan is supplied or linked, use it as the primary planning source/);
+  assert.match(skill, /Convert the current intent into observable acceptance conditions and a pre-implementation test and verification plan/);
+  assert.match(skill, /Every required result has planned evidence capable of deciding it; every acceptance condition is supported by a source/);
+  assert.match(skill, /Do not add product behavior or generic error, performance, or quality conditions absent from the sources/);
   assert.match(skill, /Include linked information required for implementation or review/);
   assert.match(skill, /Current contract only/);
-  assert.match(skill, /The implementer can proceed without inventing product behavior/);
+  assert.match(skill, /Every material source intent is represented, every acceptance condition is source-supported/);
+  assert.match(skill, /the implementer can proceed without inventing product behavior/);
   assert.match(skill, /implementation requires a separate user request/);
   assert.doesNotMatch(skill, /Every product behavior traces to one of those sources|Expose material gaps and use `draft`|Discussion history, investigation logs, rejected alternatives, and repeated metadata|Repository-discoverable mechanics and ordinary validation commands do not prevent `ready`|Never ask for implementation approval/);
   assert.doesNotMatch(skill, /Build a review path before writing details|Give a small change one compact block|Name sections after what changes or what the reader must judge/);
@@ -109,6 +113,27 @@ test('Spec v2 keeps a fixed envelope and writes an adaptive standalone implement
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
+test('planning intent becomes an acceptance and verification contract without fixed body sections', () => {
+  const plan = read('skills', 'development-plan', 'SKILL.md');
+  const spec = read('skills', 'implementation-spec', 'SKILL.md');
+  const tenet = read('skills', 'tenet-me', 'SKILL.md');
+
+  assert.match(plan, /initial idea, later clarifications, corrections, and confirmed choices as sources/);
+  assert.match(plan, /without reopening the conversation or inventing a material product decision/);
+  assert.match(plan, /leave observable acceptance conditions and the pre-implementation verification plan to a later Spec/);
+  assert.doesNotMatch(plan, /Choose its structure, length, examples, tables, and diagrams|Keep facts, decisions, proposals or assumptions/);
+
+  assert.match(spec, /ready Plan is supplied or linked[\s\S]*primary planning source/);
+  assert.match(spec, /acceptance conditions and a pre-implementation test and verification plan/);
+  assert.match(spec, /Every required result has planned evidence capable of deciding it/);
+  assert.doesNotMatch(spec, /AC-\*|Gherkin|required acceptance table|fixed heading/);
+
+  assert.match(tenet, /source intent to each acceptance condition and planned verification/);
+  assert.match(tenet, /trace every acceptance condition back to its source intent and forward to verification capable of deciding it/);
+  assert.match(tenet, /future code and results are not missing evidence/);
+  assert.doesNotMatch(tenet, /`Outcome`|`Done when`|`Behavior`/);
+});
+
 test('implementation composes role-owned Gates with one bounded blind review cycle', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
   const modelRouting = read('skills', 'start-implementation', 'assets', 'model-routing.md');
@@ -117,21 +142,24 @@ test('implementation composes role-owned Gates with one bounded blind review cyc
   assert.match(modelRouting, /Direct and base `create_thread`: set `model` and `thinking`/);
   assert.match(modelRouting, /Forked implementer: set `model` and `thinking` in its first implementation `send_message_to_thread`/);
   assert.match(modelRouting, /Reviewer `spawn_agent`: set `model`, `reasoning_effort`, and `fork_turns: "none"`/);
-  assert.match(coordinator, /Implementation[\s\S]*smallest affected build[\s\S]*focused changed-behavior tests/);
-  assert.match(coordinator, /Review[\s\S]*Every target requirement is satisfied, the implementation introduces no defect or regression, and its changes stay within authorized scope/);
+  assert.match(coordinator, /Implementation[\s\S]*Spec-planned checks executable by the implementer[\s\S]*smallest affected build[\s\S]*focused changed-behavior tests/);
+  assert.match(coordinator, /Review[\s\S]*Current evidence supports every target acceptance condition, the implementation introduces no defect or regression, and its changes stay within authorized scope/);
   assert.match(coordinator, /pre-existing issue blocks only when it prevents a required target outcome/);
   assert.doesNotMatch(coordinator, /without defect, omission, or scope violation/);
-  assert.match(coordinator, /Integration[\s\S]*reviewer-owned Spec-wide checks/);
+  assert.match(coordinator, /Integration[\s\S]*Current integrated evidence supports every Spec-wide acceptance condition and reviewer-owned integration check/);
   assert.match(coordinator, /successful Implementation Gate and reviewer `pass`/);
   assert.match(coordinator, /Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract/);
   assert.match(coordinator, /End the implementer message there/);
-  assert.match(coordinator, /reports changed paths, commands, results, completion state, and stop reason/);
+  assert.match(coordinator, /report contract requires changed paths, final commands and results, evidence or an unverified reason for each owned acceptance condition/);
+  assert.match(coordinator, /does not judge whole-Spec compliance, design, scope, or the final review verdict/);
   assert.match(coordinator, /Review only a `complete` report whose Gate succeeded/);
   assert.match(coordinator, /fresh blind, read-only reviewer with `fork_turns: "none"`/);
-  assert.match(coordinator, /`pass` when the Gate holds, `fail` with evidence-backed blocking findings that identify Gate violations/);
+  assert.match(coordinator, /pass target\/project\/domain paths[\s\S]*changed paths, final commands and results, acceptance-condition evidence or unverified reasons/);
+  assert.match(coordinator, /checks the contract and final evidence first, then inspects the implementation as needed/);
+  assert.match(coordinator, /`pass` when the Gate holds, `fail` with evidence-backed blocking findings that name the violated acceptance condition or missing or conflicting evidence/);
   assert.match(coordinator, /`need_confirm` for an unresolved decision outside authorized scope/);
   assert.match(coordinator, /out-of-scope issue already evidenced by the target review[\s\S]*separate `observation`[\s\S]*affects neither judgment nor blocking findings/);
-  assert.match(coordinator, /Exclude implementation history and expected judgment/);
+  assert.match(coordinator, /Exclude implementer self-judgment, retry history, and expected judgment/);
   assert.match(coordinator, /call `wait_agent` until judgment returns/);
   assert.match(coordinator, /unresolved blocking findings, constraint delta, and one-line Gate/);
   assert.match(coordinator, /Record each non-duplicate `observation` through `\.\.\/issue-ledger\/SKILL\.md`/);

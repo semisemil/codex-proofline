@@ -21,18 +21,18 @@ Coordinate; do not implement or review product changes yourself. Write messages 
 
 | Gate | Owner | Pass condition |
 | --- | --- | --- |
-| Implementation | Implementer | The smallest affected build, syntax, or type check and focused changed-behavior tests succeed. |
-| Review | Direct or Slice reviewer | Every target requirement is satisfied, the implementation introduces no defect or regression, and its changes stay within authorized scope. A pre-existing issue blocks only when it prevents a required target outcome. |
-| Integration | Direct or final reviewer | The integrated target satisfies its reviewer-owned Spec-wide checks. |
+| Implementation | Implementer | All Spec-planned checks executable by the implementer, the smallest affected build, syntax, or type check, and focused changed-behavior tests succeed; the report maps every owned acceptance condition to final evidence or an unverified reason. |
+| Review | Direct or Slice reviewer | Current evidence supports every target acceptance condition, the implementation introduces no defect or regression, and its changes stay within authorized scope. A pre-existing issue blocks only when it prevents a required target outcome. |
+| Integration | Direct or final reviewer | Current integrated evidence supports every Spec-wide acceptance condition and reviewer-owned integration check. |
 
 A target passes only with a successful Implementation Gate and reviewer `pass`. Direct review owns Review and Integration; Slice review owns Review; final Sliced review owns Integration.
 
 ## Implementation loop
 
-1. Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract. End the implementer message there.
-2. The implementer changes product and test paths within target scope, leaves Spec/Slice documents unchanged, runs the Gate, and reports changed paths, commands, results, completion state, and stop reason through `send_message_to_thread`.
+1. Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract. The report contract requires changed paths, final commands and results, evidence or an unverified reason for each owned acceptance condition, completion state, and stop reason. End the implementer message there.
+2. The implementer changes product and test paths within target scope, leaves Spec/Slice documents unchanged, runs the Gate, and reports through `send_message_to_thread`. The implementer does not judge whole-Spec compliance, design, scope, or the final review verdict.
 3. End the coordinator turn after instruction; resume on the callback. Do not call `wait_threads`.
-4. Review only a `complete` report whose Gate succeeded. Spawn a fresh blind, read-only reviewer with `fork_turns: "none"`; pass target/project/domain paths, repository instructions, user constraints, output language, the owned Gate, and this output contract: `pass` when the Gate holds, `fail` with evidence-backed blocking findings that identify Gate violations, or `need_confirm` for an unresolved decision outside authorized scope. A concrete out-of-scope issue already evidenced by the target review is a separate `observation`; it affects neither judgment nor blocking findings. Exclude implementation history and expected judgment. Keep the coordinator turn active and call `wait_agent` until judgment returns.
+4. Review only a `complete` report whose Gate succeeded. Spawn a fresh blind, read-only reviewer with `fork_turns: "none"`; pass target/project/domain paths, repository instructions, user constraints, output language, changed paths, final commands and results, acceptance-condition evidence or unverified reasons, and the owned Gate. The reviewer checks the contract and final evidence first, then inspects the implementation as needed. Require `pass` when the Gate holds, `fail` with evidence-backed blocking findings that name the violated acceptance condition or missing or conflicting evidence, or `need_confirm` for an unresolved decision outside authorized scope. A concrete out-of-scope issue already evidenced by the target review is a separate `observation`; it affects neither judgment nor blocking findings. Exclude implementer self-judgment, retry history, and expected judgment. Keep the coordinator turn active and call `wait_agent` until judgment returns.
 5. On `pass`, approve the target. On `fail`, send the same implementer only the target/domain paths, unresolved blocking findings, constraint delta, and one-line Gate; then use a fresh reviewer. On `need_confirm`, obtain the decision and require a fresh reviewer `pass`. Record each non-duplicate `observation` through `../issue-ledger/SKILL.md`.
 
 Stop on an unchanged or repeated failure, after three `fail` judgments for one target, or after a replacement reviewer also fails to return a valid judgment.
@@ -57,6 +57,6 @@ Keep the integration base through final review. Preserve pre-existing Git state.
 
 ## Final review
 
-After every Slice is completed, run a fresh entire-Spec Integration review. A final fix gets its own Implementation and Review Gates, is integrated through the same path, and is followed by another Integration review. Complete the Spec only after reviewer `pass`; change only lifecycle status in Spec/Slice documents.
+After every Slice is completed, run a fresh entire-Spec Integration review against every acceptance condition and the current integrated evidence. A final fix gets its own Implementation and Review Gates, is integrated through the same path, and is followed by another Integration review. Complete the Spec only after reviewer `pass`; change only lifecycle status in Spec/Slice documents.
 
-Report mode, tasks and roots, changed paths, Gate results, reviewer judgment, integrated SHAs, or the exact stop reason.
+Report mode, tasks and roots, changed paths, acceptance-condition evidence or unverified reasons, Gate results, reviewer judgment, integrated SHAs, or the exact stop reason.

@@ -38,9 +38,11 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 
 ### Contract
 
-- **Sources:** Request, confirmed decisions, current project evidence, and authoritative domain or linked documents
+- **Sources:** When a ready Plan is supplied or linked, use it as the primary planning source; apply later confirmed user corrections and decisions, then current project evidence and authoritative domain or linked documents. Without a Plan, use the request and the same remaining sources
 - **Standalone body:** Include linked information required for implementation or review
 - **Body:** Current contract only
+- **Acceptance:** Convert the current intent into observable acceptance conditions and a pre-implementation test and verification plan. Every required result has planned evidence capable of deciding it; every acceptance condition is supported by a source
+- **Boundary:** Do not add product behavior or generic error, performance, or quality conditions absent from the sources
 
 ### Body style
 
@@ -52,12 +54,12 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 
 ### Contract structure
 
-- Keep material conditions, boundaries, fixed decisions, and minimum evidence with the part of the contract they qualify
+- Keep each acceptance condition, its material boundaries and fixed decisions, and its planned evidence together enough for implementation and review
 - Use Mermaid for graph-shaped relationships with multiple branches or actors
 
 ## Lifecycle
 
-- **Ready:** The implementer can proceed without inventing product behavior, scope, cross-boundary ownership, state or data rules, compatibility obligations, or proof of the required results; the reviewer can judge every required outcome from observable evidence
+- **Ready:** Every material source intent is represented, every acceptance condition is source-supported, and each required result has a verification plan capable of producing observable evidence; the implementer can proceed without inventing product behavior, scope, cross-boundary ownership, state or data rules, compatibility obligations, or proof of the required results
 - **Draft:** A material decision or unsupported current-state claim could change the contract; expose the gap instead of filling it by inference
 - **Blocked:** An actual external prerequisite only; transient task, tool, reviewer, or runtime failures do not change status
 - **Create:** Revision `1`, with status determined by the ready rule

@@ -1,6 +1,6 @@
 ---
 name: tenet-me
-description: "Review outcome paths in a Spec, plan, design, or stateful workflow using current evidence. Use only when the user explicitly invokes $tenet-me or $figure-it-out owns the explicit workflow."
+description: "Review intent, outcome, and verification paths in a Spec, Plan, design, or stateful workflow using current evidence. Use only when the user explicitly invokes $tenet-me or $figure-it-out owns the explicit workflow."
 ---
 
 # Tenet Me
@@ -9,18 +9,18 @@ Review the target as a conversation. Read `CONTEXT.md` and the reviewed area's A
 
 ## Dependency graph
 
-Build one internal directed graph containing every claimed outcome at its original strength, its prerequisites, transitions, and evidence boundaries. In an implementation Spec:
+Build one internal directed graph containing every current intended result at its original strength, its decisions, constraints, prerequisites, transitions, verification paths, and evidence boundaries.
 
-- treat `Outcome` and each observable `Done when` as outcomes;
-- treat `Behavior` and cited sources as transition candidates.
+- For a Plan, trace each intended result through the selected direction and the material decisions and constraints that shape it
+- For an implementation Spec, trace source intent to each acceptance condition and planned verification, then trace every acceptance condition back to its source intent and forward to verification capable of deciding it
 
-For every outcome:
+For every required result:
 
 - trace backward to an initial or current state or evidence boundary;
 - reconstruct forward over the same edges;
 - leave unsupported edges unresolved.
 
-For a pre-implementation Spec, judge implementable transitions, observable success, and conflicts with the existing system; future code is not missing evidence. For an existing implementation or completed outcome, missing required implementation or verification may be a gap.
+For a pre-implementation Spec, judge whether its acceptance conditions are implementable, its planned verification can decide them, and its paths conflict with the existing system; future code and results are not missing evidence. For an existing implementation or completed result, require current evidence and treat missing required implementation or verification as a possible gap.
 
 Classify paths internally:
 
@@ -49,7 +49,7 @@ Integrate each result only into supported edges. Do not delay unrelated ready de
 
 In each numbered round, ask every user decision whose prerequisites are resolved and that is independent of the others in that round. For each, state in natural Korean:
 
-- affected outcome;
+- affected result;
 - blocking edge and importance;
 - confirmed evidence;
 - recommended direction.

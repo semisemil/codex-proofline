@@ -33,17 +33,13 @@ Use only `id`, `title`, `status`, and optional nonempty `related_issues` for exp
 
 ## Write the Plan
 
-Write one coherent development-planning document that stands without the conversation. Choose its structure, length, examples, tables, and diagrams for the subject instead of filling a fixed outline.
+Develop the user's rough idea and current planning conversation into a concrete direction grounded in the project. Treat the initial idea, later clarifications, corrections, and confirmed choices as sources; synthesize their current effect rather than recounting the conversation.
 
-Make the current problem, affected people or work, intended outcome, scope, and current solution direction concrete enough to judge. Supply the rationale and tradeoffs that support the direction. Include alternatives, risks, constraints, architecture, workflows, operational effects, and research only when they improve that judgment.
-
-Keep facts, decisions, proposals or assumptions, material open questions, and out-of-scope work distinguishable. Preserve uncertainty at the resolution supported by the evidence; do not turn it into an invented fact, decision, or requirement.
-
-Synthesize the current planning state rather than its discussion or investigation history. Link to authoritative detail instead of duplicating it. Record technical or architectural direction when it resolves a planning decision; leave the observable implementation contract and requirement identifiers to a later Spec.
+Write the current Plan so its direction can be understood and judged without the conversation. Retain only rationale and tradeoffs that materially support the selected direction. Record technical or architectural direction when it settles a planning decision; leave observable acceptance conditions and the pre-implementation verification plan to a later Spec.
 
 ## Set readiness
 
-Use `ready` when the problem, intended outcome, scope, selected direction, and material tradeoffs and risks are clear enough to write an implementation Spec, with no unresolved decision that would materially change them. `ready` means the Plan is complete enough for that use; it does not mean user acceptance or authorize Spec creation or implementation.
+Use `ready` when an implementation Spec can be written without reopening the conversation or inventing a material product decision, with no unresolved decision that would materially change the problem, intended outcome, scope, selected direction, or its material tradeoffs and risks. `ready` means the Plan is complete enough for that use; it does not mean user acceptance or authorize Spec creation or implementation.
 
 Use `draft` while a material decision or uncertainty prevents that state. Preserve what is known and expose the gap. Return a revised `ready` Plan to `draft` when such a gap appears.
 

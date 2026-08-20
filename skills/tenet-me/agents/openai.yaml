@@ -1,6 +1,6 @@
 interface:
   display_name: "Proofline Tenet Me"
-  short_description: "Review reverse outcome paths using only current evidence"
+  short_description: "Review intent-to-verification paths using current evidence"
   default_prompt: "Use $tenet-me to review SPEC-0001."
 
 policy:
