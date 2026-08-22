@@ -88,7 +88,7 @@ $proofline:exact-port
 | `$proofline:implementation-spec` | 여러 작업이나 독립 검토가 필요한 구현 계약을 만들거나 수정할 때 | 관찰 가능한 인수 조건, 구현 전 검증 계획, Spec 수명주기 |
 | `$proofline:tenet-me` | 구현 전에 Plan이나 Spec의 의도와 검증 경로를 검토할 때 | Plan 의도·Spec 인수 조건·검증 연결, 누락과 사용자 결정 확인 |
 | `$proofline:spec-slice` | 준비된 Spec의 실행 구조를 계획하고 검증할 때 | Spec 루트와 Slice·SubSlice·Leaf 위치, v3 Node·Gate 실행 트리 |
-| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | 내부 실행 트리 준비, 재귀 Leaf 실행, Gate 재검증, Slice·Spec Integration 검토 |
+| `$proofline:start-implementation` | 준비된 Spec을 구현 후 독립 검토와 함께 진행할 때 | Spec 통합 작업, Slice 조정 작업, 재귀 Leaf 실행, Gate 재검증과 독립 검토 |
 
 ## 🔁 Plan에서 구현까지
 
@@ -104,7 +104,7 @@ $proofline:figure-it-out
 1. `development-plan`: 거친 아이디어와 전체 기획 대화에서 현재 유효한 의도·결정·제약을 `.proofline/plan/`의 Plan으로 종합합니다. `ready`는 대화를 다시 읽거나 중요한 제품 결정을 만들어내지 않고 Spec을 작성할 수 있다는 뜻이며, Spec 작성이나 구현을 승인하지 않습니다.
 2. `implementation-spec`: Plan의 현재 의도를 관찰 가능한 인수 조건과 구현 전 검증 계획을 가진 독립적인 Spec으로 정리합니다. 구현은 시작하지 않습니다.
 3. `tenet-me`: 명시적으로 요청할 때 Plan 의도에서 Spec 인수 조건과 계획된 검증까지의 연결을 검토하고, 누락됐거나 근거가 없거나 사용자 결정이 필요한 연결을 확인합니다.
-4. `start-implementation`: Spec을 루트로 삼아 하나의 `execute(node)` 경로로 재귀 실행합니다. 루트 바로 아래 Node는 Slice 검토 경계, 더 깊은 Node는 SubSlice, 자식이 없는 루트나 Node는 Leaf이며 모두 모드나 종류가 아니라 트리의 위치를 뜻합니다. 자식이 없는 Spec에는 Slice 파일을 만들지 않습니다. 기존 v1·v2 실행 계획을 발견하면 `explicit re-slice required`로 중단하고, 사용자가 명시적으로 re-slice를 요청한 뒤에만 다시 작성합니다. 각 Leaf와 Repair는 새 에이전트가 맡고 부모가 실행 가능한 Gate를 다시 확인하며, `ABANDON`은 미완료로 남습니다. 안전한 Leaf는 최대 2개만 동시에 보내고 각 Spec 직속 Slice와 최종 Spec Integration 경계에서만 한 번씩 독립 검토합니다. 루트만 있는 Spec은 Slice 검토 없이 Spec Integration 검토만 받으며 자동으로 push하지 않습니다.
+4. `start-implementation`: Spec을 루트로 삼아 하나의 `execute(node)` 경로로 재귀 실행합니다. 원본 checkout에서 사용자에게 보이는 Spec 통합 작업/Worktree를 만들고, 각 루트 직속 Node는 별도의 Slice 조정 작업/Worktree가 전체 하위 트리를 맡습니다. 더 깊은 SubSlice는 그 작업 안에서 재귀 실행되고 Leaf 구현과 고정 Node Repair만 새 내부 subagent가 수행합니다. 루트 직속 Slice, SubSlice, Leaf는 모드나 종류가 아니라 트리의 위치이며, 자식이 없는 Spec에는 Slice 작업이나 파일을 만들지 않습니다. Inspector는 기계적으로 안전한 실행 가능 후보를 모두 제공하고, 모델이 의존성·쓰기 범위·공유 작업 공간·작업 크기·가용 실행 여력에 따라 안전한 동시 실행 수를 정하므로 고정 상한은 없습니다. Spec 조정자가 Slice Blind Review, 통합, root Gate와 최종 Spec Integration Review를 소유하며 `ABANDON`은 미완료로 남습니다. Git에서는 검토와 Gate를 통과한 Slice 조정 작업만 임시 전달 커밋을 만들고 통합 Worktree에서 다시 Gate를 실행합니다. 모든 통합 검증이 끝날 때까지 원본은 건드리지 않으며, 마지막에는 정확한 diff를 미커밋 변경으로 적용해 원본 Gate를 다시 실행합니다. 최종 커밋은 사용자 명시 승인이 필요하고 push하지 않습니다. 기존 v1·v2 실행 계획은 `explicit re-slice required`로 중단합니다.
 
 ```text
 $proofline:development-plan

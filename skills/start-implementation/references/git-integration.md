@@ -2,27 +2,35 @@
 
 Read this only when the prepared project uses Git or the platform can provide isolated worktrees. The execution loop remains authoritative for agent briefs, Gates, review, repair, and status.
 
-## Isolation
+## Task/worktree topology
 
-Capture the expected HEAD and current status of every existing root before dispatch. Preserve all pre-existing dirty state: do not stage, overwrite, clean, reset, stash, or fold it into implementation commits.
+Use this topology: original checkout -> user-visible Spec integration task/worktree -> user-visible root-direct Slice task/worktree. Capture the original checkout's expected HEAD, exact dirty state, and target-path overlap before task creation. If pre-existing dirty paths overlap the root effective execution scope, stop for `need_confirm` unless the user explicitly authorized that exact state as the implementation baseline. Preserve all pre-existing dirty work: do not stage, overwrite, clean, reset, stash, or fold it into transport.
 
-For Git, give each fresh Node agent an isolated subagent/worktree from the current expected integration commit when the platform supports it. Use the inspector result's execution and integration order. Keep no more than two safe Leaves active. If isolation is unavailable, or for Non-Git/shared workspaces, execute one Leaf at a time and measure each Leaf's path delta against its starting state.
+Create the Spec integration task/worktree from the recorded original HEAD and leave the original untouched. Each selected root-direct Slice is an actual task/worktree created from a recorded Spec integration commit. Independent parallel Slices start from the same recorded integration commit. A dependent Slice starts only after every prerequisite is integrated, from the then-current integration commit. The model selects any safe number of runnable Slice tasks or Leaves using dependency, scope, workspace, size, and capacity evidence; no hard cap applies. Shared-workspace overlap requires serialization.
 
-## Exact integration
+## Reviewed transport
 
-Build an exact allowlist from the reviewed target-scope paths. Stage only that allowlist, confirm `git diff --cached --name-only` matches it exactly, and run `git diff --cached --check`. Commit and integrate only after all three conditions hold. Coordinator-owned Spec, Node, and Gate state and unrelated dirty paths never enter the implementation commit.
+Leaf and Repair subagents never stage or commit. After a Slice task closes descendant Nodes and passes every subtree Gate, the Spec coordinator runs a fresh blind read-only Slice reviewer in that Slice worktree. A `fail` returns to the owning Slice task, which creates a fresh fixed-Node Repair; `need_confirm` stops for the required decision.
 
-Cherry-pick approved commits in the integration order consumed from the inspector. After each successful pick, rerun every Gate in the integrated subtree in the destination root with `run-gates.js run`; prior worktree evidence is not destination evidence.
+Only after review `pass` may the Spec coordinator authorize that same user-visible Slice coordinator task to create a local temporary transport commit. Build an exact allowlist from the reviewed target-scope product paths, stage only it, confirm `git diff --cached --name-only` matches exactly, and run `git diff --cached --check`. Coordinator-owned Spec, Node, and Gate state and unrelated dirty paths stay out of transport. The Slice coordinator may then commit the staged allowlist locally and report its SHA; no internal subagent may do so.
 
-On cherry-pick conflict, abort the cherry-pick and preserve the destination at its prior expected state. Start the same fixed Node again with a fresh agent and worktree from the current integration commit, then repeat its Gates and every review required by position. Do not resolve the conflict by editing the integration root or changing the Node/Gate contract.
+The Spec coordinator cherry-picks reviewed transport commits into the Spec integration worktree in accepted integration order. After each pick, rerun every Gate in that integrated subtree there with `run-gates.js run`; prior Slice-worktree evidence is not integration evidence. Record the fresh Gate evidence and mirror accepted descendant lifecycle state in the integration worktree, then mark the direct Slice `completed`. A temporary commit is transport evidence, not completion.
+
+On cherry-pick conflict, abort the pick and preserve the integration destination at its prior expected state. Return the same fixed Slice to a temporary Slice worktree based on the current integration commit, then repeat affected Gates, fresh Blind Review, exact transport, and integrated Gates. Route any other failed Slice or final check to a fresh fixed-Node Repair in a temporary worktree; do not edit or reset the original checkout to repair or remove Spec commits.
+
+## Original destination
+
+Keep the original checkout untouched until every Slice is completed in the integration worktree, the root Gate and full Spec checks pass there, and a fresh Spec Integration Review returns `pass`. Then re-read the original expected HEAD and exact dirty state and verify the integrated diff does not overlap pre-existing dirty paths. If any HEAD, dirty-state, or non-overlap precondition changed, stop with the integration worktree preserved.
+
+When every precondition still holds, apply only the exact integrated diff to the original checkout as uncommitted changes and rerun destination Gates there. Destination evidence is required; integration-worktree evidence does not substitute for it. A final commit requires explicit user authorization. Never push. Preserve unrelated dirty work throughout.
 
 ## Safe cleanup
 
-Cleanup is conditional on a terminal agent task. Archive the terminal task first. Only after archival succeeds, verify both:
+Cleanup is conditional on a terminal user-visible task. Archive the terminal task first. Only after archival succeeds, verify both:
 
 - `git -C <worktree-root> rev-parse HEAD` equals its expected HEAD;
 - `git -C <worktree-root> status --porcelain` is empty.
 
 Then run `git worktree remove <worktree-root>` without `--force`. Any archive, HEAD, cleanliness, or removal failure preserves the exact path for recovery and enters the final report.
 
-Do not push, merge, rebase, squash, force-remove a worktree, or delete a branch.
+Do not merge, rebase, squash, force-remove a worktree, delete a branch, or reset original history.

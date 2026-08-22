@@ -236,7 +236,7 @@ test('v3 template is exact and forbidden persisted fields are rejected', (t) => 
   assert.equal(typeof stripFencedCode, 'function');
 });
 
-test('root-only tree dispatches only while ready and its root Gate is unmet', (t) => {
+test('root-only tree exposes only the root dispatch candidate while ready with an unmet Gate', (t) => {
   const root = fixture(t);
   writeSpec(root);
   writeGate(root, SPEC_ID, 'checked-pending');
@@ -245,18 +245,22 @@ test('root-only tree dispatches only while ready and its root Gate is unmet', (t
   assert.deepEqual(result.nodes, []);
   assert.equal(result.root_gate_all_met, false, 'checked with pending evidence is still unmet');
   assert.deepEqual(result.runnable_leaves, [SPEC_ID]);
-  assert.deepEqual(result.dispatch, [SPEC_ID]);
+  assert.deepEqual(result.dispatch_candidates, [SPEC_ID]);
+  assert.deepEqual(result.runnable_slices, []);
+  assert.equal('dispatch' in result, false);
 
   writeGate(root, SPEC_ID, 'met');
   result = inspectExecutionTree(root);
   assert.equal(result.root_gate_all_met, true);
   assert.deepEqual(result.runnable_leaves, []);
-  assert.deepEqual(result.dispatch, []);
+  assert.deepEqual(result.dispatch_candidates, []);
+  assert.deepEqual(result.runnable_slices, []);
 
   writeSpec(root, { status: 'completed' });
   result = inspectExecutionTree(root);
   assert.equal(result.spec_status, 'completed');
-  assert.deepEqual(result.dispatch, []);
+  assert.deepEqual(result.dispatch_candidates, []);
+  assert.deepEqual(result.runnable_slices, []);
 
   writeGate(root, SPEC_ID, 'unmet');
   expectTreeError(root, /completed Spec requires the root Gate to be all met/);
@@ -297,7 +301,7 @@ test('Node Gate binding rejects owner ID and Spec scope mismatches', (t) => {
   expectTreeCliError(wrongSpec, scopePattern);
 });
 
-test('three-level tree exposes safe Leaves deterministically and caps dispatch at two', (t) => {
+test('three-level tree exposes every safe Leaf as a deterministic dispatch candidate', (t) => {
   const root = fixture(t);
   const ids = [
     'SLICE-01',
@@ -320,10 +324,46 @@ test('three-level tree exposes safe Leaves deterministically and caps dispatch a
     'SLICE-01.01.02',
     'SLICE-01.01.03',
   ]);
-  assert.deepEqual(result.dispatch, ['SLICE-01.01.01', 'SLICE-01.01.02']);
-  assert.equal(result.dispatch.length, 2);
+  assert.deepEqual(result.dispatch_candidates, [
+    'SLICE-01.01.01',
+    'SLICE-01.01.02',
+    'SLICE-01.01.03',
+  ]);
+  assert.deepEqual(result.runnable_slices, ['SLICE-01']);
+  assert.equal('dispatch' in result, false);
   assert.equal(result.nodes.find((node) => node.id === 'SLICE-01').position, 'slice');
   assert.equal(result.nodes.find((node) => node.id === 'SLICE-01.01.01').depth, 3);
+});
+
+test('direct-Slice dependencies unlock runnable Slices and exclude Blind Review-only work', (t) => {
+  const root = fixture(t);
+  const first = nodeMetadata('SLICE-01', { write_scope: ['src/first.js'] });
+  const second = nodeMetadata('SLICE-02', {
+    run_after: [first.id],
+    write_scope: ['src/second.js'],
+  });
+  const reviewOnly = nodeMetadata('SLICE-03', { write_scope: ['src/review-only.js'] });
+  writeSpec(root, {
+    links: [sliceLink(first.id), sliceLink(second.id), sliceLink(reviewOnly.id)],
+  });
+  writeNode(root, first);
+  writeNode(root, second);
+  writeNode(root, reviewOnly);
+  writeGateSet(root, [SPEC_ID, first.id, second.id, reviewOnly.id], {
+    [reviewOnly.id]: 'met',
+  });
+
+  let result = inspectExecutionTree(root);
+  assert.deepEqual(result.dispatch_candidates, [first.id]);
+  assert.deepEqual(result.runnable_slices, [first.id]);
+  assert.deepEqual(result.review_ready, [reviewOnly.id]);
+
+  writeNode(root, { ...first, status: 'completed' });
+  writeGate(root, first.id, 'met');
+  result = inspectExecutionTree(root);
+  assert.deepEqual(result.dispatch_candidates, [second.id]);
+  assert.deepEqual(result.runnable_slices, [second.id]);
+  assert.deepEqual(result.review_ready, [reviewOnly.id]);
 });
 
 test('sibling ordering unlocks Leaves and Branches progress bottom-up into review', (t) => {
@@ -497,7 +537,8 @@ test('ABANDON is exit-valid terminal state and suppresses every action array', (
   assert.equal(result.execution_stopped, true);
   assert.deepEqual(result.abandoned_ids, [SPEC_ID]);
   assert.deepEqual(result.runnable_leaves, []);
-  assert.deepEqual(result.dispatch, []);
+  assert.deepEqual(result.dispatch_candidates, []);
+  assert.deepEqual(result.runnable_slices, []);
   assert.deepEqual(result.completable_branches, []);
   assert.deepEqual(result.review_ready, []);
 
@@ -686,7 +727,8 @@ test('completed Node and completed Spec states require bottom-up completion and 
     'SLICE-01': 'met',
   });
   const completed = inspectExecutionTree(completedSpec);
-  assert.deepEqual(completed.dispatch, []);
+  assert.deepEqual(completed.dispatch_candidates, []);
+  assert.deepEqual(completed.runnable_slices, []);
   assert.deepEqual(completed.completable_branches, []);
   assert.deepEqual(completed.review_ready, []);
 

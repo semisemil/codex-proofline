@@ -1,8 +1,14 @@
 # Proofline Model Routing
 
-Read this once at run start. An explicit user setting wins. Otherwise select the lowest setting that fits each role needed by the accepted execution tree, record each selection with a one-line reason, and reuse that routing map for the run. Do not reread or re-select unless the user changes a routing setting. Ask before substituting an unavailable setting.
+Read this once at run start. Record real-task settings separately from internal-agent routes and reuse both for the run. Do not reread or re-select unless the user changes a routing setting. Ask before substituting an unavailable setting.
 
-Mechanical Leaves may use the lower setting. Design, cross-boundary integration, and every reviewer use the strong model.
+## User-visible tasks
+
+For the Spec integration task and every Slice coordinator task, pass task-creation `model` or `thinking` only when the user explicitly selected that field. Otherwise omit both and use the configured task default. Creating or forking a real task is not an internal routing override.
+
+## Internal agents
+
+An explicit user setting wins. Otherwise select the lowest setting that fits each internal role needed by the accepted execution tree and record the choice with a one-line reason. Mechanical Leaves may use the lower setting. Design, cross-boundary integration, and every reviewer use the strong model.
 
 ## Implementation and repair
 
@@ -23,6 +29,6 @@ Use `max` only on explicit request. Raise effort for complexity, ambiguity, or v
 | `gpt-5.6-sol` + `high` | Difficult root cause, broad state flow, cross-Slice integration, or important design |
 | `gpt-5.6-sol` + `xhigh` | High-consequence security, data, compatibility, migration, deployment, rollback, or external-contract review |
 
-## Agent fields
+## Spawn fields
 
-Every implementer, repairer, and reviewer is a fresh `spawn_agent` call with `fork_context: false`. Include `model` and `reasoning_effort` only when the recorded route selects an override; otherwise omit both fields.
+Every Leaf implementer, fixed-Node Repair, and reviewer is a fresh `spawn_agent` call with `fork_context: false`. Internal `spawn_agent` overrides must follow the recorded role route: include `model` and `reasoning_effort` when that route selects an override; otherwise omit both fields.

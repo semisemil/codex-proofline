@@ -1,7 +1,7 @@
 interface:
   display_name: "Proofline Start Implementation"
-  short_description: "Recursively execute a Spec through Gates and review"
-  default_prompt: "Use $start-implementation to recursively execute the specified ready Spec through its validated tree, mechanical Gates, and fresh boundary reviews."
+  short_description: "Coordinate task-backed Spec execution and review"
+  default_prompt: "Use $start-implementation to recursively execute the specified ready Spec through its validated tree, user-visible Slice tasks, mechanical Gates, and fresh boundary reviews."
 
 policy:
   allow_implicit_invocation: false

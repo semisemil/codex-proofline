@@ -143,8 +143,10 @@ test('implementation keeps fresh agents, blind judgments, observations, and mode
   assert.match(coordinator, /reuse them[\s\S]*Do not reread or re-select unless the user changes a routing setting/);
   assert.match(modelRouting, /An explicit user setting wins/);
   assert.match(modelRouting, /every reviewer use the strong model/);
-  assert.match(modelRouting, /Every implementer, repairer, and reviewer is a fresh `spawn_agent` call with `fork_context: false`/);
-  assert.match(modelRouting, /Include `model` and `reasoning_effort` only when the recorded route selects an override/);
+  assert.match(modelRouting, /Spec integration task and every Slice coordinator task[\s\S]*pass task-creation `model` or `thinking` only when the user explicitly selected that field/);
+  assert.match(modelRouting, /Otherwise omit both and use the configured task default/);
+  assert.match(modelRouting, /Every Leaf implementer, fixed-Node Repair, and reviewer is a fresh `spawn_agent` call with `fork_context: false`/);
+  assert.match(modelRouting, /Internal `spawn_agent` overrides must follow the recorded role route/);
   assert.doesNotMatch(`${coordinator}\n${executionLoop}\n${modelRouting}`, /fork_turns/);
 
   assert.match(executionLoop, /report carries no whole-Spec, design, scope, Gate, or review verdict/);
@@ -197,7 +199,7 @@ test('recursive execution tree', () => {
   assert.equal((coordinator.match(/^## `execute\(node\)`$/gm) || []).length, 1);
   assert.match(coordinator, /The single execution operation is `execute\(node\)`/);
   assert.match(coordinator, /Call `execute\(root\)` using only the accepted inspector result/);
-  assert.match(coordinator, /Branch:[\s\S]*recursively execute only runnable children/);
+  assert.match(coordinator, /Branch:[\s\S]*recursively execute only currently runnable children/);
   assert.doesNotMatch(`${coordinator}\n${slicing}\n${readme}`, /\b(?:Direct|Sliced|Flat|Tree)\b/);
 
   assert.match(coordinator, /Read and apply \[spec-slice\]\(\.\.\/spec-slice\/SKILL\.md\) internally/);
@@ -216,11 +218,25 @@ test('recursive execution tree', () => {
   assert.match(treeContract, /Branch Node: the union of all descendant Leaf `write_scope` arrays[\s\S]*Branch still stores `write_scope: \[\]`/);
   assert.match(treeContract, /Root with child Nodes: the union of all Leaf `write_scope` arrays in the tree/);
   assert.match(treeContract, /Root-only tree: the already authorized Spec\/project root implementation scope/);
+  assert.match(treeContract, /all mechanically safe runnable work[\s\S]*`dispatch_candidates`[\s\S]*`runnable_slices`/);
+  assert.match(treeContract, /candidate sets, not a dispatch schedule, quota, or concurrency cap/);
+  assert.match(treeContract, /model chooses any safe subset[\s\S]*dependencies[\s\S]*effective write-scope overlap[\s\S]*shared-workspace safety[\s\S]*task size[\s\S]*available capacity/);
+  assert.match(treeContract, /There is no fixed numeric limit/);
+  assert.match(treeContract, /Execution-task ownership belongs to `start-implementation`, not this planning contract/);
   assert.match(treeContract, /any v1 or v2 execution Node or Slice plan[\s\S]*stop with `explicit re-slice required`/);
   assert.equal((treeContract.match(/`explicit re-slice required`/g) || []).length, 1);
   assert.match(treeContract, /without an explicit user request to re-slice/);
 
-  assert.match(executionLoop, /Every implementation or repair attempt is a fresh `spawn_agent` call with `fork_context: false`/);
+  assert.match(executionLoop, /original-checkout task creates a user-visible Spec integration task\/worktree/);
+  assert.match(executionLoop, /hands orchestration to it[\s\S]*original-checkout task performs no implementation or review/);
+  assert.match(executionLoop, /root-direct Slice is always an actual platform task\/thread, never a `spawn_agent` implementation worker/);
+  assert.match(executionLoop, /recursive `execute\(node\)` calls for deeper SubSlices stay in that task/);
+  assert.match(executionLoop, /root-only Spec[\s\S]*Spec integration task executes the root Leaf and creates no Slice task/);
+  assert.match(executionLoop, /Each Slice task receives only:[\s\S]*root-direct Slice contract and descendant Node contracts[\s\S]*linked Spec sections and Context documents reachable from that subtree[\s\S]*subtree's Gate paths and accepted inspector records/);
+  assert.match(executionLoop, /Exclude other Slice contracts, unrelated Spec sections, prior implementation or repair history, reviewer verdicts/);
+  assert.match(executionLoop, /Slice task reports `state: returned \| blocked`[\s\S]*supplies no Blind Review or whole-Spec verdict/);
+  assert.match(executionLoop, /use `spawn_agent` only for a fresh Leaf implementation or fixed-Node Repair, always with `fork_context: false`/);
+  assert.match(executionLoop, /Leaf and Repair subagents never stage or commit/);
   assert.match(executionLoop, /A Repair changes only paths in its fixed failing Node's effective execution scope:[\s\S]*Leaf's own `write_scope`[\s\S]*Branch or root's descendant-Leaf union[\s\S]*root-only[\s\S]*already authorized Spec\/project root implementation scope/);
   assert.match(executionLoop, /deepest existing Node that owns the violated contract and correction[\s\S]*Leaf, Branch, or root/);
   assert.match(executionLoop, /Failure count and the repeated-failure stop are tracked independently per fixed failing Node/);
@@ -228,19 +244,45 @@ test('recursive execution tree', () => {
   assert.match(executionLoop, /compute the affected closure from the accepted fixed tree[\s\S]*root-assigned Repair affects the root and every Node in the complete tree[\s\S]*repaired Node and its full subtree[\s\S]*least fixed point of affected siblings under `blocked_by`[\s\S]*dependent sibling's full subtree[\s\S]*Continue through the root/);
   assert.match(executionLoop, /Only reverse-transitive `blocked_by` result dependence expands the closure[\s\S]*`run_after`[\s\S]*asserts no result dependence and adds nothing to the closure/);
   assert.match(executionLoop, /set every affected `completed` Node to `pending`[\s\S]*discard every prior required boundary-review verdict[\s\S]*Leave Node, Gate, and Spec definitions unchanged/);
-  assert.match(executionLoop, /rerun every affected Gate bottom-up[\s\S]*including every already checked Gate[\s\S]*fresh Slice Blind Review[\s\S]*root Gate[\s\S]*fresh final Spec Integration Review/);
+  assert.match(executionLoop, /owning Slice task reruns every affected Gate bottom-up[\s\S]*including every already checked Gate[\s\S]*Spec coordinator runs a fresh Slice Blind Review[\s\S]*root Gate[\s\S]*fresh final Spec Integration Review/);
   assert.match(executionLoop, /non-`ABANDON` Gate failure[\s\S]*fresh fixed-Node Repair rule[\s\S]*recompute the closure/);
   assert.doesNotMatch(executionLoop, /affected execution subtree[\s\S]*ancestor Gate needed to re-close/);
   assert.match(executionLoop, /If no existing Node owns a finding[\s\S]*`need_confirm`[\s\S]*explicit re-slicing[\s\S]*Do not force the finding onto a Leaf/);
-  assert.match(executionLoop, /coordinator then runs every `CHECK` in the Leaf Gate/);
-  assert.match(executionLoop, /After all child Nodes are completed, run the Branch Gate/);
-  assert.match(executionLoop, /A root direct child gets exactly one Slice review per attempt/);
+  assert.match(executionLoop, /records one execution wave:[\s\S]*selected Leaf IDs[\s\S]*each fixed `write_scope`[\s\S]*exact pre-wave checkout snapshot/);
+  assert.match(executionLoop, /sequential Leaf is a wave of one/);
+  assert.match(executionLoop, /Wait for every selected agent in the wave to return or block before verification/);
+  assert.match(executionLoop, /compute the exact wave delta[\s\S]*union of the selected Leaves' fixed scopes/);
+  assert.match(executionLoop, /Do not compare one returning agent with the checkout's accumulated whole-Slice diff/);
+  assert.match(executionLoop, /run every selected Leaf Gate[\s\S]*close only Leaves whose own Gates pass/);
+  assert.match(executionLoop, /after all child Nodes complete, run the Branch Gate/);
+  assert.match(executionLoop, /Spec coordinator creates every Slice or Spec Integration reviewer as a fresh `spawn_agent` call with `fork_context: false`/);
+  assert.match(executionLoop, /reviewer is read-only and blind/);
+  assert.match(executionLoop, /root-direct Slice gets exactly one Slice review per attempt/);
   assert.match(executionLoop, /The root gets only the final Spec Integration review/);
   assert.match(executionLoop, /root-only Spec[\s\S]*one Spec Integration review with no Slice review/);
+  assert.match(executionLoop, /Slice-review or integrated-Slice-Gate failure returns to the owning Slice task[\s\S]*fresh Repair/);
+  assert.match(executionLoop, /Slice coordinator may update subtree Gate evidence and mark descendant Nodes `completed`/);
+  assert.match(executionLoop, /Spec coordinator marks that direct Slice `completed` only after a fresh Slice Blind Review passes, the Slice result is present in the Spec integration workspace, and subtree Gates pass there/);
+  assert.match(executionLoop, /Spec coordinator alone owns root Gate evidence and root\/Spec status/);
   assert.match(treeContract, /`ABANDON` records an unfinished path/);
   assert.match(executionLoop, /`ABANDON`[\s\S]*leaves the affected Node and every ancestor incomplete/);
-  assert.match(coordinator, /Keep at most two safe Leaves active across the run/);
-  assert.match(gitIntegration, /Do not push, merge, rebase, squash, force-remove a worktree, or delete a branch/);
+  assert.match(coordinator, /model chooses how many safe Slice tasks or Leaves to run concurrently[\s\S]*There is no numeric concurrency limit/);
+  assert.doesNotMatch(`${coordinator}\n${executionLoop}\n${gitIntegration}\n${treeContract}\n${readme}`, /(?:at most|no more than|maximum of|capped at) two safe (?:Slices|Leaves)/i);
+
+  assert.match(gitIntegration, /original checkout -> user-visible Spec integration task\/worktree -> user-visible root-direct Slice task\/worktree/);
+  assert.match(gitIntegration, /dirty paths overlap the root effective execution scope[\s\S]*stop for `need_confirm`/);
+  assert.match(gitIntegration, /Independent parallel Slices start from the same recorded integration commit/);
+  assert.match(gitIntegration, /dependent Slice starts only after every prerequisite is integrated, from the then-current integration commit/);
+  assert.match(gitIntegration, /Only after review `pass`[\s\S]*Slice coordinator task to create a local temporary transport commit/);
+  assert.match(gitIntegration, /stage only it[\s\S]*`git diff --cached --name-only`[\s\S]*`git diff --cached --check`/);
+  assert.match(gitIntegration, /temporary commit is transport evidence, not completion/);
+  assert.match(gitIntegration, /cherry-picks reviewed transport commits into the Spec integration worktree[\s\S]*rerun every Gate in that integrated subtree[\s\S]*mirror accepted descendant lifecycle state/);
+  assert.match(gitIntegration, /Keep the original checkout untouched until every Slice is completed[\s\S]*root Gate and full Spec checks pass[\s\S]*Spec Integration Review returns `pass`/);
+  assert.match(gitIntegration, /expected HEAD and exact dirty state[\s\S]*does not overlap pre-existing dirty paths/);
+  assert.match(gitIntegration, /apply only the exact integrated diff to the original checkout as uncommitted changes[\s\S]*rerun destination Gates/);
+  assert.match(gitIntegration, /final commit requires explicit user authorization/);
+  assert.match(gitIntegration, /Never push/);
+  assert.match(gitIntegration, /failed Slice or final check to a fresh fixed-Node Repair in a temporary worktree[\s\S]*do not edit or reset the original checkout/);
 
   for (const relativePath of [
     ['skills', 'spec-slice', 'references', 'execution-tree.md'],
@@ -261,7 +303,7 @@ test('recursive execution tree', () => {
     assert.match(agentContract, /^policy:\r?\n  allow_implicit_invocation: false\r?$/m);
   }
   assert.match(slicingAgent, /\$spec-slice[\s\S]*v3 execution tree and Gates/);
-  assert.match(implementationAgent, /\$start-implementation[\s\S]*recursively execute[\s\S]*validated tree/);
+  assert.match(implementationAgent, /\$start-implementation[\s\S]*recursively execute[\s\S]*validated tree[\s\S]*user-visible Slice tasks/);
 
   assert.match(gateTemplate, /^  CHECK: \{\{command\}\}$/m);
   assert.doesNotMatch(gateTemplate, /^  EXPECT:/m);
@@ -307,9 +349,10 @@ test('recursive execution tree', () => {
   assert.doesNotMatch(template, /"(?:acceptance_refs|type|mode)"\s*:/);
 
   assert.match(readme, /Spec을 루트로 삼아 하나의 `execute\(node\)` 경로로 재귀 실행/);
-  assert.match(readme, /Slice 검토 경계[\s\S]*SubSlice[\s\S]*Leaf/);
+  assert.match(readme, /Spec 통합 작업\/Worktree[\s\S]*Slice 조정 작업\/Worktree[\s\S]*SubSlice[\s\S]*Leaf 구현/);
+  assert.match(readme, /실행 가능 후보를 모두 제공[\s\S]*고정 상한은 없습니다/);
   assert.match(readme, /모드나 종류가 아니라 트리의 위치/);
-  assert.match(readme, /자식이 없는 Spec에는 Slice 파일을 만들지 않습니다/);
+  assert.match(readme, /자식이 없는 Spec에는 Slice 작업이나 파일을 만들지 않습니다/);
   assert.match(readme, /`explicit re-slice required`/);
   assert.doesNotMatch(readme, /tenet-me` → `spec-slice` → `start-implementation/);
   assert.doesNotMatch(readme, /\n\$proofline:spec-slice\r?\n/);

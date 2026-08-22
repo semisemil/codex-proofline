@@ -57,6 +57,10 @@ The body contains exactly these sections:
 
 A Slice remains the review boundary whether it is a Leaf or a Branch. SubSlices decompose its execution; they do not create additional top-level Spec links.
 
+## Runnable candidates
+
+The inspector exposes all mechanically safe runnable work: every runnable Leaf in `dispatch_candidates` and every runnable root-direct Slice in `runnable_slices`. These are candidate sets, not a dispatch schedule, quota, or concurrency cap. During implementation, the model chooses any safe subset from dependencies, effective write-scope overlap, shared-workspace safety, task size, and available capacity. There is no fixed numeric limit. Execution-task ownership belongs to `start-implementation`, not this planning contract.
+
 ## Effective execution scope
 
 Stored `write_scope` and effective execution scope differ for a Branch and the root. Compute effective execution scope deterministically from the accepted fixed tree:

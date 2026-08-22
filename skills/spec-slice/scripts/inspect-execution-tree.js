@@ -657,6 +657,7 @@ function inspectExecutionTree(specDirectory) {
   const abandonedIds = gateIds.filter((id) => gateStates.get(id).abandoned);
   const executionStopped = abandonedIds.length > 0;
   let runnableLeaves = [];
+  let runnableSlices = [];
   let completableBranches = [];
   let reviewReady = [];
 
@@ -690,6 +691,14 @@ function inspectExecutionTree(specDirectory) {
         .filter((node) => gateStates.get(node.id).allMet)
         .map((node) => node.id)
         .sort();
+
+      const reviewReadySet = new Set(reviewReady);
+      runnableSlices = nodes
+        .filter((node) => node.parentId === spec.id && node.status === 'pending')
+        .filter((node) => dependenciesCompleted(node.id, dependencies, byId))
+        .filter((node) => !reviewReadySet.has(node.id))
+        .map((node) => node.id)
+        .sort();
     }
   }
 
@@ -720,7 +729,8 @@ function inspectExecutionTree(specDirectory) {
       gates_abandoned: gateStates.get(node.id).abandoned,
     })),
     runnable_leaves: runnableLeaves,
-    dispatch: runnableLeaves.slice(0, 2),
+    dispatch_candidates: [...runnableLeaves],
+    runnable_slices: runnableSlices,
     completable_branches: completableBranches,
     review_ready: reviewReady,
   };
