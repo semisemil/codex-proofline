@@ -311,11 +311,16 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /add no unsupported requirement, gate, rationale, action, or decision/);
 
   assert.match(baseline, /acceptance: explicit user acceptance of the specific choice required/);
-  assert.match(baseline, /Authority to decide: no authorization for dependent action/);
-  assert.match(baseline, /review, audit, diagnosis, explanation, and recommendation: read-only/);
+  assert.match(baseline, /Authority: authority to decide does not authorize executing that decision/);
+  assert.match(baseline, /Change scope: base an authorized edit on the requested observable outcome and explicit boundaries, not just named artifacts/);
+  assert.match(baseline, /parts that jointly deliver it on the changed surface or production path unless the user narrows it/);
+  assert.match(baseline, /add a follow-on edit only if omitting it would leave the outcome incomplete/);
+  assert.match(baseline, /directly affected required check inconclusive/);
+  assert.match(baseline, /Leave other edits unchanged even if related or beneficial/);
+  assert.doesNotMatch(baseline, /no authorization for dependent action|unrequested behavior, architecture|similarity alone does not authorize/);
+  assert.match(baseline, /review, audit, diagnosis, explanation, and recommendation are read-only/);
   assert.match(baseline, /Ambiguity: ask one concise question only when it would materially change the answer or action/);
   assert.match(baseline, /otherwise use the interpretation best supported by context/);
-  assert.match(baseline, /Examples: communicative purpose determines scope/);
   assert.match(baseline, /## Review and evidence\r?\n/);
   assert.match(baseline, /Review target: actual claim within its scope, conditions, and exceptions/);
   assert.match(baseline, /reuse inspected task evidence while relevant state is unchanged/);
