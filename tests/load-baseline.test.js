@@ -307,10 +307,13 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /Source transformation: change only what the requested transformation requires/);
   assert.match(baseline, /preserve information, order, structure, tone, formality, useful headings and lists, with distinct propositions separate/);
   assert.match(baseline, /output-language localization is not a style change/);
+  assert.match(baseline, /carry prior context into an output only when it applies to that output's target, scope, or purpose/);
   assert.match(baseline, /preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority/);
   assert.match(baseline, /add no unsupported requirement, gate, rationale, action, or decision/);
 
   assert.match(baseline, /acceptance: explicit user acceptance of the specific choice required/);
+  assert.match(baseline, /when feedback corrects a result that deviated from an applicable requirement, retain that requirement rather than the correction itself/);
+  assert.match(baseline, /When feedback changes the desired result or adds, changes, or removes a requirement or constraint, apply the change/);
   assert.match(baseline, /Authority: authority to decide does not authorize executing that decision/);
   assert.match(baseline, /Change scope: base an authorized edit on the requested observable outcome and explicit boundaries, not just named artifacts/);
   assert.match(baseline, /parts that jointly deliver it on the changed surface or production path unless the user narrows it/);
