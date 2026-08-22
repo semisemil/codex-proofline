@@ -134,39 +134,32 @@ test('planning intent becomes an acceptance and verification contract without fi
   assert.doesNotMatch(tenet, /`Outcome`|`Done when`|`Behavior`/);
 });
 
-test('implementation composes role-owned Gates with one bounded blind review cycle', () => {
+test('implementation keeps fresh agents, blind judgments, observations, and model routing bounded', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
+  const executionLoop = read('skills', 'start-implementation', 'references', 'execution-loop.md');
   const modelRouting = read('skills', 'start-implementation', 'assets', 'model-routing.md');
 
-  assert.match(coordinator, /Before creating each implementer or reviewer, read `assets\/model-routing\.md`/);
-  assert.match(modelRouting, /Direct and base `create_thread`: set `model` and `thinking`/);
-  assert.match(modelRouting, /Forked implementer: set `model` and `thinking` in its first implementation `send_message_to_thread`/);
-  assert.match(modelRouting, /Reviewer `spawn_agent`: set `model`, `reasoning_effort`, and `fork_turns: "none"`/);
-  assert.match(coordinator, /Implementation[\s\S]*Spec-planned checks executable by the implementer[\s\S]*smallest affected build[\s\S]*focused changed-behavior tests/);
-  assert.match(coordinator, /Review[\s\S]*Current evidence supports every target acceptance condition, the implementation introduces no defect or regression, and its changes stay within authorized scope/);
-  assert.match(coordinator, /pre-existing issue blocks only when it prevents a required target outcome/);
-  assert.doesNotMatch(coordinator, /without defect, omission, or scope violation/);
-  assert.match(coordinator, /Integration[\s\S]*Current integrated evidence supports every Spec-wide acceptance condition and reviewer-owned integration check/);
-  assert.match(coordinator, /successful Implementation Gate and reviewer `pass`/);
-  assert.match(coordinator, /Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract/);
-  assert.match(coordinator, /End the implementer message there/);
-  assert.match(coordinator, /report contract requires changed paths, final commands and results, evidence or an unverified reason for each owned acceptance condition/);
-  assert.match(coordinator, /does not judge whole-Spec compliance, design, scope, or the final review verdict/);
-  assert.match(coordinator, /Review only a `complete` report whose Gate succeeded/);
-  assert.match(coordinator, /fresh blind, read-only reviewer with `fork_turns: "none"`/);
-  assert.match(coordinator, /pass target\/project\/domain paths[\s\S]*changed paths, final commands and results, acceptance-condition evidence or unverified reasons/);
-  assert.match(coordinator, /checks the contract and final evidence first, then inspects the implementation as needed/);
-  assert.match(coordinator, /`pass` when the Gate holds, `fail` with evidence-backed blocking findings that name the violated acceptance condition or missing or conflicting evidence/);
-  assert.match(coordinator, /`need_confirm` for an unresolved decision outside authorized scope/);
-  assert.match(coordinator, /out-of-scope issue already evidenced by the target review[\s\S]*separate `observation`[\s\S]*affects neither judgment nor blocking findings/);
-  assert.match(coordinator, /Exclude implementer self-judgment, retry history, and expected judgment/);
-  assert.match(coordinator, /call `wait_agent` until judgment returns/);
-  assert.match(coordinator, /unresolved blocking findings, constraint delta, and one-line Gate/);
-  assert.match(coordinator, /Record each non-duplicate `observation` through `\.\.\/issue-ledger\/SKILL\.md`/);
-  assert.match(coordinator, /Do not call `wait_threads`/);
-  assert.match(coordinator, /three `fail` judgments/);
-  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'references', 'git-sliced.md')), false);
-  assert.doesNotMatch(modelRouting, /task\/report\/review history|expected conclusion/);
+  assert.match(coordinator, /At run start, read \[model routing\]\(assets\/model-routing\.md\) once/);
+  assert.match(coordinator, /reuse them[\s\S]*Do not reread or re-select unless the user changes a routing setting/);
+  assert.match(modelRouting, /An explicit user setting wins/);
+  assert.match(modelRouting, /every reviewer use the strong model/);
+  assert.match(modelRouting, /Every implementer, repairer, and reviewer is a fresh `spawn_agent` call with `fork_context: false`/);
+  assert.match(modelRouting, /Include `model` and `reasoning_effort` only when the recorded route selects an override/);
+  assert.doesNotMatch(`${coordinator}\n${executionLoop}\n${modelRouting}`, /fork_turns/);
+
+  assert.match(executionLoop, /report carries no whole-Spec, design, scope, Gate, or review verdict/);
+  assert.match(executionLoop, /The reviewer is read-only and blind/);
+  assert.deepEqual(
+    [...executionLoop.matchAll(/^- `(pass|fail|need_confirm)`:/gm)].map((match) => match[1]),
+    ['pass', 'fail', 'need_confirm'],
+  );
+  assert.match(executionLoop, /A pre-existing issue blocks only when it prevents a required boundary outcome/);
+  assert.match(executionLoop, /An `observation` is a concrete, evidence-backed issue outside the review boundary/);
+  assert.match(executionLoop, /does not alter the judgment, become repair input, or block completion/);
+  assert.match(executionLoop, /record durable observations through `\.\.\/\.\.\/issue-ledger\/SKILL\.md`/);
+  assert.match(executionLoop, /Exclude implementer self-judgment, implementation or repair history, prior reviewer verdicts, and any expected verdict/);
+  assert.match(executionLoop, /same evidence-backed failure recurs after repair/);
+  assert.match(executionLoop, /fixed Node reaches its third failure/);
 });
 
 test('Plan, Spec, and implementation share one conditional issue-link contract', () => {
@@ -179,8 +172,8 @@ test('Plan, Spec, and implementation share one conditional issue-link contract',
   assert.match(plan, /optional nonempty `related_issues`/);
   assert.match(plan, /omit it for standalone Plans/);
   assert.match(spec, /issue-ledger\/references\/work-link\.md/);
-  assert.match(implementation, /issue-ledger\/references\/work-link\.md` once/);
-  assert.match(implementation, /outside implementer and reviewer context/);
+  assert.equal((implementation.match(/\(\.\.\/issue-ledger\/references\/work-link\.md\)/g) || []).length, 1);
+  assert.match(implementation, /issue content stays out of agent briefs/);
   assert.match(ledger, /apply `references\/work-link\.md`/);
   assert.match(link, /없으면 Issue Ledger에 접근하지 않는다/);
   assert.match(link, /같은 입력은 `no-op`/);
@@ -189,103 +182,142 @@ test('Plan, Spec, and implementation share one conditional issue-link contract',
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'work-on-issue')), false);
 });
 
-test('start-implementation owns the slicing decision and Direct/Sliced VCS behavior', () => {
+test('recursive execution tree', () => {
   const coordinator = read('skills', 'start-implementation', 'SKILL.md');
   const slicing = read('skills', 'spec-slice', 'SKILL.md');
+  const treeContract = read('skills', 'spec-slice', 'references', 'execution-tree.md');
+  const executionLoop = read('skills', 'start-implementation', 'references', 'execution-loop.md');
+  const gitIntegration = read('skills', 'start-implementation', 'references', 'git-integration.md');
   const template = read('skills', 'spec-slice', 'assets', 'templates', 'slice.md');
+  const gateTemplate = read('skills', 'spec-slice', 'assets', 'templates', 'gates.md');
+  const slicingAgent = read('skills', 'spec-slice', 'agents', 'openai.yaml');
+  const implementationAgent = read('skills', 'start-implementation', 'agents', 'openai.yaml');
   const readme = read('README.md');
 
-  assert.match(coordinator, /## Direct[\s\S]*shared-local implementer with routed `model` and `thinking`/);
-  assert.match(coordinator, /## Direct[\s\S]*without staging or committing/);
-  assert.match(coordinator, /Read and apply `\.\.\/spec-slice\/SKILL\.md` as an internal preparation step/);
-  assert.match(coordinator, /Direct\/Sliced decision is not implementation approval/);
-  assert.match(coordinator, /requires neither separate user approval nor a separate `\$spec-slice` call/);
-  assert.match(coordinator, /current revision has Slice documents[\s\S]*reuse an accepted plan/);
-  assert.match(coordinator, /Stop on an invalid plan; replace it only when the user explicitly requests re-slicing/);
-  assert.match(coordinator, /no Slice documents, decide from the ready Spec/);
-  assert.match(coordinator, /For `Direct`, continue without writing Slice artifacts/);
-  assert.match(coordinator, /For `Sliced`, create the complete plan and run the inspector/);
-  assert.match(coordinator, /Continue Sliced implementation only when the inspector accepts the current plan/);
-  assert.match(coordinator, /inspect-slice-plan\.js <slice-directory>/);
-  assert.doesNotMatch(coordinator, /ask the user to run `\$spec-slice`|do not invoke it automatically/);
-  assert.match(coordinator, /Non-Git projects[\s\S]*one Slice implementer at a time/);
-  assert.match(coordinator, /v2 use at most two Slices from `dispatch`/);
-  assert.match(coordinator, /temporary-worktree integration base/);
-  assert.match(coordinator, /Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn/);
-  assert.match(coordinator, /callback source ID as the base `threadId`/);
-  assert.match(coordinator, /base only cherry-picks, aborts conflicts, removes completed Slice worktrees under step 4/);
-  assert.match(coordinator, /first implementation message/);
-  assert.match(coordinator, /stage and commit only reviewed target-scope product\/test paths/);
-  assert.match(coordinator, /strictly in integration order/);
-  assert.match(coordinator, /Treat its implementer task as terminal, send it no further messages/);
-  assert.match(coordinator, /archive it with `set_thread_archived`/);
-  assert.match(coordinator, /Only after archival succeeds, use the base/);
-  assert.match(coordinator, /`git -C <slice-root> rev-parse HEAD` equals the approved commit/);
-  assert.match(coordinator, /`git -C <slice-root> status --porcelain` is empty/);
-  assert.match(coordinator, /`git worktree remove <slice-root>` without `--force`/);
-  assert.match(coordinator, /On archive failure, check mismatch, or removal failure, preserve the worktree and report the exact path and reason/);
-  assert.match(coordinator, /fresh worktree from the current base/);
-  assert.match(coordinator, /Rerun the inspector after each completion/);
-  assert.match(coordinator, /fresh entire-Spec Integration review/);
-  assert.match(coordinator, /Keep the integration base through final review/);
-  assert.match(coordinator, /Do not push, merge, rebase, squash, force-remove worktrees, or delete branches automatically/);
+  assert.equal((coordinator.match(/^## `execute\(node\)`$/gm) || []).length, 1);
+  assert.match(coordinator, /The single execution operation is `execute\(node\)`/);
+  assert.match(coordinator, /Call `execute\(root\)` using only the accepted inspector result/);
+  assert.match(coordinator, /Branch:[\s\S]*recursively execute only runnable children/);
+  assert.doesNotMatch(`${coordinator}\n${slicing}\n${readme}`, /\b(?:Direct|Sliced|Flat|Tree)\b/);
 
-  assert.match(slicing, /Choose `Direct` when no independent sub-goal/);
-  assert.match(slicing, /Choose `Sliced` when independent outcomes/);
-  assert.match(slicing, /result prerequisites in `blocked_by`/);
-  assert.match(slicing, /unsafe or uncertain concurrent execution in `run_after`/);
-  assert.match(slicing, /combined graph acyclic/);
-  assert.match(slicing, /Slice-unique and integration-only checks/);
-  assert.match(slicing, /relative links to the Spec's `Slices` section/);
-  assert.match(slicing, /Create no Slice documents or other mode artifact/);
-  assert.match(readme, /`start-implementation`은 기존 Slice 계획을 검증하거나 `spec-slice`의 `Direct`\/`Sliced` 판정을 내부 단계로 수행하므로/);
-  assert.match(readme, /이 판정을 위한 별도 호출은 필요하지 않습니다/);
-  assert.match(readme, /유효하지 않으면 중단하며 명시적으로 다시 나누도록 요청받은 경우에만 교체합니다/);
-  assert.doesNotMatch(readme, /tenet-me` → `spec-slice` → `start-implementation/);
-  assert.doesNotMatch(readme, /\n\$proofline:spec-slice\r?\n/);
-  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'start-implementation', 'assets', 'templates', 'slice.md')), false);
-  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'spec-slice', 'scripts', 'inspect-slice-plan.js')), true);
+  assert.match(coordinator, /Read and apply \[spec-slice\]\(\.\.\/spec-slice\/SKILL\.md\) internally/);
+  assert.match(coordinator, /accepted v3 result/);
+  assert.match(slicing, /\[the execution-tree contract\]\(references\/execution-tree\.md\)/);
+  assert.match(coordinator, /\[the execution loop\]\(references\/execution-loop\.md\)/);
+  assert.match(coordinator, /Read \[Git integration\]\(references\/git-integration\.md\) only when Git or worktree handling applies/);
 
-  assert.match(template, /"schema_version": 2/);
-  assert.match(template, /"blocked_by": \{\{blocked_by_json\}\}/);
-  assert.match(template, /"run_after": \{\{run_after_json\}\}/);
-  assert.match(template, /## Outcome[\s\S]*\{\{outcome\}\}/);
-  assert.match(template, /## Spec section[\s\S]*\{\{spec_section_link\}\}/);
-  assert.match(template, /## Concurrency boundary[\s\S]*\{\{concurrency_boundary\}\}/);
-  assert.match(template, /## Slice checks[\s\S]*\{\{slice_checks\}\}/);
-  assert.match(template, /## Integration checks[\s\S]*\{\{integration_checks\}\}/);
-  assert.doesNotMatch(template, /created_at|updated_at|# .*\{\{title/);
+  assert.match(treeContract, /`<spec-directory>\/SPEC\.md` is the ready Spec and the root/);
+  assert.match(treeContract, /direct child of the root is a Slice and the review boundary for its whole subtree/);
+  assert.match(treeContract, /deeper Node is a SubSlice/);
+  assert.match(treeContract, /root or Node with no children is a Leaf/);
+  assert.match(treeContract, /names are derived only from position[\s\S]*Persist no execution type or mode/);
+  assert.match(treeContract, /Spec with no child Nodes[\s\S]*create no Node document/);
+  assert.match(treeContract, /Normal implementation agents are Leaf-only/);
+  assert.match(treeContract, /Branch Node: the union of all descendant Leaf `write_scope` arrays[\s\S]*Branch still stores `write_scope: \[\]`/);
+  assert.match(treeContract, /Root with child Nodes: the union of all Leaf `write_scope` arrays in the tree/);
+  assert.match(treeContract, /Root-only tree: the already authorized Spec\/project root implementation scope/);
+  assert.match(treeContract, /any v1 or v2 execution Node or Slice plan[\s\S]*stop with `explicit re-slice required`/);
+  assert.equal((treeContract.match(/`explicit re-slice required`/g) || []).length, 1);
+  assert.match(treeContract, /without an explicit user request to re-slice/);
+
+  assert.match(executionLoop, /Every implementation or repair attempt is a fresh `spawn_agent` call with `fork_context: false`/);
+  assert.match(executionLoop, /A Repair changes only paths in its fixed failing Node's effective execution scope:[\s\S]*Leaf's own `write_scope`[\s\S]*Branch or root's descendant-Leaf union[\s\S]*root-only[\s\S]*already authorized Spec\/project root implementation scope/);
+  assert.match(executionLoop, /deepest existing Node that owns the violated contract and correction[\s\S]*Leaf, Branch, or root/);
+  assert.match(executionLoop, /Failure count and the repeated-failure stop are tracked independently per fixed failing Node/);
+  assert.match(coordinator, /invalidate and re-close the accepted-tree affected closure[\s\S]*root Repair invalidates the complete tree/);
+  assert.match(executionLoop, /compute the affected closure from the accepted fixed tree[\s\S]*root-assigned Repair affects the root and every Node in the complete tree[\s\S]*repaired Node and its full subtree[\s\S]*least fixed point of affected siblings under `blocked_by`[\s\S]*dependent sibling's full subtree[\s\S]*Continue through the root/);
+  assert.match(executionLoop, /Only reverse-transitive `blocked_by` result dependence expands the closure[\s\S]*`run_after`[\s\S]*asserts no result dependence and adds nothing to the closure/);
+  assert.match(executionLoop, /set every affected `completed` Node to `pending`[\s\S]*discard every prior required boundary-review verdict[\s\S]*Leave Node, Gate, and Spec definitions unchanged/);
+  assert.match(executionLoop, /rerun every affected Gate bottom-up[\s\S]*including every already checked Gate[\s\S]*fresh Slice Blind Review[\s\S]*root Gate[\s\S]*fresh final Spec Integration Review/);
+  assert.match(executionLoop, /non-`ABANDON` Gate failure[\s\S]*fresh fixed-Node Repair rule[\s\S]*recompute the closure/);
+  assert.doesNotMatch(executionLoop, /affected execution subtree[\s\S]*ancestor Gate needed to re-close/);
+  assert.match(executionLoop, /If no existing Node owns a finding[\s\S]*`need_confirm`[\s\S]*explicit re-slicing[\s\S]*Do not force the finding onto a Leaf/);
+  assert.match(executionLoop, /coordinator then runs every `CHECK` in the Leaf Gate/);
+  assert.match(executionLoop, /After all child Nodes are completed, run the Branch Gate/);
+  assert.match(executionLoop, /A root direct child gets exactly one Slice review per attempt/);
+  assert.match(executionLoop, /The root gets only the final Spec Integration review/);
+  assert.match(executionLoop, /root-only Spec[\s\S]*one Spec Integration review with no Slice review/);
+  assert.match(treeContract, /`ABANDON` records an unfinished path/);
+  assert.match(executionLoop, /`ABANDON`[\s\S]*leaves the affected Node and every ancestor incomplete/);
+  assert.match(coordinator, /Keep at most two safe Leaves active across the run/);
+  assert.match(gitIntegration, /Do not push, merge, rebase, squash, force-remove a worktree, or delete a branch/);
+
+  for (const relativePath of [
+    ['skills', 'spec-slice', 'references', 'execution-tree.md'],
+    ['skills', 'start-implementation', 'references', 'execution-loop.md'],
+    ['skills', 'start-implementation', 'references', 'git-integration.md'],
+    ['skills', 'spec-slice', 'scripts', 'inspect-execution-tree.js'],
+    ['skills', 'spec-slice', 'scripts', 'run-gates.js'],
+    ['skills', 'spec-slice', 'agents', 'openai.yaml'],
+    ['skills', 'start-implementation', 'agents', 'openai.yaml'],
+  ]) {
+    assert.equal(fs.existsSync(path.join(repoRoot, ...relativePath)), true, relativePath.join('/'));
+  }
+  assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'spec-slice', 'scripts', 'inspect-slice-plan.js')), false);
+
+  for (const agentContract of [slicingAgent, implementationAgent]) {
+    assert.match(agentContract, /^interface:\r?$/m);
+    assert.equal((agentContract.match(/^  default_prompt:/gm) || []).length, 1);
+    assert.match(agentContract, /^policy:\r?\n  allow_implicit_invocation: false\r?$/m);
+  }
+  assert.match(slicingAgent, /\$spec-slice[\s\S]*v3 execution tree and Gates/);
+  assert.match(implementationAgent, /\$start-implementation[\s\S]*recursively execute[\s\S]*validated tree/);
+
+  assert.match(gateTemplate, /^  CHECK: \{\{command\}\}$/m);
+  assert.doesNotMatch(gateTemplate, /^  EXPECT:/m);
+  assert.match(treeContract, /An optional expectation may narrow the command's observable success condition/);
+  assert.match(gateTemplate, /^  EVIDENCE: pending$/m);
+  assert.doesNotMatch(gateTemplate, /^ABANDON:/m);
 
   const rendered = template
     .replace('{{slice_id_json}}', JSON.stringify('SLICE-01'))
     .replace('{{spec_id_json}}', JSON.stringify('SPEC-0001'))
     .replace('{{spec_revision}}', '2')
+    .replace('{{parent_id_json}}', JSON.stringify('SPEC-0001'))
     .replace('{{title_json}}', JSON.stringify('Deliver settings flow'))
     .replace('{{blocked_by_json}}', '[]')
     .replace('{{run_after_json}}', '[]')
+    .replace('{{write_scope_json}}', '["src/settings.js"]')
     .replace('{{outcome}}', 'Settings can be saved.')
-    .replace('{{spec_section_link}}', '[Settings flow](../SPEC.md#settings-flow)')
-    .replace('{{concurrency_boundary}}', 'No shared resources.')
-    .replace('{{slice_checks}}', 'Focused settings tests.')
-    .replace('{{integration_checks}}', 'None');
-  const metadata = JSON.parse(rendered.match(/^---\r?\n([\s\S]*?)\r?\n---/)[1]);
+    .replace('{{spec_sections}}', '[Settings flow](../SPEC.md#settings-flow)')
+    .replace('{{contract}}', 'Save the selected settings.')
+    .replace('{{context}}', 'No extra context.');
+  const frontmatter = rendered.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  const metadata = JSON.parse(frontmatter[1]);
   assert.deepEqual(Object.keys(metadata), [
     'schema_version',
     'id',
     'spec_id',
     'spec_revision',
+    'parent_id',
     'title',
     'status',
     'blocked_by',
     'run_after',
+    'write_scope',
   ]);
+  assert.equal(metadata.schema_version, 3);
   assert.equal(metadata.status, 'pending');
+  assert.deepEqual(rendered.slice(frontmatter[0].length).match(/^## .+$/gm), [
+    '## Outcome',
+    '## Spec sections',
+    '## Contract',
+    '## Context',
+  ]);
+  assert.doesNotMatch(template, /"(?:acceptance_refs|type|mode)"\s*:/);
+
+  assert.match(readme, /Spec을 루트로 삼아 하나의 `execute\(node\)` 경로로 재귀 실행/);
+  assert.match(readme, /Slice 검토 경계[\s\S]*SubSlice[\s\S]*Leaf/);
+  assert.match(readme, /모드나 종류가 아니라 트리의 위치/);
+  assert.match(readme, /자식이 없는 Spec에는 Slice 파일을 만들지 않습니다/);
+  assert.match(readme, /`explicit re-slice required`/);
+  assert.doesNotMatch(readme, /tenet-me` → `spec-slice` → `start-implementation/);
+  assert.doesNotMatch(readme, /\n\$proofline:spec-slice\r?\n/);
 });
 
 test('skill completion boundaries are single-sourced and checkable', () => {
   const baseline = read('skills', 'proofline', 'SKILL.md');
   const baselineBody = baseline.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
-  const completion = read('skills', 'completion-evidence', 'SKILL.md');
   const exactPortReport = read('skills', 'exact-port', 'assets', 'templates', 'exact-port-report.md');
   const refactorReport = read('skills', 'refactor-proof', 'assets', 'templates', 'refactor-proof-report.md');
   const scope = read('skills', 'scope-integrity', 'SKILL.md');
@@ -293,11 +325,10 @@ test('skill completion boundaries are single-sourced and checkable', () => {
 
   assert.match(baseline, /Apply rules within: explicit task, requested output, authorized target, and scope/);
   assert.doesNotMatch(baseline, /Applicability: explicit task, requested output, authorized target, and scope only/);
-  assert.match(baseline, /Compose directly in the target language: use conventional syntax, collocations, vocabulary, and technical terms/);
-  assert.match(baseline, /use the target-language community's expression rather than source-language wording or structure/);
+  assert.match(baseline, /Target-language composition: compose directly in the target language; use its conventional syntax, collocations, vocabulary, and technical terms/);
+  assert.match(baseline, /render concepts from another language in the form used by the target-language community, not the source language's wording or structure/);
+  assert.match(baseline, /Wording: preserve the expression's function/);
   assert.doesNotMatch(baseline, /Theory of mind|Use theory of mind|Correct the concrete misunderstanding/);
-  assert.match(baseline, /Responses: concise and focused on the user's actual question/);
-  assert.match(baseline, /additional detail when purpose or requested depth requires it/);
   assert.match(baseline, /Compression: repetition, not content/);
   assert.match(baseline, /where context carries shared meaning, express only distinctions in compact forms such as labels, noun phrases, state names, or action chains/);
   assert.match(baseline, /prefer tables for repeated fields or comparison axes/);
@@ -308,10 +339,10 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /preserve information, order, structure, tone, formality, useful headings and lists, with distinct propositions separate/);
   assert.match(baseline, /output-language localization is not a style change/);
   assert.match(baseline, /carry prior context into an output only when it applies to that output's target, scope, or purpose/);
-  assert.match(baseline, /preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority/);
-  assert.match(baseline, /add no unsupported requirement, gate, rationale, action, or decision/);
+  assert.match(baseline, /Preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority/);
+  assert.match(baseline, /Add no unsupported requirement, gate, rationale, action, or decision/);
 
-  assert.match(baseline, /acceptance: explicit user acceptance of the specific choice required/);
+  assert.match(baseline, /acceptance is explicit user acceptance of the specific choice required/);
   assert.match(baseline, /when feedback corrects a result that deviated from an applicable requirement, retain that requirement rather than the correction itself/);
   assert.match(baseline, /When feedback changes the desired result or adds, changes, or removes a requirement or constraint, apply the change/);
   assert.match(baseline, /Authority: authority to decide does not authorize executing that decision/);
@@ -327,20 +358,17 @@ test('skill completion boundaries are single-sourced and checkable', () => {
   assert.match(baseline, /## Review and evidence\r?\n/);
   assert.match(baseline, /Review target: actual claim within its scope, conditions, and exceptions/);
   assert.match(baseline, /reuse inspected task evidence while relevant state is unchanged/);
-  assert.match(baseline, /User-facing form: shortest that preserves meaning/);
+  assert.match(baseline, /User-facing form: shortest preserving meaning/);
   assert.match(baseline, /every string should identify, distinguish, require, prevent, explain, clarify, or provide a necessary next step/);
-  assert.match(baseline, /Consistent meaning across: visible labels, accessible names, icons, layout, order, color, and state cues/);
+  assert.match(baseline, /Consistent meaning across visible labels, accessible names, icons, layout, order, color, and state cues/);
   assert.doesNotMatch(baseline, /every string must identify|communicate the same meaning/);
   assert.doesNotMatch(baseline, /shortest natural whole expression/);
-  assert.match(baseline, /Design: simplest that preserves all information required for correct observable behavior/);
+  assert.match(baseline, /Design: simplest preserving all information required for correct observable behavior/);
   assert.match(baseline, /Treat as owner-component contracts: named protocol rules, untrusted-input boundaries, and lifecycle states/);
   assert.match(baseline, /test each independently implemented path changing a required observable result/);
   assert.doesNotMatch(baselineBody, /^\s*[-*+]\s+/m);
   assert.doesNotMatch(baselineBody, /\.[ \t]*(?:\r?\n|$)/);
 
-  assert.match(completion, /Report only evidence already available from the task without initiating verification/);
-  assert.match(completion, /Do not repeat work solely to strengthen the report/);
-  assert.match(completion, /when required evidence is absent, report it as unverified/);
   assert.doesNotMatch(exactPortReport, /## Issues recorded/);
   assert.doesNotMatch(refactorReport, /## Issues recorded/);
 

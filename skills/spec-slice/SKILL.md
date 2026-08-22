@@ -1,33 +1,24 @@
 ---
 name: spec-slice
-description: "Choose Direct or create a complete dependency-aware Slice plan for one ready Spec."
+description: "Explicit-only planning for one ready Spec: build and validate its complete v3 execution tree and Gates without implementing it."
 ---
 
 # Proofline Spec Slice
 
-Decide execution units; do not implement product code, tests, or reviews.
+Plan only. End before implementation, review, or fan-out.
 
 ## Inspect
 
-Validate the target Spec identity, revision, project, requirements, and `ready` status. When the current revision already has Slice documents, run `node <this-skill>/scripts/inspect-slice-plan.js <slice-directory>`:
+Confirm one target Spec's identity, revision, project, requirements, and `ready` status. Before inspecting or creating execution artifacts, read [the execution-tree contract](references/execution-tree.md); it owns the schema, invariants, legacy stop, freeze boundary, and commands. Obey any stop it requires without editing artifacts.
 
-- Reuse a valid plan: v1 or mixed is sequential; v2 uses its concurrency limit.
-- Stop for an invalid plan. Do not upgrade or replace it unless the user explicitly requests re-slicing.
+## Build
 
-## Decide
+Write the complete v3 Node tree and every root/Node Gate for the current revision before fan-out, including a Spec with no child Node. Use the templates and link rules in the execution-tree contract. Do not implement, review, or dispatch work.
 
-Choose `Direct` when no independent sub-goal can deliver and verify a meaningful outcome. Create no Slice documents or other mode artifact.
+## Validate
 
-Choose `Sliced` when independent outcomes and their prerequisites can be defined before implementation. A Slice is an outcome, not a file, layer, component, or test category.
+Run the execution-tree inspector; it must exit 0. Then run Gate status as a read-only parse/status check. Newly pending Gates normally make status exit 1, and that expected pending result does not invalidate planning. Exit 2 or any parse failure blocks planning. Never run project Gate checks during planning.
 
-## Write Slices
+## Report
 
-Create the complete v2 plan from `assets/templates/slice.md` before implementation:
-
-1. Record each outcome and its authoritative Spec section.
-2. Put result prerequisites in `blocked_by`; put unsafe or uncertain concurrent execution in `run_after`.
-3. Keep the combined graph acyclic and every initial status `pending`.
-4. Record only Slice-unique and integration-only checks; keep shared acceptance in the Spec.
-5. Add only the corresponding relative links to the Spec's `Slices` section.
-
-Run the Slice plan inspector. Complete only when it accepts the current revision and every concurrently runnable pair is safe or ordered. Report `Direct`, `Sliced (sequential)`, or `Sliced (max 2)` and the Slice paths when applicable.
+Report the Spec path, every Node and Gate path, and the exact validation commands and results, or the exact stop reason. State that no implementation, review, or fan-out was performed.

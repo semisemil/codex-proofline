@@ -1,62 +1,34 @@
 ---
 name: start-implementation
-description: "Coordinate a ready Spec through implementation, independent review, and optional safe Slice concurrency."
+description: "Explicit-only coordination of one ready Spec through recursive execution, mechanical Gates, and fresh blind boundary review."
 ---
 
 # Proofline Start Implementation
 
-Coordinate; do not implement or review product changes yourself. Write messages in the user's language. Before creating each implementer or reviewer, read `assets/model-routing.md` and pass its selected model and reasoning through the stated tool fields.
+Coordinator only. Implement and review through fresh agents. The single execution operation is `execute(node)`.
 
 ## Prepare
 
-1. Validate the Spec identity, revision, project, requirements, and `ready` status. Stop for missing prerequisites, terminal status, or revision change.
-2. Apply linked-issue handling from `../issue-ledger/references/work-link.md` once when needed; keep issue content outside implementer and reviewer context.
-3. Read the project domain document and applicable ADRs.
-4. Read and apply `../spec-slice/SKILL.md` as an internal preparation step. This Direct/Sliced decision is not implementation approval and requires neither separate user approval nor a separate `$spec-slice` call.
-   - When the current revision has Slice documents, run `node ../spec-slice/scripts/inspect-slice-plan.js <slice-directory>` and reuse an accepted plan. Stop on an invalid plan; replace it only when the user explicitly requests re-slicing.
-   - When it has no Slice documents, decide from the ready Spec. For `Direct`, continue without writing Slice artifacts. For `Sliced`, create the complete plan and run the inspector.
-   - Continue Sliced implementation only when the inspector accepts the current plan; use its plan mode, dispatch, and integration order.
+1. Resolve one current `ready` Spec. Confirm its identity, revision, project, requirements, domain document, applicable ADRs, and linked-issue state. Apply [the work-link contract](../issue-ledger/references/work-link.md) once; issue content stays out of agent briefs.
+2. Read and apply [spec-slice](../spec-slice/SKILL.md) internally, including its execution-tree contract. Run its inspector and consume the accepted v3 result for tree position, runnable work, order, scope, and Gate paths. Stop on v1, v2, or invalid artifacts; require explicit re-slicing where that contract does.
+3. At run start, read [model routing](assets/model-routing.md) once, record the selected routes and reasons, and reuse them. Do not reread or re-select unless the user changes a routing setting.
+4. Before fan-out, read [the execution loop](references/execution-loop.md). Read [Git integration](references/git-integration.md) only when Git or worktree handling applies.
 
-## Gates
+Stop if a prerequisite is missing, the Spec is no longer `ready`, or its revision changes.
 
-| Gate | Owner | Pass condition |
-| --- | --- | --- |
-| Implementation | Implementer | All Spec-planned checks executable by the implementer, the smallest affected build, syntax, or type check, and focused changed-behavior tests succeed; the report maps every owned acceptance condition to final evidence or an unverified reason. |
-| Review | Direct or Slice reviewer | Current evidence supports every target acceptance condition, the implementation introduces no defect or regression, and its changes stay within authorized scope. A pre-existing issue blocks only when it prevents a required target outcome. |
-| Integration | Direct or final reviewer | Current integrated evidence supports every Spec-wide acceptance condition and reviewer-owned integration check. |
+## `execute(node)`
 
-A target passes only with a successful Implementation Gate and reviewer `pass`. Direct review owns Review and Integration; Slice review owns Review; final Sliced review owns Integration.
+Call `execute(root)` using only the accepted inspector result.
 
-## Implementation loop
+- **Leaf:** normal implementation agents are Leaf-only. Create a fresh implementer with `spawn_agent` and `fork_context: false`. Send only the Node/root contract, linked Spec sections, Context docs, Gate file, constraint delta, and report contract defined by the execution loop. Use the fixed Leaf scope from the execution-tree contract; Proofline Node, Gate, and Spec definitions remain coordinator-owned. The parent reruns every Leaf `CHECK` with `run-gates.js run`; an implementer report never completes the Leaf by itself.
+- **Branch:** recursively execute only runnable children. Keep at most two safe Leaves active across the run, and use one at a time in a shared workspace. After every child is completed, run the Branch's own Gate.
+- **Review:** reviewer positions are exactly each root direct child and the root. Give every root direct child exactly one fresh blind Slice review per attempt, only after its subtree Gates pass, including a direct child that is also a Leaf. Give the root only a fresh Spec Integration review after all descendants and the root Gate pass. Leaf status alone creates no reviewer, and deeper SubSlices receive none. When the Spec has no child Nodes, execute the root as the root Leaf, run its root Gate, then run exactly one Spec Integration review; run no Slice review.
+- **Repair:** assign a mechanical Gate or reviewer failure to the same fixed failing Node/root contract that owns the violation, whether Leaf, Branch, or root. A reviewer `fail` names the deepest existing owning Node. Create every Repair as a fresh `spawn_agent` with `fork_context: false`; its allowed paths are exactly that contract's effective execution scope. Repair cannot expand scope or edit Node, Gate, or Spec definitions. If no existing Node owns the violation, use `need_confirm` or an explicit re-slice. Keep failure count and the repeated-failure stop per fixed Node. After a Repair changes code for its fixed Node/root, invalidate and re-close the accepted-tree affected closure defined by the execution loop; a root Repair invalidates the complete tree.
 
-1. Send exactly these fields: target and domain-document paths; requested change; user constraint delta; one-line Implementation Gate; report contract. The report contract requires changed paths, final commands and results, evidence or an unverified reason for each owned acceptance condition, completion state, and stop reason. End the implementer message there.
-2. The implementer changes product and test paths within target scope, leaves Spec/Slice documents unchanged, runs the Gate, and reports through `send_message_to_thread`. The implementer does not judge whole-Spec compliance, design, scope, or the final review verdict.
-3. End the coordinator turn after instruction; resume on the callback. Do not call `wait_threads`.
-4. Review only a `complete` report whose Gate succeeded. Spawn a fresh blind, read-only reviewer with `fork_turns: "none"`; pass target/project/domain paths, repository instructions, user constraints, output language, changed paths, final commands and results, acceptance-condition evidence or unverified reasons, and the owned Gate. The reviewer checks the contract and final evidence first, then inspects the implementation as needed. Require `pass` when the Gate holds, `fail` with evidence-backed blocking findings that name the violated acceptance condition or missing or conflicting evidence, or `need_confirm` for an unresolved decision outside authorized scope. A concrete out-of-scope issue already evidenced by the target review is a separate `observation`; it affects neither judgment nor blocking findings. Exclude implementer self-judgment, retry history, and expected judgment. Keep the coordinator turn active and call `wait_agent` until judgment returns.
-5. On `pass`, approve the target. On `fail`, send the same implementer only the target/domain paths, unresolved blocking findings, constraint delta, and one-line Gate; then use a fresh reviewer. On `need_confirm`, obtain the decision and require a fresh reviewer `pass`. Record each non-duplicate `observation` through `../issue-ledger/SKILL.md`.
+Accept only `pass | fail | need_confirm` reviewer judgments. Keep an `observation` non-blocking and preserve durable, non-duplicate observations through [issue-ledger](../issue-ledger/SKILL.md).
 
-Stop on an unchanged or repeated failure, after three `fail` judgments for one target, or after a replacement reviewer also fails to return a valid judgment.
+Any `ABANDON` reported by Gate status is an immediate incomplete stop. Dispatch no work for it, count it as neither resolved nor completed, and never mark its Node or an ancestor completed. Mark a Node `completed` only after its mechanical Gates and any review required by its position pass. Mark the Spec `completed` only after the root Spec Integration review passes.
 
-## Direct
+## Report
 
-Create a shared-local implementer with routed `model` and `thinking`, then run the loop for the Spec. On approval, mark the Spec `completed`. Leave product/test edits in the shared working tree without staging or committing.
-
-## Sliced
-
-For Non-Git projects, run one Slice implementer at a time; approve and mark each Slice `completed` before starting the next.
-
-For Git projects:
-
-1. Follow the inspector's integration order. Use one active Slice for legacy or mixed plans; for v2 use at most two Slices from `dispatch` when their recorded boundaries are non-overlapping.
-2. Create a routed temporary-worktree integration base with this prompt: `<SPEC-ID> integration base. Send ready with send_message_to_thread to <codex_delegation><source_thread_id>, then end the turn.` Resume using the callback source ID as the base `threadId`. The base only cherry-picks, aborts conflicts, removes completed Slice worktrees under step 4, and reports Git state.
-3. Fork runnable Slice worktrees from the current base. Put routed `model` and `thinking` in each first implementation message and run the implementation loop.
-4. After approval, stage and commit only reviewed target-scope product/test paths. Cherry-pick approved commits into the base strictly in integration order; mark a Slice `completed` only after a clean pick. Treat its implementer task as terminal, send it no further messages, and archive it with `set_thread_archived`. Only after archival succeeds, use the base to verify `git -C <slice-root> rev-parse HEAD` equals the approved commit and `git -C <slice-root> status --porcelain` is empty, then run `git worktree remove <slice-root>` without `--force`. On archive failure, check mismatch, or removal failure, preserve the worktree and report the exact path and reason. Later Slices wait for earlier ones.
-5. On conflict, abort cleanly and redo that Slice in a fresh worktree from the current base, followed by a fresh Review Gate. Rerun the inspector after each completion to dispatch newly runnable Slices.
-
-Keep the integration base through final review. Preserve pre-existing Git state. Do not push, merge, rebase, squash, force-remove worktrees, or delete branches automatically.
-
-## Final review
-
-After every Slice is completed, run a fresh entire-Spec Integration review against every acceptance condition and the current integrated evidence. A final fix gets its own Implementation and Review Gates, is integrated through the same path, and is followed by another Integration review. Complete the Spec only after reviewer `pass`; change only lifecycle status in Spec/Slice documents.
-
-Report mode, tasks and roots, changed paths, acceptance-condition evidence or unverified reasons, Gate results, reviewer judgment, integrated SHAs, or the exact stop reason.
+Re-read current tree, task, workspace, Git, Gate, and review state before reporting. Include the tree; tasks and roots; changed paths; Gate met/total as `N/N`; every `ABANDON`; Slice and Spec Integration judgments; integrated SHAs, or the exact stop reason. Re-measure every number at report time.

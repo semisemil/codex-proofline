@@ -1,4 +1,0 @@
-interface:
-  display_name: "Proofline Completion Evidence"
-  short_description: "Report existing completion evidence"
-  default_prompt: "Use $completion-evidence to report only evidence already available from this task. Perform no new verification."

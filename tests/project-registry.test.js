@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -79,6 +79,133 @@ test('registry normalizes real roots, deduplicates aliases, and atomically retai
     const caseVariant = registerProject(firstRoot.toUpperCase(), registryOptions(configRoot));
     assert.equal(caseVariant.status, 'no-op');
   }
+});
+
+test('concurrent registration retains every distinct project', async (t) => {
+  const root = makeRoot(t);
+  const configRoot = path.join(root, 'config');
+  const env = configEnv(configRoot);
+  const registryPath = getRegistryPath({ env });
+  const projectRoots = Array.from({ length: 12 }, (_, index) => path.join(root, `project-${index}`));
+  for (const projectRoot of projectRoots) {
+    fs.mkdirSync(projectRoot, { recursive: true });
+  }
+  fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+  fs.writeFileSync(registryPath, '{"schema_version":1,"projects":[]}\n', 'utf8');
+
+  const workerSource = String.raw`
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const registryPath = process.env.PROOFLINE_TEST_REGISTRY;
+    const originalRead = fs.readFileSync;
+    const waitState = new Int32Array(new SharedArrayBuffer(4));
+    fs.readFileSync = function delayedRegistryRead(filePath, ...args) {
+      const result = originalRead.call(this, filePath, ...args);
+      if (path.resolve(String(filePath)) === path.resolve(registryPath)) {
+        Atomics.wait(waitState, 0, 0, 75);
+      }
+      return result;
+    };
+    const { registerProject } = require(process.env.PROOFLINE_TEST_REGISTRY_MODULE);
+    process.send('ready');
+    process.once('message', () => {
+      try {
+        process.stdout.write(JSON.stringify(registerProject(process.argv[1])));
+      } catch (error) {
+        process.stderr.write(JSON.stringify({ code: error.code, message: error.message }));
+        process.exitCode = 1;
+      } finally {
+        process.disconnect();
+      }
+    });
+  `;
+  const workers = projectRoots.map((projectRoot) => {
+    const child = spawn(process.execPath, ['-e', workerSource, projectRoot], {
+      env: {
+        ...env,
+        PROOFLINE_TEST_REGISTRY: registryPath,
+        PROOFLINE_TEST_REGISTRY_MODULE: path.join(repoRoot, 'dashboard', 'registry.js')
+      },
+      stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (chunk) => { stdout += chunk; });
+    child.stderr.on('data', (chunk) => { stderr += chunk; });
+    const ready = new Promise((resolve, reject) => {
+      child.once('message', resolve);
+      child.once('error', reject);
+    });
+    const completed = new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (code) => resolve({ code, stdout, stderr }));
+    });
+    return { child, ready, completed };
+  });
+
+  await Promise.all(workers.map((worker) => worker.ready));
+  for (const worker of workers) {
+    worker.child.send('start');
+  }
+  const results = await Promise.all(workers.map((worker) => worker.completed));
+  for (const result of results) {
+    assert.equal(result.code, 0, result.stderr);
+  }
+
+  const { registry } = readRegistry({ env });
+  assert.deepEqual(
+    registry.projects.map((project) => project.root).sort(),
+    projectRoots.map((projectRoot) => fs.realpathSync(projectRoot)).sort()
+  );
+  assert.equal(fs.existsSync(`${registryPath}.lock`), false);
+  assert.equal(fs.existsSync(`${registryPath}.lock.recovery`), false);
+});
+
+test('a live registry lock times out without changing projects', (t) => {
+  const root = makeRoot(t);
+  const configRoot = path.join(root, 'config');
+  const projectRoot = path.join(root, 'project');
+  const options = registryOptions(configRoot, { lockTimeoutMs: 0 });
+  const registryPath = getRegistryPath(options);
+  const lockPath = `${registryPath}.lock`;
+  fs.mkdirSync(projectRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+  fs.writeFileSync(registryPath, '{"schema_version":1,"projects":[]}\n', 'utf8');
+  fs.writeFileSync(lockPath, JSON.stringify({
+    schema_version: 1,
+    token: '99999999-9999-4999-8999-999999999999',
+    owner_pid: process.pid,
+    started_at: new Date().toISOString()
+  }), 'utf8');
+
+  assert.throws(
+    () => registerProject(projectRoot, options),
+    (error) => error.code === 'registry-lock-timeout'
+  );
+  assert.deepEqual(readRegistry(options).registry.projects, []);
+  assert.equal(fs.existsSync(lockPath), true);
+});
+
+test('an abandoned registry lock is recovered before registration', (t) => {
+  const root = makeRoot(t);
+  const configRoot = path.join(root, 'config');
+  const projectRoot = path.join(root, 'project');
+  const options = registryOptions(configRoot);
+  const registryPath = getRegistryPath(options);
+  const lockPath = `${registryPath}.lock`;
+  fs.mkdirSync(projectRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+  fs.writeFileSync(lockPath, JSON.stringify({
+    schema_version: 1,
+    token: '99999999-9999-4999-8999-999999999999',
+    owner_pid: 2147483647,
+    started_at: new Date().toISOString()
+  }), 'utf8');
+
+  assert.equal(registerProject(projectRoot, options).status, 'registered');
+  assert.equal(readRegistry(options).registry.projects.length, 1);
+  assert.equal(fs.existsSync(lockPath), false);
+  assert.equal(fs.existsSync(`${lockPath}.recovery`), false);
 });
 
 test('missing roots are rejected without creating global state', (t) => {

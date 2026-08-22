@@ -6,10 +6,9 @@ const path = require('node:path');
 const issueModel = require('../../skills/issue-ledger/lib/issue-model.js');
 
 const {
+  forgetProject,
   readRegistry,
   rootKey,
-  validateRegistry,
-  writeRegistry,
 } = require('../registry.js');
 const {
   ISSUE_ID,
@@ -904,13 +903,7 @@ class ProjectIndexService {
       throw new ProjectApiError('project-available', '사용 가능한 프로젝트는 목록에서 지울 수 없습니다.', 409);
     }
     try {
-      const { registry, registryPath } = readRegistry(this.registryOptions);
-      const next = {
-        schema_version: registry.schema_version,
-        projects: registry.projects.filter((item) => item.id.toLowerCase() !== project.id.toLowerCase()),
-      };
-      validateRegistry(next, this.registryOptions);
-      writeRegistry(registryPath, next);
+      forgetProject(project.id, this.registryOptions);
       this.closeProjectWatchers(project.id);
       this.invalidateProject(project.id);
     } catch (error) {

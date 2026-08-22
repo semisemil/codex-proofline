@@ -1,8 +1,10 @@
 # Proofline Model Routing
 
-An explicit user setting wins. Otherwise choose the lowest setting that fits the role and record a one-line reason. Ask before substituting an unavailable setting.
+Read this once at run start. An explicit user setting wins. Otherwise select the lowest setting that fits each role needed by the accepted execution tree, record each selection with a one-line reason, and reuse that routing map for the run. Do not reread or re-select unless the user changes a routing setting. Ask before substituting an unavailable setting.
 
-## Implementation
+Mechanical Leaves may use the lower setting. Design, cross-boundary integration, and every reviewer use the strong model.
+
+## Implementation and repair
 
 | Setting | Trigger |
 | --- | --- |
@@ -21,8 +23,6 @@ Use `max` only on explicit request. Raise effort for complexity, ambiguity, or v
 | `gpt-5.6-sol` + `high` | Difficult root cause, broad state flow, cross-Slice integration, or important design |
 | `gpt-5.6-sol` + `xhigh` | High-consequence security, data, compatibility, migration, deployment, rollback, or external-contract review |
 
-## Tool fields
+## Agent fields
 
-- Direct and base `create_thread`: set `model` and `thinking`.
-- Forked implementer: set `model` and `thinking` in its first implementation `send_message_to_thread`.
-- Reviewer `spawn_agent`: set `model`, `reasoning_effort`, and `fork_turns: "none"`.
+Every implementer, repairer, and reviewer is a fresh `spawn_agent` call with `fork_context: false`. Include `model` and `reasoning_effort` only when the recorded route selects an override; otherwise omit both fields.

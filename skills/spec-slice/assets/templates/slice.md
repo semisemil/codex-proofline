@@ -1,13 +1,15 @@
 ---
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": {{slice_id_json}},
   "spec_id": {{spec_id_json}},
   "spec_revision": {{spec_revision}},
+  "parent_id": {{parent_id_json}},
   "title": {{title_json}},
   "status": "pending",
   "blocked_by": {{blocked_by_json}},
-  "run_after": {{run_after_json}}
+  "run_after": {{run_after_json}},
+  "write_scope": {{write_scope_json}}
 }
 ---
 
@@ -15,18 +17,14 @@
 
 {{outcome}}
 
-## Spec section
+## Spec sections
 
-{{spec_section_link}}
+{{spec_sections}}
 
-## Concurrency boundary
+## Contract
 
-{{concurrency_boundary}}
+{{contract}}
 
-## Slice checks
+## Context
 
-{{slice_checks}}
-
-## Integration checks
-
-{{integration_checks}}
+{{context}}
