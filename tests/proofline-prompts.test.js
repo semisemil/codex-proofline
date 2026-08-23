@@ -35,19 +35,15 @@ test('mode prompts are private frontmatter-free components with distinct contrac
   assert.match(focus, /Start with the conclusion or the next action/);
   assert.match(focus, /numbered steps only for multi-step work with a real execution order/);
   assert.match(focus, /Show brief progress state only when needed/);
-  assert.match(focus, /within two minutes/);
   assert.match(focus, /Limit a list to five items/);
-  assert.match(focus, /omit greetings, preambles, restated questions, closing recaps/);
-  assert.match(focus, /Keep explanations, safety checks, and clarification required by genuine ambiguity/);
-  assert.match(focus, /same debugging failure repeats for three turns/);
+  assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
 
   assert.match(caveman, /ultra-compressed responses with the conclusion first/);
   assert.match(caveman, /technical terms, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
-  assert.match(caveman, /do not invent abbreviations, causal arrows, decorative tables, or emoji/);
-  assert.match(caveman, /Keep the user's primary language/);
-  assert.match(caveman, /security warnings, confirmation of irreversible actions, multi-step procedures/);
-  assert.match(caveman, /asks to explain again or repeats/);
+  assert.match(caveman, /Do not invent abbreviations, causal arrows, decorative tables, or emoji/);
+  assert.match(caveman, /complete sentences when fragments would obscure safety, irreversible consequences, execution order, or requested clarification/);
   assert.match(caveman, /Resume ultra-compressed expression after the clarity exception/);
+  assert.doesNotMatch(caveman, /Keep the user's primary language|mention yourself|preview tool calls|asks to explain again or repeats/);
 });
 
 test('hook registration keeps lifecycle boundaries and removes legacy owners', () => {
