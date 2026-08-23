@@ -15,6 +15,19 @@ These names are derived only from position. Persist no execution type or mode. A
 
 The Spec's `Slices` section links only its direct-child Node documents. Do not link deeper Nodes there. When there are no direct children, add no Slice link.
 
+## Decomposition judgment
+
+Begin with root-only. Split a root or Node only when implementing and verifying it as one unit would be unreliable because of coupled scope, required context, or evidence volume, and the proposed children can each own a coherent observable part of the parent result.
+
+A useful split must:
+
+- cover the parent outcome and authoritative Spec sections exactly once, without gaps or duplicated ownership;
+- leave every Leaf independently implementable and mechanically gated with a minimal non-empty `write_scope`;
+- express result prerequisites with `blocked_by` and sequencing-only constraints with `run_after`;
+- reduce implementation and verification difficulty enough to justify task, Gate, callback, and review coordination.
+
+Do not split mechanically by file, layer, technology, or desired parallelism. Keep one unit when separation would create artificial coordination, repeated context, shared ownership, or tightly coupled writes. Apply the same judgment recursively: split an oversized Slice into SubSlices, then stop when every Leaf is bounded enough for one implementation attempt and its Gate.
+
 ## Complete definition before fan-out
 
 Before any implementation or review work is dispatched:

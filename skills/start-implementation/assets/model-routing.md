@@ -1,34 +1,18 @@
 # Proofline Model Routing
 
-Read this once at run start. Record real-task settings separately from internal-agent routes and reuse both for the run. Do not reread or re-select unless the user changes a routing setting. Ask before substituting an unavailable setting.
+Read only when the user selects or changes model/thinking settings. Their explicit selection wins; ask before substitution.
 
-## User-visible tasks
+For user-visible tasks, pass `model` or `thinking` only when explicitly selected. `create_thread` accepts them. Apply a forked task's selection on its first `send_message_to_thread`; `fork_thread` has no routing fields. Otherwise omit overrides.
 
-For the Spec integration task and every Slice coordinator task, pass task-creation `model` or `thinking` only when the user explicitly selected that field. Otherwise omit both and use the configured task default. Creating or forking a real task is not an internal routing override.
+For internal agents, record the lowest fitting route once and reuse it:
 
-## Internal agents
-
-An explicit user setting wins. Otherwise select the lowest setting that fits each internal role needed by the accepted execution tree and record the choice with a one-line reason. Mechanical Leaves may use the lower setting. Design, cross-boundary integration, and every reviewer use the strong model.
-
-## Implementation and repair
-
-| Setting | Trigger |
+| Route | Use |
 | --- | --- |
-| `gpt-5.6-sol` + `medium` | Default well-specified work, including routine multi-file changes with known boundaries and validation |
-| `gpt-5.6-luna` + `medium` | Narrow mechanical, repetitive, or structured change with known location and validation; simple focused tests |
-| `gpt-5.6-sol` + `high` | Unclear-root-cause debugging; integration across module or state boundaries; important design or unclear structure |
-| `gpt-5.6-sol` + `xhigh` | Difficult, high-consequence security, data, migration, compatibility, deployment, or rollback work |
+| `gpt-5.6-luna` + `medium` | Narrow mechanical work with known location and checks |
+| `gpt-5.6-sol` + `medium` | Default well-specified implementation, repair, or local review |
+| `gpt-5.6-sol` + `high` | Unclear root cause, important design, cross-boundary implementation or review |
+| `gpt-5.6-sol` + `xhigh` | High-consequence security, data, migration, compatibility, deployment, rollback, or external-contract work |
 
-Use `max` only on explicit request. Raise effort for complexity, ambiguity, or verification depth; file count alone never raises effort.
+Every reviewer uses `gpt-5.6-sol`. Use `max` only when explicitly requested. File count alone does not raise effort.
 
-## Review
-
-| Setting | Trigger |
-| --- | --- |
-| `gpt-5.6-sol` + `medium` | Default or local review |
-| `gpt-5.6-sol` + `high` | Difficult root cause, broad state flow, cross-Slice integration, or important design |
-| `gpt-5.6-sol` + `xhigh` | High-consequence security, data, compatibility, migration, deployment, rollback, or external-contract review |
-
-## Spawn fields
-
-Every Leaf implementer, fixed-Node Repair, and reviewer is a fresh `spawn_agent` call with `fork_context: false`. Internal `spawn_agent` overrides must follow the recorded role route: include `model` and `reasoning_effort` when that route selects an override; otherwise omit both fields.
+Create every Leaf implementer, fixed-Node Repair, and reviewer with `spawn_agent(fork_turns: "none")`. Include `model` and `reasoning_effort` only for a selected internal override.

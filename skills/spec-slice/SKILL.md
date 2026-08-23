@@ -9,11 +9,11 @@ Plan only. End before implementation, review, or fan-out.
 
 ## Inspect
 
-Confirm one target Spec's identity, revision, project, requirements, and `ready` status. Before inspecting or creating execution artifacts, read [the execution-tree contract](references/execution-tree.md); it owns the schema, invariants, legacy stop, freeze boundary, and commands. Obey any stop it requires without editing artifacts.
+Confirm one target Spec's identity, revision, project, requirements, and `ready` status. Before inspecting or creating execution artifacts, read [the execution-tree contract](references/execution-tree.md); it owns decomposition, schema, invariants, legacy stop, freeze boundary, and commands. Obey any stop it requires without editing artifacts.
 
 ## Build
 
-Write the complete v3 Node tree and every root/Node Gate for the current revision before fan-out, including a Spec with no child Node. Use the templates and link rules in the execution-tree contract. Do not implement, review, or dispatch work.
+Choose root-only or recursively decompose the work using the contract's decomposition judgment. Node count and parallelism are not goals. Write the complete v3 Node tree and every root/Node Gate for the current revision before fan-out, including a Spec with no child Node. Use the templates and link rules in the execution-tree contract. Do not implement, review, or dispatch work.
 
 ## Validate
 
