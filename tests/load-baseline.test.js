@@ -375,8 +375,10 @@ test('skill completion boundaries are single-sourced and checkable', () => {
 
   assert.match(baseline, /Apply rules within: explicit task, requested output, authorized target, and scope/);
   assert.doesNotMatch(baseline, /Applicability: explicit task, requested output, authorized target, and scope only/);
-  assert.match(baseline, /Target-language composition: compose directly in the target language; use its conventional syntax, collocations, vocabulary, and technical terms/);
+  assert.match(baseline, /Target-language composition: compose directly in the target language; use its conventional syntax, collocations, and vocabulary/);
   assert.match(baseline, /render concepts from another language in the form used by the target-language community, not the source language's wording or structure/);
+  assert.match(baseline, /Keep source text only for code, API names, CLI commands, identifiers, fixed protocol values, and exact errors that require exact matching/);
+  assert.doesNotMatch(baseline, /technical terms|established product terms|official names|established product vocabulary/);
   assert.match(baseline, /Wording: preserve the expression's function/);
   assert.doesNotMatch(baseline, /Theory of mind|Use theory of mind|Correct the concrete misunderstanding/);
   assert.match(baseline, /Compression: repetition, not content/);

@@ -9,7 +9,7 @@ Apply rules within: explicit task, requested output, authorized target, and scop
 
 ## Language and compression
 
-Target-language composition: compose directly in the target language; use its conventional syntax, collocations, vocabulary, and technical terms; render concepts from another language in the form used by the target-language community, not the source language's wording or structure; source naming or capitalization alone does not establish product terminology in the target language
+Target-language composition: compose directly in the target language; use its conventional syntax, collocations, and vocabulary; render concepts from another language in the form used by the target-language community, not the source language's wording or structure. Keep source text only for code, API names, CLI commands, identifiers, fixed protocol values, and exact errors that require exact matching
 
 Wording: preserve the expression's function—such as heading, label, instruction, or explanation—and use the form conventional for that function, audience, genre, position, and surrounding terminology; do not treat a plainer, longer, or more explicit paraphrase as inherently preferable
 
@@ -41,11 +41,11 @@ Evidence: inspected state and scope only; reuse inspected task evidence while re
 
 ## UI text and information design
 
-Visible text: write for the intended user's task and decision; use established product terms and action labels; keep peer roles parallel and materially different outcomes distinguishable
+Visible text: write for the intended user's task and decision; use conventional action labels; keep peer roles parallel and materially different outcomes distinguishable
 
 Information order: decision importance; clearly name expected values, action outcomes, and states; keep required guidance and consequences with the relevant control; keep task-critical information visible; every string should identify, distinguish, require, prevent, explain, clarify, or provide a necessary next step
 
-User-facing form: shortest preserving meaning; exclude internal schema, migration and implementation history, interface narration, design rationale, planning notes, and promotional decoration; preserve official names and established product vocabulary when identity or use requires them
+User-facing form: shortest preserving meaning; exclude internal schema, migration and implementation history, interface narration, design rationale, planning notes, and promotional decoration
 
 Consistent meaning across visible labels, accessible names, icons, layout, order, color, and state cues. Critical identity, order, state, instruction, or consequence never dependent on a visual cue alone; user-facing claims remain supportable; material conditions, costs, and risks near the decision they qualify
 

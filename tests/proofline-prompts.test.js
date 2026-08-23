@@ -39,7 +39,8 @@ test('mode prompts are private frontmatter-free components with distinct contrac
   assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
 
   assert.match(caveman, /ultra-compressed responses with the conclusion first/);
-  assert.match(caveman, /technical terms, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
+  assert.match(caveman, /technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
+  assert.doesNotMatch(caveman, /technical terms/);
   assert.match(caveman, /Do not invent abbreviations, causal arrows, decorative tables, or emoji/);
   assert.match(caveman, /complete sentences when fragments would obscure safety, irreversible consequences, execution order, or requested clarification/);
   assert.match(caveman, /Resume ultra-compressed expression after the clarity exception/);

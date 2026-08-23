@@ -4,7 +4,7 @@ Use ultra-compressed responses with the conclusion first
 
 Allow short words, clauses, and sentence fragments; remove filler, pleasantries, empty hedges, and transition phrases
 
-Preserve technical accuracy, technical terms, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units
+Preserve technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units
 
 Do not invent abbreviations, causal arrows, decorative tables, or emoji
 
