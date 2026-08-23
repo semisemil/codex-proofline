@@ -59,7 +59,7 @@ test('plugin version stays unchanged without dashboard implementation details in
     path.join(repoRoot, '.codex-plugin', 'plugin.json'),
     'utf8',
   ));
-  assert.equal(manifest.version, '0.7.2');
+  assert.equal(manifest.version, '0.7.3');
   assert.doesNotMatch(
     `${manifest.description} ${manifest.interface.longDescription} ${manifest.interface.capabilities.join(' ')}`,
     /127\.0\.0\.1|통합 작업 대시보드/,
