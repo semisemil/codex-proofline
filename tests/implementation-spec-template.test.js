@@ -53,24 +53,29 @@ test('Spec creation batches bounded project evidence and reuses unchanged source
   assert.match(skill, /Reuse unchanged skill, template, project, and artifact evidence/);
 });
 
-test('Spec plans minimum sufficient evidence instead of equivalent test combinations', () => {
+test('Spec selects realistic outcome-level evidence without boundary test proliferation', () => {
   const skill = fs.readFileSync(
     path.join(__dirname, '..', 'skills', 'implementation-spec', 'SKILL.md'),
     'utf8',
   );
 
   assert.match(skill, /one minimum-sufficient completion set/);
-  assert.match(skill, /one representative success path/);
-  assert.match(skill, /distinct changed result/);
-  assert.match(skill, /authorization, input, state, or concurrency boundary/);
-  assert.match(skill, /unchanged behavior and equivalent combinations get no new test/);
-  assert.match(skill, /Fix the minimum completion set before fan-out/);
-  assert.match(skill, /only checks required to decide the acceptance conditions/);
-  assert.match(skill, /Add or change tests only when they directly decide/);
+  assert.match(skill, /smallest realistic check on the real production path/);
+  assert.match(skill, /One check may decide multiple acceptance conditions/);
+  assert.match(skill, /distinct source-required result or a reproduced regression/);
+  assert.match(skill, /Reuse existing checks when sufficient/);
+  assert.match(skill, /automation would be indirect or unrealistic/);
+  assert.match(skill, /review evidence or no mechanical check instead of inventing a test/);
+  assert.match(skill, /explicit artifact obligation such as adding a test, migration, or generated contract/);
+  assert.match(skill, /Unchanged behavior and implementation details get no new test/);
+  assert.match(skill, /Fix that minimum completion set before fan-out/);
+  assert.match(skill, /it is the only completion suite/);
   assert.match(
     skill,
     /Implementation tasks create and stage required artifacts without pre-running completion checks/,
   );
+  assert.doesNotMatch(skill, /one representative success path/);
+  assert.doesNotMatch(skill, /authorization, input, state, or concurrency boundary/);
   assert.doesNotMatch(skill, /verification units|targeted, broad, and deep checks/);
   assert.match(skill, /only a relevant mutation makes it stale/);
 });
