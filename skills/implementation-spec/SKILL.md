@@ -54,10 +54,8 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 ### Body style
 
 - Write the Spec body in the target language's conventional telegraphic style
-- Compress content as far as possible without loss of meaning
 - Use tables and bullets when they improve structure, preferring tables when either form works
 - Avoid terminal periods
-- Keep a short, dense development-document style
 
 ### Contract structure
 

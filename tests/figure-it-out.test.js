@@ -40,6 +40,8 @@ test('figure-it-out is a compact linked workflow without copied stage contracts'
   assert.match(preparation, /only after its documented invocation fails/);
   assert.match(preparation, /later-stage skills remain unloaded/);
   assert.match(preparation, /Otherwise continue without loading that skill/);
+  assert.match(preparation, /produce one authoritative Spec/);
+  assert.doesNotMatch(preparation, /compact authoritative Spec/);
   assert.match(preparation, /After the Spec exists, load `<skill-root>\/tenet-me\/SKILL\.md`/);
   assert.match(preparation, /Only after readiness, load `<skill-root>\/spec-slice\/SKILL\.md`/);
   assert.match(preparation, /fewest reliable execution Nodes/);

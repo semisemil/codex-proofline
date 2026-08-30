@@ -74,3 +74,16 @@ test('Spec plans minimum sufficient evidence instead of equivalent test combinat
   assert.doesNotMatch(skill, /verification units|targeted, broad, and deep checks/);
   assert.match(skill, /only a relevant mutation makes it stale/);
 });
+
+test('Spec keeps only document-specific body style rules', () => {
+  const skill = fs.readFileSync(
+    path.join(__dirname, '..', 'skills', 'implementation-spec', 'SKILL.md'),
+    'utf8',
+  );
+
+  assert.match(skill, /conventional telegraphic style/);
+  assert.match(skill, /Use tables and bullets when they improve structure/);
+  assert.match(skill, /Avoid terminal periods/);
+  assert.doesNotMatch(skill, /Compress content as far as possible/);
+  assert.doesNotMatch(skill, /short, dense development-document style/);
+});

@@ -12,6 +12,10 @@ test('the common skill contains only the preserved baseline contract', () => {
   assert.match(skill, /name: proofline/);
   assert.match(body, /Apply rules within: explicit task, requested output, authorized target, and scope/);
   assert.match(body, /## Language and compression/);
+  assert.match(body, /^Clarity:/m);
+  assert.match(body, /^Attention:/m);
+  assert.doesNotMatch(body, /^Compression:/m);
+  assert.doesNotMatch(body, /^Content eligibility:/m);
   assert.match(body, /## Truth, authority, and ambiguity/);
   assert.match(body, /## Review and evidence/);
   assert.match(body, /## UI text and information design/);
@@ -32,13 +36,14 @@ test('mode prompts are private frontmatter-free components with distinct contrac
   assert.match(normal, /Replace and ignore previous Proofline focus or caveman/);
   assert.doesNotMatch(normal, /next action|numbered steps|ultra-compressed/);
 
-  assert.match(focus, /Start with the conclusion or the next action/);
+  assert.doesNotMatch(focus, /Start with the conclusion or the next action/);
   assert.match(focus, /numbered steps only for multi-step work with a real execution order/);
-  assert.match(focus, /Show brief progress state only when needed/);
+  assert.doesNotMatch(focus, /Show brief progress state only when needed/);
   assert.match(focus, /Limit a list to five items/);
   assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
 
-  assert.match(caveman, /ultra-compressed responses with the conclusion first/);
+  assert.match(caveman, /Use ultra-compressed responses/);
+  assert.doesNotMatch(caveman, /with the conclusion first/);
   assert.match(caveman, /technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
   assert.doesNotMatch(caveman, /technical terms/);
   assert.match(caveman, /Do not invent abbreviations, causal arrows, decorative tables, or emoji/);

@@ -11,15 +11,15 @@ Apply rules within: explicit task, requested output, authorized target, and scop
 
 Target-language composition: compose directly in the target language; use its conventional syntax, collocations, and vocabulary; render concepts from another language in the form used by the target-language community, not the source language's wording or structure. Keep source text only for code, API names, CLI commands, identifiers, fixed protocol values, and exact errors that require exact matching
 
-Wording: preserve the expression's function—such as heading, label, instruction, or explanation—and use the form conventional for that function, audience, genre, position, and surrounding terminology; do not treat a plainer, longer, or more explicit paraphrase as inherently preferable
+Wording: preserve the expression's function—such as heading, label, instruction, or explanation—and use the form conventional for that function, audience, genre, position, and surrounding terminology
 
-Compression: repetition, not content; where context carries shared meaning, express only distinctions in compact forms such as labels, noun phrases, state names, or action chains; prefer tables for repeated fields or comparison axes
+Clarity: maximize information per word without losing required distinctions; use familiar terms and direct sentence structures a non-specialist can understand on first read
+
+Attention: begin with the governing conclusion, next action, or required result, as the request demands; surface the current state needed to understand or act on it; make the observable result explicit; include only material that changes the requested result or the recipient's decision, action, or verification; omit tangents, preambles, and repeated summaries
 
 Source transformation: change only what the requested transformation requires; unless summarizing, restructuring, or style change is requested, preserve information, order, structure, tone, formality, useful headings and lists, with distinct propositions separate; output-language localization is not a style change
 
-Content eligibility: context-determined; carry prior context into an output only when it applies to that output's target, scope, or purpose; include a proposition only if omission would materially change output meaning, required result, or recipient decision; keep it at the narrowest governing scope
-
-Meaning: state each material proposition once; paraphrase only equivalently; state observable outcomes directly. Keep prerequisites, exceptions, and stop conditions separate and logically unchanged. Preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority. Add no unsupported requirement, gate, rationale, action, or decision
+Meaning: state each material proposition once and paraphrase only equivalently; keep it at the narrowest governing scope. Keep prerequisites, exceptions, and stop conditions separate and logically unchanged. Preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority. Add no unsupported requirement, gate, rationale, action, or decision
 
 ## Truth, authority, and ambiguity
 

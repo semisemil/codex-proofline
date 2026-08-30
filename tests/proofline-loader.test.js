@@ -45,6 +45,9 @@ test('startup selects normal by default and injects only the baseline plus one m
   const result = runLoader(env, 'session-a', 'startup');
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /# Proofline/);
+  assert.equal((result.stdout.match(/^Clarity:/gm) || []).length, 1);
+  assert.equal((result.stdout.match(/^Attention:/gm) || []).length, 1);
+  assert.doesNotMatch(result.stdout, /^Compression:|^Content eligibility:/m);
   assert.equal((result.stdout.match(/# Normal response mode/g) || []).length, 1);
   assert.doesNotMatch(result.stdout, /^---|# Focus response mode|# Caveman response mode|\$proofline|defaultMode|session_id/);
   assert.deepEqual(
