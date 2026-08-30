@@ -168,11 +168,20 @@ test('actual dashboard assets are served with the real API fixture', async (t) =
   assert.equal(root.status, 200);
   assert.match(root.headers['content-type'], /^text\/html/);
   assert.equal(root.body, readAsset('index.html'));
-  assert.match(root.body, /src="\/core\.js"/);
-  assert.match(root.body, /src="\/app\.js"/);
-  assert.match(root.body, /href="\/styles\.css"/);
+  assert.match(root.body, /href="\/dashboard"/);
+  assert.match(root.body, /href="\/architecture"/);
 
-  for (const asset of ['core.js', 'app.js', 'styles.css']) {
+  const dashboard = await request(
+    server,
+    `/dashboard?project=${AVAILABLE_ID}&expected_version=0.6.3`,
+  );
+  assert.equal(dashboard.status, 200);
+  assert.equal(dashboard.body, readAsset('dashboard.html'));
+  assert.match(dashboard.body, /src="\/core\.js"/);
+  assert.match(dashboard.body, /src="\/app\.js"/);
+  assert.match(dashboard.body, /href="\/styles\.css"/);
+
+  for (const asset of ['core.js', 'app.js', 'intro.js', 'styles.css']) {
     const response = await request(server, `/${asset}`);
     assert.equal(response.status, 200, asset);
     assert.equal(response.body, readAsset(asset));
@@ -642,7 +651,7 @@ test('document DOM replacements restore focus for loading, success, failure, fal
 });
 
 test('background mode and image replacement are separate keyboard controls', () => {
-  const html = readAsset('index.html');
+  const html = readAsset('dashboard.html');
   const app = readAsset('app.js');
   const fileInput = html.match(/<input id="background-file"[\s\S]*?>/)?.[0] || '';
   const visibleButton = html.match(/<button class="icon-button" id="background-button"[\s\S]*?<\/button>/)?.[0] || '';
@@ -671,7 +680,7 @@ test('background mode and image replacement are separate keyboard controls', () 
 });
 
 test('dashboard user-facing artifact names are Korean and registration guidance is direct', () => {
-  const html = readAsset('index.html');
+  const html = readAsset('dashboard.html');
   const app = readAsset('app.js');
   const visibleSource = `${html}\n${app}`;
 
@@ -712,7 +721,7 @@ test('safe Markdown escapes HTML and only creates hardened HTTP links', () => {
 });
 
 test('actual markup and styles expose responsive, keyboard, tooltip, and state contracts', () => {
-  const html = readAsset('index.html');
+  const html = readAsset('dashboard.html');
   const css = readAsset('styles.css');
   const app = readAsset('app.js');
 
@@ -734,6 +743,8 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(css, /backdrop-filter:\s*blur\(24px\) saturate\(1\.6\)/);
 
   assert.match(app, /new URLSearchParams\(globalThis\.location\.search\)\.get\('expected_version'\)/);
+  assert.match(app, /new URLSearchParams\(globalThis\.location\.search\)\.get\('project'\)/);
+  assert.match(app, /architectureParams\.set\('project', projectId\)/);
   assert.match(app, /method: 'DELETE'/);
   assert.match(app, /indexRequestGate\.isCurrent\(request, state\.selectedProjectId\)/);
   assert.match(app, /state\.documents\.set\(requestKey, detail\)/);

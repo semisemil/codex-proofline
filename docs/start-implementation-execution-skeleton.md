@@ -1,130 +1,122 @@
 # Start Implementation 실행 골격
 
-이 문서는 `start-implementation` 리팩터링용 구조 설명이다. 실행 규칙의 원문은 각 Skill에 둔다.
+`start-implementation`의 실행 구조를 설명한다. 실제 실행 규칙은 스킬 본문과 연결된 역할별 작업 전달문이 기준이다.
 
-## Task와 Worktree
+## 작업과 Git 작업 공간
 
 ```mermaid
 flowchart TD
-    O[원본 checkout의 시작 task]
+    O[호출 작업<br/>최상위 조정자]
 
-    subgraph W[하나의 Spec 구현 Worktree]
-        S[Spec 조정 task]
-        A[루트 직속 Slice task A]
-        B[루트 직속 Slice task B]
-        I[Leaf 또는 Repair 내부 agent]
-        R[Slice 또는 Spec reviewer]
+    subgraph W[최상위 Slice의 Git 작업 공간]
+        H[작업 공간 보관 작업]
+        S[최상위 Slice 조정 작업]
+        U[하위 Slice 조정 작업]
+        L[말단 구현 작업]
+        R[검토자]
     end
 
-    O -->|create_thread: 새 Worktree와 Spec task| S
-    S -->|fork_thread same-directory 후 send_message| A
-    S -->|fork_thread same-directory 후 send_message| B
-    A -->|spawn_agent| I
-    B -->|spawn_agent| I
+    O -->|create_thread: 새 Git 작업 공간| H
+    H -->|준비 완료 알림| O
+    O -->|fork_thread: same-directory| S
+    S -->|하위 묶음| U
+    S -->|말단| L
+    U -->|하위 묶음| U
+    U -->|말단| L
     S -->|spawn_agent 후 wait_agent| R
 ```
 
-- `create_thread`: 원본 task가 Spec 조정 task와 Spec Worktree를 한 번 만들 때만 사용한다.
-- `fork_thread(environment: { type: "same-directory" })`: Spec 조정 task가 같은 Worktree를 쓰는 루트 직속 Slice task를 만들 때 사용한다.
-- `send_message_to_thread`: fork 직후 과제를 보내고, 실행 task가 과제를 보낸 task로 terminal callback을 보낼 때 사용한다. 메시지의 sender metadata로 반환 대상을 알 수 있으므로 brief에 `threadId`나 `report_destination`을 넣지 않는다.
-- SubSlice는 새 task가 아니다. 해당 Slice task 안에서 재귀 실행한다. Leaf와 Repair만 내부 agent다.
-- Slice task와 내부 agent는 stage·commit·review하지 않는다. Spec 조정 task가 하나의 Git index와 모든 review·commit을 직렬 소유한다.
+- Codex에는 새 Git 작업 공간을 만들면서 그 안의 조정 작업까지 바로 돌려주는 기능이 없다. `create_thread`로 보관 작업을 만든 뒤, 준비 완료 알림을 받으면 그 작업에서 `same-directory`로 분기해 최상위 Slice 조정 작업을 만든다.
+- 최상위 조정자는 실행 가능한 최상위 Slice마다 이 절차를 반복한다. 분할 없는 경우에는 보관 작업에서 분기한 구현 작업이 구현·Gate·검토·커밋을 맡으며 별도 Slice 조정 작업을 만들지 않는다.
+- 보관 작업은 Git 작업 공간만 제공한다. 실행 단위, 구현, Gate, 검토, 커밋을 맡지 않는다.
+- 조정 작업은 직접 하위 묶음을 하위 조정 작업으로, 직접 말단을 구현 작업으로 분기한다.
+- 작업 간 반환은 `send_message_to_thread`를 사용한 완료 알림이다. 상위 작업은 하위 작업을 기다리거나 진행 상황을 조회하지 않는다.
+- 하위 작업은 완료 알림으로 복귀하므로 조정 작업이 기다리지 않는다. `wait_agent`는 검토 경계 소유자가 직접 만든 검토자에만 사용한다.
+
+## 최상위 Slice의 실행 경계
+
+하나의 최상위 Slice 아래 모든 작업은 같은 Git 작업 공간을 사용한다. 각 말단 구현 작업은 자기 변경만 구현하고 정확한 경로를 스테이징한다. 조정 작업이 완료 알림을 받으면 해당 경계의 미충족 Gate만 실행한다. 모든 말단 변경은 하나의 스테이징된 최종 변경으로 합쳐진다.
+
+최상위 Slice는 다음 조건을 만족하도록 나눈다.
+
+- 하위 결과를 같은 작업 공간에서 안전하게 합칠 수 있음
+- 합쳐진 변경과 요구사항을 한 번에 검토할 수 있음
+- 검토를 통과한 변경을 하나의 커밋으로 전달할 수 있음
+
+하위 Slice는 이 경계를 다시 만들지 않는다. 큰 작업의 조정만 재귀적으로 나눈다.
 
 ## 재귀 실행
 
 ```mermaid
 flowchart TD
-    E[execute node] --> C{자식 Node가 있는가}
-    C -->|없음: Leaf| L[새 Leaf 구현 agent 생성 후 wait]
-    L --> D[pre-wave 대비 실제 delta와 scope 확인]
-    D --> G[현재 Node Gate]
-
-    C -->|있음: Branch| Q[실행 가능한 child 선택]
-    Q --> X[각 child에 execute child 재귀 호출]
-    X --> Y[모든 child의 재귀 결과 완료]
-    Y --> G
-
-    G -->|fail| O{고정 트리의 owner가 있는가}
-    O -->|있음| P[owner task의 새 Repair agent]
-    P --> V[영향 closure 무효화]
-    V --> E
-    O -->|없음| N[need_confirm 또는 explicit re-slicing]
-
-    G -->|pass: deeper SubSlice| U[호출한 Branch로 반환]
-    U --> X
-    G -->|pass: 루트 직속 Slice| K[Spec task로 callback 후 Slice task turn 종료]
-    G -->|pass: root| F[Spec Integration review 경계]
+    C[Slice 조정 작업] --> T{담당 단위}
+    T -->|말단 또는 분할 없음| L[말단 구현 작업 분기]
+    T -->|하위 단위 있음| D[직접 하위 단위 분류]
+    D -->|말단| L
+    D -->|하위 묶음| U[하위 Slice 조정 작업 분기]
+    L --> I[구현 → 정확한 경로 스테이징]
+    I --> K[상위 작업에 완료 알림 후 종료]
+    U --> C
+    K --> A[상위 작업이 실제 상태 확인]
+    A --> B{모든 하위 작업 완료}
+    B -->|아니요| E[다음 작업을 보내고 종료]
+    B -->|예: 하위 단위 있음| G[현재 단위 Gate]
+    B -->|예: 말단| J[조정 작업이 말단 Gate 실행]
+    G --> R{조정 작업 위치}
+    J --> R
+    R -->|하위 Slice| P[상위 작업에 완료 알림 후 종료]
+    R -->|최상위 Slice| V[스테이징된 최종 변경 검토]
 ```
 
-`execute(child)`는 같은 그림 전체를 다시 적용한다. 따라서 Branch 깊이에는 제한이 없다. 하위 Gate는 Leaf부터 Branch까지 bottom-up으로 닫힌다. 루트 직속 Slice의 Gate 통과와 callback은 실행 반환일 뿐 완료가 아니다.
+조정 작업은 완료 알림을 받을 때만 다시 실행된다. 완료 알림은 단위 ID와 완료 상태 또는 중단 이유만 담고, 변경 경로·Gate·다음 작업은 조율 상태 도우미가 한 번에 판정한다.
 
-Repair가 코드를 바꾸면 다음만 다시 연다.
+수정이 필요하면 실패를 소유한 가장 깊은 기존 작업에 차단 사유만 전달한다. 분할 없는 구현은 같은 작업이 직접 수정하고, 하위 단위는 기존 담당 작업이 수정한다. 소유 경계가 없으면 `explicit re-slice required`로 중단한다.
 
-1. 고친 Node와 전체 하위 트리
-2. 그 결과에 `blocked_by`로 의존하는 형제와 하위 트리
-3. root까지의 조상
-4. 영향받은 Slice review와 최종 review
-
-`run_after`는 순서만 정하므로 영향 closure를 넓히지 않는다.
-
-## Review 위치와 callback
+## 검토와 커밋
 
 ```mermaid
 sequenceDiagram
-    participant O as 원본 task
-    participant S as Spec 조정 task
-    participant T as Slice task
-    participant A as Leaf 또는 Repair agent
-    participant R as Reviewer agent
+    participant O as 최상위 조정자
+    participant H as 작업 공간 보관 작업
+    participant S as 최상위 Slice 조정 작업
+    participant L as 말단 구현 작업
+    participant R as 검토자
 
-    O->>S: create_thread, Spec Worktree와 최초 과제
-    Note over O: turn 종료
-    S->>T: fork_thread same-directory, send_message_to_thread
-    Note over S: turn 종료
-    T->>A: spawn_agent, execute leaf 또는 repair
-    Note over T,A: T가 wait_agent로 반환을 기다림
-    A-->>T: returned 또는 blocked
-    T->>T: 재귀 Gate를 bottom-up 실행
-    T->>S: send_message_to_thread terminal callback
-    Note over T: turn 종료
-    S->>S: 실제 상태 확인, 정확한 Slice 경로 stage와 fingerprint
-    S->>R: fresh blind Slice review
-    Note over S,R: S가 wait_agent로 판정을 기다림
-    R-->>S: pass, fail 또는 need_confirm
+    O->>H: create_thread
+    Note over O: 기다리지 않고 종료
+    H-->>O: 준비 완료 알림
+    O->>S: 보관 작업에서 same-directory 분기와 Slice 과제 전달
+    Note over O: 기다리지 않고 종료
+    S->>L: 말단 구현 작업 분기
+    Note over S: 하위 작업을 기다리지 않고 종료
+    L->>L: 구현, 정확한 경로 스테이징
+    L-->>S: 최종 완료 알림
+    S->>S: 하위 Gate와 스테이징된 최종 변경 확인
+    S->>R: 새 독립 검토 요청
+    Note over S,R: S가 검토자만 wait_agent
+    R-->>S: pass 또는 fail
     alt pass
-        S->>S: fingerprint 확인, 동일 Worktree에 정확한 staged diff commit
-        S->>S: 루트 직속 Slice 완료
-    else fail with existing owner
-        S->>S: unstage
-        S->>T: send_message_to_thread repair 과제
-        Note over S: turn 종료
-    else need_confirm 또는 owner 없음
-        S->>S: 중단 또는 explicit re-slicing
-    end
-    S->>S: 모든 Slice 완료 후 root Gate와 전체 검사
-    S->>R: fresh blind Spec Integration review
-    Note over S,R: S가 wait_agent로 판정을 기다림
-    R-->>S: pass, fail 또는 need_confirm
-    alt pass
-        S->>O: terminal callback
-        Note over S: turn 종료
-        O->>O: 원본 상태 재검증, product diff만 미커밋 적용, destination Gate
-    else fail with existing owner
-        S->>S: deepest owner와 영향 closure 결정
-        S->>T: Slice-owned이면 send_message_to_thread repair 과제
-        Note over S: Slice-owned이면 turn 종료
-        S->>A: root-owned이면 fresh Repair 후 wait_agent
-    else need_confirm 또는 owner 없음
-        S->>S: 중단 또는 explicit re-slicing
+        S->>S: 지문값 확인과 검토 통과 커밋
+        S-->>O: 기준 커밋, 새 커밋, 작업 공간 알림
+    else fail
+        S->>L: 차단 사유를 기존 담당 구현 작업에 전달
+        Note over S: 기다리지 않고 종료
+        L-->>S: 수정 완료 알림
+        S->>S: 영향받은 Gate와 검토만 다시 실행
     end
 ```
 
-Reviewer는 재귀 실행자나 Slice task가 아니다. Slice reviewer는 루트 직속 Slice가 callback한 뒤 Spec 조정 task가 만들고, 최종 reviewer는 모든 Slice와 root Gate가 끝난 뒤 만든다. Reviewer는 판정만 하며 Repair를 직접 만들거나 코드를 고치지 않는다.
+검토 전에는 Spec에 고정된 완료 검증만 끝낸다. 구현 중 실행 확인은 특정 수정에 필요한 Gate 항목 하나만 `feedback`으로 실행하고, 완료 판정은 조정 작업이 담당한다. 각 검사는 모든 전제조건이 처음 모이는 가장 낮은 경계에 한 번만 배치한다. 말단 Gate는 합산 전 확인, 묶음 Gate는 합쳐진 동작, Spec Gate는 여러 최상위 Slice 또는 원본 환경의 조합만 담당한다. 기계적 검사가 없는 경계는 비용 0으로 닫고 대체 검사를 만들지 않는다. 같은 지문값의 성공 결과는 검토·커밋·전달·최종 적용에서 재사용한다.
 
-## 완료 경계
+검토자는 경로별 변경량과 지문값이 있는 작은 snapshot 목록부터 확인하고, 목록의 스테이징 경로에 대해 `git diff --cached`를 한 번 실행한다. 분할이 없거나 최상위 Slice가 하나뿐이면 Spec을 검토 경계로 사용하고, 이 검토가 최종 Spec 검토도 겸한다. 코드는 수정하지 않는다. 범위 밖 문제는 별도로 보고하지만 `pass | fail`에는 영향을 주지 않는다.
 
-- Slice callback: subtree 실행 반환. 완료 아님.
-- Slice 완료: subtree Gate 통과, fresh Slice review `pass`, fingerprint 유지, 동일 Spec Worktree의 정확한 로컬 commit.
-- Spec 완료: 모든 Slice 완료, root Gate·전체 검사 통과, fresh Spec Integration review `pass`.
-- 원본 완료: 기록된 HEAD·dirty state·비중첩 유지, product diff의 미커밋 적용, destination Gate 통과.
-- `ABANDON`, unresolved `need_confirm`, 반복 실패, destination 실패: 미완료. 원본 변경과 Spec Worktree를 보존한다.
+최상위 Slice가 둘 이상이면 최상위 조정자가 검토된 커밋만 의존 순서대로 하나의 Git 작업 공간에 통합한다. 조합을 판정하는 Spec Gate만 실행한 뒤 기준 커밋부터 현재 커밋까지의 변경 목록과 지문값을 만들고, 새 검토자를 직접 생성해 기다린다. 별도 통합 조정 작업은 만들지 않는다.
+
+## 완료 기준
+
+- 말단 완료 알림: 구현과 스테이징 완료 또는 중단 이유 반환. 상위 조정 작업이 Gate를 실행하기 전에는 완료 아님
+- 하위 Slice 완료 알림: 하위 트리의 Gate 결과 반환. 최상위 Slice 검토 전에는 완료 아님
+- 최상위 Slice 완료: 모든 하위 Gate 증거 기록, 스테이징된 최종 변경의 새 독립 검토 `pass`, 지문값 유지, 상태 `completed`, 검토 통과 커밋
+- Spec 완료: 최상위 Slice가 하나면 해당 Spec 경계 검토와 확인된 하위 Gate를 재사용하고 원본 적용 검증으로 이동, 여러 개면 통합 Gate와 통합된 변경의 새 검토 `pass`
+- 원본 완료: 기록한 `HEAD`와 기존 변경 유지, 검토된 커밋과 지문으로 정확한 제품 변경 적용, 아직 충족되지 않은 원본 환경 전용 검사만 통과. 같은 지문에서 확인한 Gate는 다시 실행하지 않음
+- `ABANDON`, 해결되지 않은 `need_confirm`, 반복 실패, 통합 충돌, 적용 대상 실패: 미완료이며 Git 작업 공간 보존

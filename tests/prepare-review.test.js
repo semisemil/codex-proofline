@@ -40,6 +40,10 @@ test('stage, verify, and unstage preserve the reviewed working changes', (t) => 
   assert.equal(staged.status, 0, staged.stderr);
   const evidence = JSON.parse(staged.stdout);
   assert.deepEqual(evidence.paths, ['added.txt', 'tracked.txt']);
+  assert.deepEqual(evidence.changes, [
+    { path: 'added.txt', added: 1, deleted: 0 },
+    { path: 'tracked.txt', added: 1, deleted: 1 },
+  ]);
   assert.match(evidence.fingerprint, /^sha256:[0-9a-f]{64}$/);
 
   const verified = run(cwd, 'verify', '--cwd', cwd, '--fingerprint', evidence.fingerprint);
@@ -68,6 +72,32 @@ test('stage rejects a nonempty index without changing it', (t) => {
   assert.equal(git(cwd, 'diff', '--cached', '--name-only'), 'tracked.txt\n');
 });
 
+test('snapshot fingerprints the shared Slice index without restaging it', (t) => {
+  const cwd = fixture(t);
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'leaf one\n');
+  fs.writeFileSync(path.join(cwd, 'added.txt'), 'leaf two\n');
+  git(cwd, 'add', '--', 'tracked.txt');
+  git(cwd, 'add', '--', 'added.txt');
+
+  const result = run(
+    cwd,
+    'snapshot', '--cwd', cwd, '--path', 'tracked.txt', '--path', 'added.txt',
+  );
+  assert.equal(result.status, 0, result.stderr);
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(evidence.paths, ['added.txt', 'tracked.txt']);
+  assert.deepEqual(evidence.changes, [
+    { path: 'added.txt', added: 1, deleted: 0 },
+    { path: 'tracked.txt', added: 1, deleted: 1 },
+  ]);
+  assert.match(evidence.fingerprint, /^sha256:[0-9a-f]{64}$/);
+
+  const mismatch = run(cwd, 'snapshot', '--cwd', cwd, '--path', 'tracked.txt');
+  assert.equal(mismatch.status, 2);
+  assert.match(mismatch.stderr, /staged paths differ/);
+  assert.equal(git(cwd, 'diff', '--cached', '--name-only'), 'added.txt\ntracked.txt\n');
+});
+
 test('verify detects a staged change after review preparation', (t) => {
   const cwd = fixture(t);
   fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'reviewed\n');
@@ -80,4 +110,41 @@ test('verify detects a staged change after review preparation', (t) => {
 
   assert.equal(result.status, 2);
   assert.match(result.stderr, /staged fingerprint changed/);
+});
+
+test('snapshot-range and verify-range bind an integrated committed diff', (t) => {
+  const cwd = fixture(t);
+  const base = git(cwd, 'rev-parse', 'HEAD').trim();
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'integrated\n');
+  fs.writeFileSync(path.join(cwd, 'added.txt'), 'added\n');
+  git(cwd, 'add', '--', 'tracked.txt', 'added.txt');
+  git(cwd, 'commit', '-m', 'integrate reviewed slices');
+
+  const snapshotted = run(cwd, 'snapshot-range', '--cwd', cwd, '--base', base);
+  assert.equal(snapshotted.status, 0, snapshotted.stderr);
+  const evidence = JSON.parse(snapshotted.stdout);
+  assert.equal(evidence.base, base);
+  assert.equal(evidence.head, git(cwd, 'rev-parse', 'HEAD').trim());
+  assert.deepEqual(evidence.paths, ['added.txt', 'tracked.txt']);
+  assert.deepEqual(evidence.review_command, [
+    'git', 'diff', `${base}..${evidence.head}`, '--unified=3', '--no-ext-diff', '--no-renames',
+    '--', 'added.txt', 'tracked.txt',
+  ]);
+
+  const verified = run(
+    cwd, 'verify-range', '--cwd', cwd, '--base', base,
+    '--fingerprint', evidence.fingerprint,
+  );
+  assert.equal(verified.status, 0, verified.stderr);
+  assert.deepEqual(JSON.parse(verified.stdout), evidence);
+
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'changed after review\n');
+  git(cwd, 'add', '--', 'tracked.txt');
+  git(cwd, 'commit', '-m', 'change after review');
+  const stale = run(
+    cwd, 'verify-range', '--cwd', cwd, '--base', base,
+    '--fingerprint', evidence.fingerprint,
+  );
+  assert.equal(stale.status, 2);
+  assert.match(stale.stderr, /range fingerprint changed/);
 });

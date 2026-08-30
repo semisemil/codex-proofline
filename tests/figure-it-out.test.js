@@ -8,28 +8,42 @@ const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8'
 
 test('figure-it-out is a compact linked workflow without copied stage contracts', () => {
   const skill = read('skills', 'figure-it-out', 'SKILL.md');
+  const preparation = read(
+    'skills', 'figure-it-out', 'references', 'preparation-task.md',
+  );
 
   assert.match(skill, /Run from the earliest incomplete applicable stage/);
-  assert.match(skill, /Optional Plan\. If a ready Spec would require inventing the problem, intended outcome, scope, direction, or material tradeoffs/);
-  assert.match(skill, /development-plan[\s\S]*tenet-me[\s\S]*Plan is `ready` and Tenet finds no material unresolved outcome path/);
-  assert.match(skill, /implementation-spec[\s\S]*tenet-me[\s\S]*Spec `ready`/);
-  assert.match(skill, /Run \[\$start-implementation\]\(\.\.\/start-implementation\/SKILL\.md\)/);
-  assert.doesNotMatch(skill, /\[\$spec-slice\]/);
-  assert.match(skill, /Revise from findings and rerun Tenet/);
+  assert.match(skill, /thin top coordinator/);
+  assert.match(skill, /references\/preparation-task\.md/);
+  assert.match(skill, /spawn_agent\(fork_turns: "none"\)/);
+  assert.doesNotMatch(skill, /model:|reasoning_effort:/);
+  assert.match(skill, /wait only for it/);
+  assert.match(skill, /Retain only returned artifact links, revision, readiness/);
+  assert.match(skill, /run \[\$start-implementation\]\(\.\.\/start-implementation\/SKILL\.md\)/);
+  assert.match(skill, /This invoking task is its top coordinator/);
   assert.match(skill, /This invocation owns the full chain/);
   assert.match(skill, /Resolve facts from evidence\. Ask only for unresolved material decisions, then resume/);
 
-  for (const stage of [
-    'development-plan',
-    'tenet-me',
-    'implementation-spec',
-    'start-implementation',
-  ]) {
-    assert.match(skill, new RegExp(`\\[\\$${stage}\\]\\(\\.\\.\\/${stage}\\/SKILL\\.md\\)`));
-  }
+  assert.match(preparation, /\{\{skill_root\}\}/);
+  assert.doesNotMatch(
+    preparation,
+    /development_plan_skill|tenet_skill|implementation_spec_skill|spec_slice_skill/,
+  );
 
   assert.ok(skill.split(/\r?\n/).length <= 15);
-  assert.doesNotMatch(skill, /## Authority|## Stage contracts|## Stop|Implementation Gate|wait_agent|cherry-pick|run_after|blocked_by/);
+  const renderedPrompt = preparation.match(/```text\r?\n([\s\S]*?)\r?\n```/)[1];
+  assert.doesNotMatch(renderedPrompt, /AGENTS\.md|system, developer, project/);
+  assert.match(preparation, /Batch narrow evidence/);
+  assert.match(preparation, /limit potentially large command output to 4,000 tokens/);
+  assert.match(preparation, /reuse successful evidence until a relevant source changes/);
+  assert.match(preparation, /later-stage skills remain unloaded/);
+  assert.match(preparation, /Otherwise continue without loading that skill/);
+  assert.match(preparation, /After the Spec exists, load `<skill-root>\/tenet-me\/SKILL\.md`/);
+  assert.match(preparation, /Only after readiness, load `<skill-root>\/spec-slice\/SKILL\.md`/);
+  assert.match(preparation, /fewest reliable execution Nodes/);
+  assert.match(preparation, /Perform no implementation/);
+  assert.ok(preparation.length <= 1700);
+  assert.doesNotMatch(skill, /## Authority|## Stage contracts|## Stop|Implementation Gate|cherry-pick|run_after|blocked_by/);
 });
 
 test('owned stages return to figure-it-out while standalone calls keep their boundaries', () => {

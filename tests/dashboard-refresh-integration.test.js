@@ -146,9 +146,9 @@ test('registration, child server, project switching, refresh, and unavailable re
   assert.equal(running.action, 'started');
   assert.match(running.url, /^http:\/\/127\.0\.0\.1:/);
 
-  const browserShell = await request(running.port, '/?expected_version=0.6.2');
+  const browserShell = await request(running.port, '/dashboard?expected_version=0.6.2');
   assert.equal(browserShell.status, 200);
-  assert.match(browserShell.body, /Proofline Pulse/);
+  assert.match(browserShell.body, /<h1>Pulse<\/h1>/);
   assert.match(browserShell.headers['content-security-policy'], /default-src 'self'/);
   const browserApp = await request(running.port, '/app.js');
   assert.equal(browserApp.status, 200);

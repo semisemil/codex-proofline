@@ -34,6 +34,7 @@
     error: null,
     health: null,
     expectedVersion: new URLSearchParams(globalThis.location.search).get('expected_version'),
+    requestedProjectId: new URLSearchParams(globalThis.location.search).get('project'),
     drawerOpen: false,
     drawerReturnFocus: null,
     backgroundUrl: null,
@@ -64,6 +65,7 @@
     background: byId('background-button'),
     backgroundFile: byId('background-file'),
     accent: byId('accent-color'),
+    architectureLink: byId('architecture-link'),
   };
 
   function make(tag, className, text) {
@@ -81,6 +83,19 @@
 
   function selectedProject() {
     return state.projects.find((project) => project.id === state.selectedProjectId) || null;
+  }
+
+  function updateProjectLocation(projectId) {
+    const params = new URLSearchParams();
+    if (state.expectedVersion) params.set('expected_version', state.expectedVersion);
+    if (projectId) params.set('project', projectId);
+    const suffix = params.size ? `?${params}` : '';
+    globalThis.history.replaceState(null, '', `/dashboard${suffix}`);
+    if (elements.architectureLink) {
+      const architectureParams = new URLSearchParams();
+      if (projectId) architectureParams.set('project', projectId);
+      elements.architectureLink.href = `/architecture${architectureParams.size ? `?${architectureParams}` : ''}`;
+    }
   }
 
   function readableError(error, fallback) {
@@ -172,7 +187,9 @@
       state.projects = (await api('/api/v1/projects')).projects || [];
       state.selectedProjectId = core.initialProjectId(
         state.projects,
-        options.keepSelection ? state.selectedProjectId : localStorage.getItem(STORAGE.project),
+        options.keepSelection
+          ? state.selectedProjectId
+          : state.requestedProjectId || localStorage.getItem(STORAGE.project),
       );
       renderProjects();
       const project = selectedProject();
@@ -265,6 +282,8 @@
     state.documents.clear();
     state.documentErrors.clear();
     if (options.save !== false) localStorage.setItem(STORAGE.project, project.id);
+    state.requestedProjectId = project.id;
+    updateProjectLocation(project.id);
     if (mobile) closeDrawer(options.focusReturn !== false);
     renderProjects(focusKey);
     updateContext();

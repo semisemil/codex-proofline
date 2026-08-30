@@ -42,6 +42,25 @@
             "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\next-document-number.js\"",
             "timeout": 5,
             "statusMessage": "Checking the next Proofline document number..."
+          },
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/execution-guard.js\" prompt-submit",
+            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\execution-guard.js\" prompt-submit",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|exec_command|functions\\.exec_command|apply_patch|Edit|Write|update_plan|functions\\.update_plan|create_thread|fork_thread|spawn_agent|wait_agent|wait_threads|mcp__codex_app__(create_thread|fork_thread|wait_threads))$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/execution-guard.js\" pre-tool",
+            "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\execution-guard.js\" pre-tool",
+            "timeout": 5
           }
         ]
       }

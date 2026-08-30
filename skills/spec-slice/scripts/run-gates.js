@@ -3,6 +3,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 
 const DEFAULT_TIMEOUT_MS = 120000;
@@ -88,6 +89,41 @@ function isManualCheck(command) {
   return /^manual(?:\s|:|$)/i.test(command.trim());
 }
 
+function parseCheckArgv(value, location) {
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new GateParseError(location + ': CHECK must be a JSON argv array');
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0
+    || parsed.some((item) => typeof item !== 'string' || item.length === 0)) {
+    throw new GateParseError(location + ': CHECK must be a non-empty JSON array of non-empty strings');
+  }
+  return parsed;
+}
+
+function parseRequiredPaths(value, location) {
+  let parsed;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new GateParseError(location + ': REQUIRES must be a JSON path array');
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0
+    || parsed.some((item) => typeof item !== 'string' || item.length === 0
+      || item.trim() !== item || item.includes('\\') || path.posix.isAbsolute(item)
+      || /^[A-Za-z]:/.test(item) || path.posix.normalize(item) !== item
+      || item === '.' || item.endsWith('/') || item.startsWith('../')
+      || /[\0\r\n*?\[\]{}]/.test(item))) {
+    throw new GateParseError(location + ': REQUIRES must contain exact project-relative paths');
+  }
+  if (new Set(parsed).size !== parsed.length) {
+    throw new GateParseError(location + ': REQUIRES contains duplicate paths');
+  }
+  return [...parsed].sort();
+}
+
 function parseGateDocument(content, filePath) {
   if (typeof content !== 'string') {
     throw new TypeError('Gate document content must be a string');
@@ -107,15 +143,19 @@ function parseGateDocument(content, filePath) {
   if (!scopeLine || scopeLine[1].trim().length === 0) {
     parseFailure(label, 1, 'scope must be "Scope: <one line>"');
   }
-  if (!lines[2] || lines[2].text.trim() !== '') {
-    parseFailure(label, 2, 'a blank line is required after Scope');
+  const blankLine = 2;
+  if (lines[2] && lines[2].text.startsWith('Scale:')) {
+    parseFailure(label, 2, 'Scale is not supported; Gate sets have no numeric verification budget');
+  }
+  if (!lines[blankLine] || lines[blankLine].text.trim() !== '') {
+    parseFailure(label, blankLine, 'a blank line is required after Scope');
   }
 
   const gates = [];
   const gateIds = new Set();
   const abandonments = new Map();
   let abandonmentsStarted = false;
-  let index = 3;
+  let index = blankLine + 1;
 
   while (index < lines.length) {
     const line = lines[index].text;
@@ -142,6 +182,9 @@ function parseGateDocument(content, filePath) {
 
       const markerLine = index;
       index += 1;
+      if (lines[index] && lines[index].text.startsWith('  CLASS:')) {
+        parseFailure(label, index, id + ': CLASS is not supported; Gate sets have no numeric verification budget');
+      }
       const checkMatch = lines[index] && lines[index].text.match(/^  CHECK: (.+)$/);
       if (!checkMatch || checkMatch[1].trim().length === 0) {
         parseFailure(label, index, id + ': CHECK is required');
@@ -150,15 +193,34 @@ function parseGateDocument(content, filePath) {
       if (isManualCheck(check)) {
         parseFailure(label, index, id + ': manual gates are not supported');
       }
-
+      const noCheck = check.toLowerCase() === 'none';
+      const argv = !noCheck && check.startsWith('[')
+        ? parseCheckArgv(check, label + ':' + (index + 1))
+        : null;
+      if (argv && isManualCheck(argv.join(' '))) {
+        parseFailure(label, index, id + ': manual gates are not supported');
+      }
       index += 1;
       let expect = null;
       if (lines[index] && lines[index].text.startsWith('  EXPECT:')) {
+        if (noCheck) {
+          parseFailure(label, index, id + ': CHECK NONE cannot have EXPECT');
+        }
         const expectMatch = lines[index].text.match(/^  EXPECT: (.*)$/);
         if (!expectMatch) {
           parseFailure(label, index, id + ': EXPECT must be "  EXPECT: <substring or /regex/flags>"');
         }
         expect = parseExpectation(expectMatch[1], label + ':' + (index + 1));
+        index += 1;
+      }
+
+      let requires = [];
+      if (lines[index] && lines[index].text.startsWith('  REQUIRES:')) {
+        const requiresMatch = lines[index].text.match(/^  REQUIRES: (.+)$/);
+        if (!requiresMatch) {
+          parseFailure(label, index, id + ': REQUIRES must be "  REQUIRES: [<path>...]"');
+        }
+        requires = parseRequiredPaths(requiresMatch[1], label + ':' + (index + 1));
         index += 1;
       }
 
@@ -172,7 +234,10 @@ function parseGateDocument(content, filePath) {
         outcome,
         checked: gateMatch[1].toLowerCase() === 'x',
         check,
+        argv,
+        noCheck,
         expect,
+        requires,
         evidence: evidenceMatch[1].trim(),
         abandonedReason: null,
         markerLine,
@@ -202,7 +267,7 @@ function parseGateDocument(content, filePath) {
   }
 
   if (gates.length === 0) {
-    parseFailure(label, 3, 'at least one Gate is required');
+    parseFailure(label, blankLine + 1, 'at least one Gate item is required; use CHECK NONE when no mechanical check exists');
   }
 
   const gatesById = new Map(gates.map((gate) => [gate.id, gate]));
@@ -270,10 +335,10 @@ function summarizeGateStatus(documents) {
   }
 
   return {
-    allMet: gates.length > 0 && counts.unmet === 0 && counts.abandoned === 0,
+    allMet: counts.unmet === 0 && counts.abandoned === 0,
     counts,
     gates,
-    exitCode: gates.length > 0 && counts.unmet === 0 && counts.abandoned === 0 ? 0 : 1,
+    exitCode: counts.unmet === 0 && counts.abandoned === 0 ? 0 : 1,
   };
 }
 
@@ -307,7 +372,7 @@ function capTail(value, limit) {
 }
 
 function makeEvidence(decision, output) {
-  const shortDecision = capHead(collapseText(decision), 80);
+  const shortDecision = capHead(collapseText(decision), 160);
   const shortOutput = collapseText(output);
   if (shortOutput.length === 0) return capHead(shortDecision, EVIDENCE_LIMIT);
 
@@ -317,17 +382,101 @@ function makeEvidence(decision, output) {
   return shortDecision + separator + capTail(shortOutput, available);
 }
 
+function gitOutput(cwd, args, encoding = null) {
+  const result = spawnSync('git', args, { cwd, encoding, windowsHide: true });
+  if (result.error || result.status !== 0) return null;
+  return result.stdout;
+}
+
+function workspaceFingerprint(cwd) {
+  const head = gitOutput(cwd, ['rev-parse', 'HEAD'], 'utf8');
+  if (head === null) return null;
+  const pathspec = ['--', '.', ':(exclude).proofline/**'];
+  const staged = gitOutput(cwd, [
+    'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', ...pathspec,
+  ]);
+  const unstaged = gitOutput(cwd, [
+    'diff', '--binary', '--no-ext-diff', '--no-renames', ...pathspec,
+  ]);
+  const untracked = gitOutput(cwd, [
+    'ls-files', '--others', '--exclude-standard', '-z', ...pathspec,
+  ]);
+  if (staged === null || unstaged === null || untracked === null) return null;
+
+  const hash = crypto.createHash('sha256');
+  hash.update(head.trim());
+  hash.update('\0');
+  hash.update(staged);
+  hash.update('\0');
+  hash.update(unstaged);
+  for (const relative of untracked.toString('utf8').split('\0').filter(Boolean).sort()) {
+    hash.update('\0' + relative + '\0');
+    try {
+      hash.update(fs.readFileSync(path.join(cwd, relative)));
+    } catch {
+      return null;
+    }
+  }
+  return `sha256:${hash.digest('hex')}`;
+}
+
+function stagedProductPaths(cwd) {
+  const output = gitOutput(cwd, [
+    'diff', '--cached', '--name-only', '--no-renames', '-z', '--', '.',
+    ':(exclude).proofline/**',
+  ]);
+  if (output === null) return null;
+  return output.toString('utf8').split('\0').filter(Boolean)
+    .map((value) => value.replaceAll('\\', '/')).sort();
+}
+
+function evidenceFingerprint(evidence) {
+  const match = evidence.match(/(?:^|; )snapshot (sha256:[0-9a-f]{64})(?:;|$)/);
+  return match ? match[1] : null;
+}
+
+function bindEvidence(result, fingerprint) {
+  const decision = collapseText(result.evidence).split('; tail: ')[0];
+  const output = result.output || '';
+  return {
+    ...result,
+    snapshot: fingerprint,
+    evidence: makeEvidence(
+      `${decision}; snapshot ${fingerprint}`,
+      output,
+    ),
+  };
+}
+
 function executeGate(gate, options) {
+  if (gate.noCheck) {
+    return {
+      passed: true,
+      timedOut: false,
+      status: 0,
+      signal: null,
+      output: '',
+      evidence: 'pass: no mechanical check',
+    };
+  }
   let result;
   let thrown = null;
   try {
-    result = spawnSync(gate.check, {
+    result = gate.argv
+      ? spawnSync(gate.argv[0], gate.argv.slice(1), {
+        shell: false,
+        cwd: options.cwd,
+        timeout: options.timeout,
+        encoding: 'utf8',
+        windowsHide: true,
+      })
+      : spawnSync(gate.check, {
       shell: true,
       cwd: options.cwd,
       timeout: options.timeout,
       encoding: 'utf8',
       windowsHide: true,
-    });
+      });
   } catch (error) {
     thrown = error;
     result = { status: null, signal: null, stdout: '', stderr: '', error };
@@ -376,6 +525,18 @@ function applyGateResult(document, gate, result) {
   gate.evidence = result.evidence;
 }
 
+function writeGateDocuments(documents) {
+  for (const document of documents) {
+    const rendered = renderGateDocument(document);
+    if (rendered === document.originalContent) continue;
+    try {
+      fs.writeFileSync(document.filePath, rendered, 'utf8');
+    } catch (error) {
+      throw new GateParseError(document.filePath + ': cannot write Gate file: ' + error.message);
+    }
+  }
+}
+
 function ensureDirectory(directory) {
   const resolved = path.resolve(directory);
   let stat;
@@ -388,6 +549,45 @@ function ensureDirectory(directory) {
     throw new GateUsageError('checkout root is not a directory: ' + resolved);
   }
   return resolved;
+}
+
+function evaluateGate(cwd, gate, timeout) {
+  const before = workspaceFingerprint(cwd);
+  if (before !== null && gate.checked && evidenceFingerprint(gate.evidence) === before) {
+    return {
+      passed: true,
+      skipped: true,
+      reason: 'unchanged-snapshot',
+      snapshot: before,
+      evidence: gate.evidence,
+    };
+  }
+  const staged = gate.requires.length > 0 ? stagedProductPaths(cwd) : [];
+  const missing = staged === null
+    ? gate.requires
+    : gate.requires.filter((required) => !staged.includes(required));
+  let result = missing.length > 0
+    ? {
+      passed: false,
+      timedOut: false,
+      status: null,
+      signal: null,
+      output: '',
+      evidence: staged === null
+        ? 'fail: REQUIRES needs a Git worktree'
+        : `fail: required staged paths missing: ${missing.join(', ')}`,
+    }
+    : executeGate(gate, { cwd, timeout });
+  const after = workspaceFingerprint(cwd);
+  if (before !== null && after !== before) {
+    result = {
+      ...result,
+      passed: false,
+      evidence: 'fail: verification changed product snapshot',
+    };
+  }
+  if (after !== null) result = bindEvidence(result, after);
+  return result;
 }
 
 function runGateFiles(filePaths, options) {
@@ -406,23 +606,38 @@ function runGateFiles(filePaths, options) {
         executions.push({ filePath: document.filePath, id: gate.id, skipped: true });
         continue;
       }
-      const result = executeGate(gate, { cwd, timeout });
+      const result = evaluateGate(cwd, gate, timeout);
+      if (result.skipped) {
+        executions.push({ filePath: document.filePath, id: gate.id, ...result });
+        continue;
+      }
       applyGateResult(document, gate, result);
       executions.push({ filePath: document.filePath, id: gate.id, skipped: false, ...result });
     }
   }
 
-  for (const document of documents) {
-    const rendered = renderGateDocument(document);
-    if (rendered === document.originalContent) continue;
-    try {
-      fs.writeFileSync(document.filePath, rendered, 'utf8');
-    } catch (error) {
-      throw new GateParseError(document.filePath + ': cannot write Gate file: ' + error.message);
-    }
-  }
+  writeGateDocuments(documents);
 
   return { documents, executions, status: summarizeGateStatus(documents) };
+}
+
+function runFeedback(filePath, gateId, options) {
+  const cwd = ensureDirectory(options.cwd);
+  const timeout = options.timeout === undefined ? DEFAULT_TIMEOUT_MS : options.timeout;
+  if (!Number.isSafeInteger(timeout) || timeout <= 0) {
+    throw new GateUsageError('--timeout must be a positive integer in milliseconds');
+  }
+  const document = parseGateFile(filePath);
+  const gate = document.gates.find((candidate) => candidate.id === gateId);
+  if (!gate) throw new GateUsageError(`unknown Gate item: ${gateId}`);
+  if (gate.abandonedReason !== null) throw new GateUsageError(`${gateId} is abandoned`);
+  if (gate.noCheck) throw new GateUsageError(`${gateId} has no command`);
+  const result = evaluateGate(cwd, gate, timeout);
+  if (!result.skipped) {
+    applyGateResult(document, gate, result);
+    writeGateDocuments([document]);
+  }
+  return result;
 }
 
 function statusGateFiles(filePaths) {
@@ -447,9 +662,32 @@ function usage(message) {
   process.stderr.write(
     'Usage:\n' +
     '  node run-gates.js run --cwd <checkout-root> [--timeout N] <file...>\n' +
+    '  node run-gates.js feedback --cwd <checkout-root> [--timeout N] --gate <file> --id <G#>\n' +
     '  node run-gates.js status <file...>\n' +
     '  N is a positive timeout in milliseconds.\n'
   );
+}
+
+function parseFeedbackArguments(args) {
+  let cwd = null;
+  let timeout = DEFAULT_TIMEOUT_MS;
+  let gate = null;
+  let id = null;
+  for (let index = 0; index < args.length; index += 2) {
+    const name = args[index];
+    const value = args[index + 1];
+    if (value === undefined) throw new GateUsageError('feedback requires values for every option');
+    if (name === '--cwd' && cwd === null) cwd = value;
+    else if (name === '--timeout' && timeout === DEFAULT_TIMEOUT_MS && /^\d+$/.test(value)) {
+      timeout = Number(value);
+    } else if (name === '--gate' && gate === null) gate = value;
+    else if (name === '--id' && id === null && /^G\d+$/.test(value)) id = value;
+    else throw new GateUsageError('feedback accepts --cwd, optional --timeout, --gate, and --id');
+  }
+  if (!cwd || !gate || !id || !Number.isSafeInteger(timeout) || timeout <= 0) {
+    throw new GateUsageError('feedback requires --cwd, --gate, --id, and an optional positive --timeout');
+  }
+  return { cwd, timeout, gate, id };
 }
 
 function parseRunArguments(args) {
@@ -504,6 +742,12 @@ function main(argv) {
       printStatus(result.status);
       return result.status.exitCode;
     }
+    if (action === 'feedback') {
+      const options = parseFeedbackArguments(args.slice(1));
+      const result = runFeedback(options.gate, options.id, options);
+      process.stdout.write(`${result.evidence}\n`);
+      return result.passed ? 0 : 1;
+    }
     if (action === 'status') {
       const files = args.slice(1);
       if (files.length === 0) throw new GateUsageError('status requires at least one Gate file');
@@ -533,13 +777,18 @@ module.exports = {
   GateParseError,
   GateUsageError,
   gateStatus,
+  parseCheckArgv,
+  parseRequiredPaths,
   loadGateFiles,
   main,
   parseExpectation,
   parseGateDocument,
   parseGateFile,
   renderGateDocument,
+  runFeedback,
   runGateFiles,
   statusGateFiles,
   summarizeGateStatus,
+  stagedProductPaths,
+  workspaceFingerprint,
 };

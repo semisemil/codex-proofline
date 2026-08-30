@@ -5,8 +5,8 @@ description: Think through a project change and carry it through the full Proofl
 
 Run from the earliest incomplete applicable stage.
 
-1. Optional Plan. If a ready Spec would require inventing the problem, intended outcome, scope, direction, or material tradeoffs, run [$development-plan](../development-plan/SKILL.md), then [$tenet-me](../tenet-me/SKILL.md). Revise and rerun until the Plan is `ready` and Tenet finds no material unresolved outcome path.
-2. Run [$implementation-spec](../implementation-spec/SKILL.md), then [$tenet-me](../tenet-me/SKILL.md). Revise from findings and rerun Tenet until Spec `ready`; no unresolved outcome path could materially change its contract or proof obligations.
-3. Run [$start-implementation](../start-implementation/SKILL.md).
+Keep this invoking task as the thin top coordinator. Render [the Preparation-task assignment](references/preparation-task.md) with the current request and one resolved Proofline skill root, create one fresh preparation agent with `spawn_agent(fork_turns: "none")`, and wait only for it. Retain only returned artifact links, revision, readiness, and a material user-decision blocker.
+
+After preparation completes, run [$start-implementation](../start-implementation/SKILL.md) from the returned ready Spec and valid execution-tree links. This invoking task is its top coordinator; do not create another coordinator boundary.
 
 This invocation owns the full chain. Resolve facts from evidence. Ask only for unresolved material decisions, then resume. Stage contracts own boundaries and stop conditions.

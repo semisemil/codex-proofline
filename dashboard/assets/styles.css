@@ -1329,3 +1329,302 @@ select {
     animation-iteration-count: 1 !important;
   }
 }
+
+.surface-link,
+.surface-nav a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.surface-link {
+  display: inline-grid;
+  min-height: 40px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--space) * 2);
+  background: var(--surface-strong);
+  box-shadow: var(--control-shadow);
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+.intro-shell {
+  width: min(1040px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: clamp(72px, 14vh, 160px) 0 48px;
+}
+
+.intro-heading {
+  max-width: 720px;
+  margin-bottom: clamp(28px, 6vw, 56px);
+}
+
+.intro-heading h1 {
+  margin: 4px 0 12px;
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.intro-heading > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.surface-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 4vw, 32px);
+}
+
+.surface-card {
+  display: grid;
+  gap: 8px;
+  min-height: 220px;
+  align-content: end;
+  border-radius: 24px;
+  padding: clamp(24px, 5vw, 48px);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+}
+
+.surface-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.surface-card strong {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.surface-card > span:last-child {
+  color: var(--muted);
+}
+
+.surface-card-kicker {
+  color: var(--accent);
+  font-weight: 750;
+}
+
+.architecture-shell {
+  width: min(1480px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 16px 0 32px;
+}
+
+.architecture-bar {
+  position: sticky;
+  top: 16px;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(160px, auto) minmax(240px, 1fr) auto;
+  align-items: end;
+  gap: 24px;
+  border-radius: 20px;
+  padding: 16px 20px;
+}
+
+.architecture-bar h1,
+.architecture-bar p,
+.architecture-navigation-heading h2 {
+  margin: 0;
+}
+
+.architecture-project-control {
+  display: grid;
+  gap: 4px;
+  max-width: 520px;
+}
+
+.architecture-project-control span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.surface-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.surface-nav a {
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+
+.surface-nav a[aria-current="page"] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 -2px 0 var(--accent);
+  font-weight: 750;
+}
+
+.architecture-status {
+  min-height: 32px;
+  padding: 8px 4px 4px;
+  color: var(--muted);
+}
+
+.architecture-status-error {
+  color: var(--danger);
+  font-weight: 680;
+}
+
+.architecture-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.architecture-navigation {
+  position: sticky;
+  top: 128px;
+  max-height: calc(100vh - 148px);
+  overflow: auto;
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.architecture-navigation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.architecture-navigation-heading button {
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.architecture-navigation-empty {
+  color: var(--muted);
+}
+
+.architecture-document-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.architecture-document-link {
+  display: grid;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.architecture-document-link:hover,
+.architecture-document-link[aria-current="page"] {
+  background: var(--accent-soft);
+}
+
+.architecture-document-link[aria-current="page"] {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.architecture-document-link span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.architecture-document {
+  min-height: calc(100vh - 148px);
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 52px);
+}
+
+.architecture-document-header {
+  max-width: 960px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px;
+}
+
+.architecture-document-header h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.12;
+}
+
+.architecture-metadata {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  max-width: 960px;
+  margin: 16px 0 28px;
+}
+
+.architecture-metadata dt {
+  color: var(--muted);
+  font-weight: 680;
+}
+
+.architecture-metadata dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.architecture-markdown {
+  max-width: 960px;
+}
+
+.architecture-markdown .mermaid {
+  overflow: auto;
+  margin: 24px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-opaque);
+  padding: 20px;
+  text-align: center;
+}
+
+.architecture-markdown .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 760px) {
+  .surface-choice,
+  .architecture-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .surface-card {
+    min-height: 180px;
+  }
+
+  .architecture-bar {
+    position: relative;
+    top: 0;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .architecture-project-control {
+    max-width: none;
+  }
+
+  .architecture-navigation {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+
+  .architecture-document {
+    min-height: 50vh;
+  }
+}

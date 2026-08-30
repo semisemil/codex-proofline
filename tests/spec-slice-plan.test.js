@@ -154,11 +154,12 @@ function writeGate(root, id, state = 'unmet', binding = {}) {
   const lines = [
     `# Gates: ${headingId}`,
     `Scope: ${specId} revision ${specRevision}`,
-    '',
-    `- [${checked ? 'x' : ' '}] G1: ${id} outcome`,
-    '  CHECK: proofline-inspector-test-command',
-    `  EVIDENCE: ${evidence}`,
   ];
+  lines.push('', `- [${checked ? 'x' : ' '}] G1: ${id} outcome`);
+  const check = binding.check || 'proofline-inspector-test-command';
+  lines.push(`  CHECK: ${Array.isArray(check) ? JSON.stringify(check) : check}`);
+  if (binding.requires) lines.push(`  REQUIRES: ${JSON.stringify(binding.requires)}`);
+  lines.push(`  EVIDENCE: ${evidence}`);
   if (state === 'abandoned') {
     lines.push('', 'ABANDON: G1 fixture cannot finish');
   }
@@ -299,6 +300,40 @@ test('Node Gate binding rejects owner ID and Spec scope mismatches', (t) => {
   const scopePattern = /SLICE-01\.md: Gate Scope must be "Scope: SPEC-0001 revision 3"/;
   expectTreeError(wrongSpec, scopePattern);
   expectTreeCliError(wrongSpec, scopePattern);
+});
+
+test('Node Gate REQUIRES stays inside its descendant Leaf write scope', (t) => {
+  const valid = fixture(t);
+  writeSpec(valid, { links: [sliceLink('SLICE-01')] });
+  writeNode(valid, nodeMetadata('SLICE-01', { write_scope: [] }));
+  writeNode(valid, nodeMetadata('SLICE-01.01', { write_scope: ['src/feature/'] }));
+  writeGate(valid, SPEC_ID);
+  writeGate(valid, 'SLICE-01', 'unmet', { requires: ['src/feature/test.js'] });
+  writeGate(valid, 'SLICE-01.01', 'unmet', { requires: ['src/feature/unit.test.js'] });
+  assert.equal(inspectExecutionTree(valid).spec_id, SPEC_ID);
+
+  const invalid = fixture(t);
+  writeSpec(invalid, { links: [sliceLink('SLICE-01')] });
+  writeNode(invalid, nodeMetadata('SLICE-01', { write_scope: ['src/feature/'] }));
+  writeGate(invalid, SPEC_ID);
+  writeGate(invalid, 'SLICE-01', 'unmet', { requires: ['tests/unowned.test.js'] });
+  expectTreeError(invalid, /REQUIRES path is outside Node write_scope/);
+});
+
+test('REQUIRES rejects directories and duplicate Gate ownership during planning', (t) => {
+  const project = fixture(t);
+  const root = path.join(project, '.proofline', 'specs', SPEC_ID);
+  fs.mkdirSync(path.join(project, 'frontend', 'src', 'client'), { recursive: true });
+  writeSpec(root);
+  writeGate(root, SPEC_ID, 'unmet', { requires: ['frontend/src/client'] });
+  expectTreeError(root, /REQUIRES must name a file, not directory/);
+
+  fs.rmSync(path.join(project, 'frontend'), { recursive: true, force: true });
+  writeSpec(root, { links: [sliceLink('SLICE-01')] });
+  writeNode(root, nodeMetadata('SLICE-01', { write_scope: ['tests/required.test.js'] }));
+  writeGate(root, SPEC_ID, 'unmet', { requires: ['tests/required.test.js'] });
+  writeGate(root, 'SLICE-01', 'unmet', { requires: ['tests/required.test.js'] });
+  expectTreeError(root, /duplicates REQUIRES tests\/required\.test\.js/);
 });
 
 test('three-level tree exposes every safe Leaf as a deterministic dispatch candidate', (t) => {
@@ -475,7 +510,7 @@ test('combined dependencies must be acyclic and reference siblings only', (t) =>
 test('write_scope rejects concurrent overlap but permits transitive sibling ordering', (t) => {
   const conflict = fixture(t);
   writeSpec(conflict, { links: [sliceLink('SLICE-01'), sliceLink('SLICE-02')] });
-  writeNode(conflict, nodeMetadata('SLICE-01', { write_scope: ['src/shared/'] }));
+  writeNode(conflict, nodeMetadata('SLICE-01', { write_scope: ['src/shared'] }));
   writeNode(conflict, nodeMetadata('SLICE-02', { write_scope: ['src/shared/file.js'] }));
   writeGateSet(conflict, [SPEC_ID, 'SLICE-01', 'SLICE-02']);
   expectTreeError(conflict, /concurrent write_scope conflict/);

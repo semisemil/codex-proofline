@@ -8,6 +8,7 @@ const {
   ProjectApiError,
   ProjectIndexService,
 } = require('./records/project-index.js');
+const { ArchitectureService } = require('./architecture.js');
 
 const HOST = '127.0.0.1';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -242,6 +243,34 @@ function staticRelativePath(target) {
     }
     return 'index.html';
   }
+  if (target.pathname === '/dashboard') {
+    const entries = [...target.searchParams.entries()];
+    const names = new Set(entries.map(([name]) => name));
+    if (entries.length > 2
+        || names.size !== entries.length
+        || entries.some(([name, value]) => (
+          (name !== 'project' && name !== 'expected_version')
+          || (name === 'project' && !UUID.test(value))
+          || (name === 'expected_version' && value.length === 0)
+        ))) {
+      throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+    }
+    return 'dashboard.html';
+  }
+  if (target.pathname === '/architecture') {
+    const entries = [...target.searchParams.entries()];
+    const names = new Set(entries.map(([name]) => name));
+    if (entries.length > 2
+        || names.size !== entries.length
+        || entries.some(([name, value]) => (
+          (name !== 'project' && name !== 'document')
+          || (name === 'project' && !UUID.test(value))
+          || (name === 'document' && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value))
+        ))) {
+      throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+    }
+    return 'architecture.html';
+  }
   if (target.search !== '') {
     throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
   }
@@ -308,7 +337,7 @@ function validateRequestBoundary(request) {
   return { expectedOrigin, origin };
 }
 
-function routeApiRequest(request, response, target, options, service) {
+function routeApiRequest(request, response, target, options, service, architectureService) {
   if (!target.pathname.startsWith('/api/')) {
     return false;
   }
@@ -342,6 +371,43 @@ function routeApiRequest(request, response, target, options, service) {
     return true;
   }
 
+  const architectureIndexMatch = target.pathname.match(
+    /^\/api\/v1\/projects\/([0-9a-f-]+)\/architecture(?:\/index)?$/i,
+  );
+  if (architectureIndexMatch) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      sendError(request, response, 405, 'method-not-allowed', '허용되지 않은 method입니다.', {
+        Allow: 'GET, HEAD',
+      });
+      return true;
+    }
+    if (target.search !== '') {
+      throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+    }
+    sendJson(request, response, 200, architectureService.getIndex(architectureIndexMatch[1]));
+    return true;
+  }
+
+  const architectureDocumentMatch = target.pathname.match(
+    /^\/api\/v1\/projects\/([0-9a-f-]+)\/architecture\/documents\/([A-Za-z0-9][A-Za-z0-9._-]{0,127})$/i,
+  );
+  if (architectureDocumentMatch) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      sendError(request, response, 405, 'method-not-allowed', '허용되지 않은 method입니다.', {
+        Allow: 'GET, HEAD',
+      });
+      return true;
+    }
+    if (target.search !== '') {
+      throw new ProjectApiError('query-invalid', '허용되지 않은 query입니다.', 400);
+    }
+    sendJson(request, response, 200, architectureService.getDocument(
+      architectureDocumentMatch[1],
+      architectureDocumentMatch[2],
+    ));
+    return true;
+  }
+
   const documentMatch = target.pathname.match(
     /^\/api\/v1\/projects\/([0-9a-f-]+)\/documents\/(issue|plan|spec)\/([A-Z]+-\d{4,})$/,
   );
@@ -371,6 +437,9 @@ function createRequestHandler(options) {
   const service = options.projectService || new ProjectIndexService({
     registryOptions: options.registryOptions,
     now: options.now,
+  });
+  const architectureService = options.architectureService || new ArchitectureService({
+    projectService: service,
   });
   const assetRoot = options.assetRoot ?? DEFAULT_ASSET_ROOT;
 
@@ -410,7 +479,7 @@ function createRequestHandler(options) {
     }
 
     try {
-      if (routeApiRequest(request, response, target, options, service)) {
+      if (routeApiRequest(request, response, target, options, service, architectureService)) {
         return;
       }
       if ((request.method === 'GET' || request.method === 'HEAD')

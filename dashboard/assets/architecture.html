@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <meta name="color-scheme" content="light dark">
+  <title>Proofline Architecture</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/core.js" defer></script>
+  <script src="/vendor/mermaid.min.js" defer></script>
+  <script src="/architecture.js" defer></script>
+</head>
+<body class="architecture-page">
+  <a class="skip-link" href="#architecture-document">본문으로 건너뛰기</a>
+  <div class="architecture-shell">
+    <header class="architecture-bar glass">
+      <div>
+        <p class="eyebrow">Proofline</p>
+        <h1>Architecture</h1>
+      </div>
+      <label class="architecture-project-control">
+        <span>프로젝트</span>
+        <select id="architecture-project" aria-describedby="architecture-status"></select>
+      </label>
+      <nav class="surface-nav" aria-label="Proofline 보기">
+        <a id="dashboard-link" href="/dashboard">Dashboard</a>
+        <a href="/architecture" aria-current="page">Architecture</a>
+      </nav>
+    </header>
+
+    <div class="architecture-status" id="architecture-status" role="status" aria-live="polite"></div>
+
+    <div class="architecture-layout">
+      <aside class="architecture-navigation glass" aria-label="아키텍처 문서">
+        <div class="architecture-navigation-heading">
+          <h2>문서</h2>
+          <button id="architecture-refresh" type="button">다시 읽기</button>
+        </div>
+        <nav id="architecture-documents" aria-label="아키텍처 문서 목록"></nav>
+      </aside>
+
+      <main class="architecture-document glass" id="architecture-document" tabindex="-1">
+        <div class="empty-state" role="status">
+          <h2>아키텍처를 불러오는 중</h2>
+          <p>등록된 프로젝트와 관리 문서를 확인합니다.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

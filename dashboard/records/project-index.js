@@ -37,6 +37,10 @@ const RECORD_DIRECTORY_DEFINITIONS = Object.freeze([
   { directoryName: 'plan', fileName: 'PLAN.md', idPattern: PLAN_ID },
   { directoryName: 'specs', fileName: 'SPEC.md', idPattern: SPEC_ID },
 ]);
+const ARCHITECTURE_MEMORY_DIRECTORY = '.architecture-memory';
+const ARCHITECTURE_MANIFEST = 'manifest.json';
+const ARCHITECTURE_DISCOVERY_DEPTH = 8;
+const ARCHITECTURE_DISCOVERY_DIRECTORIES = 1024;
 
 const SIGNAL_TEXT = {
   'work-definition-only': {
@@ -87,6 +91,50 @@ function toRelative(root, filePath) {
   return path.relative(root, filePath).split(path.sep).join('/');
 }
 
+function hasArchitectureManifest(rootReal) {
+  let docsReal;
+  try {
+    docsReal = realpath(path.join(rootReal, 'docs'));
+    if (!fs.statSync(docsReal).isDirectory() || !isInside(rootReal, docsReal)) return false;
+  } catch {
+    return false;
+  }
+
+  const queue = [{ directory: docsReal, depth: 0 }];
+  let visited = 0;
+  while (queue.length > 0 && visited < ARCHITECTURE_DISCOVERY_DIRECTORIES) {
+    const current = queue.shift();
+    visited += 1;
+    let entries;
+    try {
+      entries = fs.readdirSync(current.directory, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.name === ARCHITECTURE_MEMORY_DIRECTORY && entry.isDirectory()) {
+        try {
+          const manifestReal = realpath(path.join(current.directory, entry.name, ARCHITECTURE_MANIFEST));
+          if (isInside(rootReal, manifestReal) && fs.statSync(manifestReal).isFile()) return true;
+        } catch {
+          // An unreadable marker does not make the project available.
+        }
+        continue;
+      }
+      if (!entry.isDirectory() || current.depth >= ARCHITECTURE_DISCOVERY_DEPTH) continue;
+      try {
+        const childReal = realpath(path.join(current.directory, entry.name));
+        if (isInside(docsReal, childReal)) {
+          queue.push({ directory: childReal, depth: current.depth + 1 });
+        }
+      } catch {
+        // Ignore inaccessible subtrees while looking for an owned marker.
+      }
+    }
+  }
+  return false;
+}
+
 function projectAvailability(project) {
   try {
     const rootReal = realpath(project.root);
@@ -95,14 +143,29 @@ function projectAvailability(project) {
     }
     const rootStat = fs.statSync(rootReal);
     const prooflinePath = path.join(rootReal, '.proofline');
-    const prooflineReal = realpath(prooflinePath);
-    const prooflineStat = fs.statSync(prooflineReal);
     fs.accessSync(rootReal, fs.constants.R_OK);
-    fs.accessSync(prooflineReal, fs.constants.R_OK);
-    if (!rootStat.isDirectory() || !prooflineStat.isDirectory() || !isInside(rootReal, prooflineReal)) {
+    if (!rootStat.isDirectory()) {
       return { availability: 'unavailable' };
     }
-    return { availability: 'available', rootReal, prooflineReal };
+    try {
+      const prooflineReal = realpath(prooflinePath);
+      const prooflineStat = fs.statSync(prooflineReal);
+      fs.accessSync(prooflineReal, fs.constants.R_OK);
+      if (prooflineStat.isDirectory() && isInside(rootReal, prooflineReal)) {
+        return { availability: 'available', rootReal, prooflineReal, prooflineExists: true };
+      }
+    } catch {
+      // Architecture-only projects do not require a .proofline directory.
+    }
+    if (hasArchitectureManifest(rootReal)) {
+      return {
+        availability: 'available',
+        rootReal,
+        prooflineReal: prooflinePath,
+        prooflineExists: false,
+      };
+    }
+    return { availability: 'unavailable' };
   } catch {
     return { availability: 'unavailable' };
   }
@@ -480,7 +543,7 @@ function projectWatcherPaths(project) {
   if (state.availability === 'unavailable') {
     return [];
   }
-  const watchedPaths = new Set([state.prooflineReal]);
+  const watchedPaths = new Set(state.prooflineExists ? [state.prooflineReal] : []);
   for (const definition of RECORD_DIRECTORY_DEFINITIONS) {
     const directory = path.join(state.prooflineReal, definition.directoryName);
     let directoryReal;

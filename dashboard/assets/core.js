@@ -327,7 +327,17 @@
     }
   }
 
-  function renderInlineEscaped(escapedText) {
+  function safeInternalUrl(value) {
+    try {
+      const parsed = new URL(String(value || ''), 'http://proofline.local');
+      if (parsed.origin !== 'http://proofline.local' || parsed.pathname !== '/architecture') return null;
+      return escapeHtml(`${parsed.pathname}${parsed.search}${parsed.hash}`);
+    } catch {
+      return null;
+    }
+  }
+
+  function renderInlineEscaped(escapedText, options = {}) {
     const tokens = [];
     const storeToken = (html) => {
       const token = `\uE000${tokens.length}\uE001`;
@@ -339,8 +349,22 @@
     });
     text = text.replace(/(^|[^!])\[([^\]\n]+)\]\(([^)\s]+)\)/g, (match, prefix, label, href) => {
       const safe = safeHttpUrl(href);
-      if (!safe) return `${prefix}${label} (${href})`;
-      return `${prefix}${storeToken(`<a href="${safe}" target="_blank" rel="noopener noreferrer">${label}</a>`)}`;
+      if (safe) {
+        return `${prefix}${storeToken(`<a href="${safe}" target="_blank" rel="noopener noreferrer">${label}</a>`)}`;
+      }
+      const rawHref = href.replace(/&amp;/g, '&');
+      const resolved = typeof options.resolveLink === 'function' ? options.resolveLink(rawHref) : null;
+      const internal = safeInternalUrl(resolved);
+      if (!internal) {
+        if (typeof options.onUnresolvedLink === 'function'
+            && !rawHref.startsWith('#')
+            && !rawHref.startsWith('/')
+            && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(rawHref)) {
+          options.onUnresolvedLink(rawHref);
+        }
+        return `${prefix}${label} (${href})`;
+      }
+      return `${prefix}${storeToken(`<a href="${internal}" data-architecture-link="true">${label}</a>`)}`;
     });
     text = text
       .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
@@ -354,7 +378,7 @@
     return line.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map((cell) => cell.trim());
   }
 
-  function renderMarkdown(markdown) {
+  function renderMarkdown(markdown, options = {}) {
     const escaped = escapeHtml(String(markdown ?? '').replace(/\r\n?/g, '\n'));
     const lines = escaped.split('\n');
     const output = [];
@@ -388,7 +412,7 @@
       const heading = line.match(/^(#{1,6})\s+(.+)$/);
       if (heading) {
         const level = heading[1].length;
-        output.push(`<h${level}>${renderInlineEscaped(heading[2])}</h${level}>`);
+        output.push(`<h${level}>${renderInlineEscaped(heading[2], options)}</h${level}>`);
         index += 1;
         continue;
       }
@@ -401,11 +425,11 @@
           index += 1;
         }
         output.push('<div class="markdown-table-wrap"><table><thead><tr>');
-        output.push(headers.map((cell) => `<th>${renderInlineEscaped(cell)}</th>`).join(''));
+        output.push(headers.map((cell) => `<th>${renderInlineEscaped(cell, options)}</th>`).join(''));
         output.push('</tr></thead><tbody>');
         for (const row of rows) {
           output.push('<tr>');
-          output.push(headers.map((_header, cellIndex) => `<td>${renderInlineEscaped(row[cellIndex] || '')}</td>`).join(''));
+          output.push(headers.map((_header, cellIndex) => `<td>${renderInlineEscaped(row[cellIndex] || '', options)}</td>`).join(''));
           output.push('</tr>');
         }
         output.push('</tbody></table></div>');
@@ -419,7 +443,7 @@
         while (index < lines.length) {
           const item = lines[index].match(/^\s*([-*+]|\d+[.)])\s+(.+)$/);
           if (!item || /^\d/.test(item[1]) !== ordered) break;
-          items.push(`<li>${renderInlineEscaped(item[2])}</li>`);
+          items.push(`<li>${renderInlineEscaped(item[2], options)}</li>`);
           index += 1;
         }
         output.push(`<${tag}>${items.join('')}</${tag}>`);
@@ -432,9 +456,62 @@
         paragraph.push(lines[index].trim());
         index += 1;
       }
-      output.push(`<p>${renderInlineEscaped(paragraph.join(' '))}</p>`);
+      output.push(`<p>${renderInlineEscaped(paragraph.join(' '), options)}</p>`);
     }
     return output.join('\n');
+  }
+
+  function architectureDocumentId(document) {
+    return String(document?.id || document?.document_id || '').trim();
+  }
+
+  function architectureDocumentPath(document) {
+    return String(document?.relative_path || document?.path || '').replace(/\\/g, '/').replace(/^\.\//, '');
+  }
+
+  function architectureDocuments(index) {
+    const documents = Array.isArray(index?.documents) ? index.documents : [];
+    return documents
+      .filter((document) => architectureDocumentId(document) && architectureDocumentPath(document))
+      .sort((left, right) => (Number(left.order) || 0) - (Number(right.order) || 0)
+        || compareText(left.title, right.title)
+        || compareText(architectureDocumentId(left), architectureDocumentId(right)));
+  }
+
+  function initialArchitectureDocumentId(documents, requestedId) {
+    const requested = String(requestedId || '');
+    if ((documents || []).some((document) => architectureDocumentId(document) === requested)) return requested;
+    return architectureDocumentId(documents?.[0]) || null;
+  }
+
+  function normalizeArchitecturePath(value) {
+    const output = [];
+    for (const segment of String(value || '').replace(/\\/g, '/').split('/')) {
+      if (!segment || segment === '.') continue;
+      if (segment === '..') {
+        if (output.length === 0) return null;
+        output.pop();
+      } else {
+        output.push(segment);
+      }
+    }
+    return output.join('/');
+  }
+
+  function resolveArchitectureDocumentId(documents, currentPath, href) {
+    const candidate = String(href || '').trim();
+    if (!candidate || candidate.startsWith('#') || candidate.startsWith('/')
+        || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(candidate)) return null;
+    const withoutSuffix = candidate.split(/[?#]/, 1)[0];
+    if (!withoutSuffix) return null;
+    const current = normalizeArchitecturePath(currentPath);
+    if (!current) return null;
+    const directory = current.includes('/') ? current.slice(0, current.lastIndexOf('/') + 1) : '';
+    const resolved = normalizeArchitecturePath(`${directory}${withoutSuffix}`);
+    if (!resolved) return null;
+    return architectureDocumentId((documents || []).find(
+      (document) => normalizeArchitecturePath(architectureDocumentPath(document)) === resolved,
+    )) || null;
   }
 
   return Object.freeze({
@@ -445,17 +522,22 @@
     SIGNALS,
     STATUSES,
     compareText,
+    architectureDocumentId,
+    architectureDocumentPath,
+    architectureDocuments,
     createDocumentRequestGate,
     createLatestRequestGate,
     documentOptionFocusKey,
     documentRequestDisposition,
     escapeHtml,
     initialProjectId,
+    initialArchitectureDocumentId,
     projectOptions,
     projectRailCue,
     projectSelectionFocusKey,
     relatedState,
     renderMarkdown,
+    resolveArchitectureDocumentId,
     restoreFocusByKey,
     safeHttpUrl,
     signalLabels,

@@ -446,8 +446,8 @@ function validateWriteScopes(nodes, children) {
 
 function boundariesOverlap(left, right) {
   if (left.boundary === right.boundary) return true;
-  if (left.directory && right.boundary.startsWith(`${left.boundary}/`)) return true;
-  if (right.directory && left.boundary.startsWith(`${right.boundary}/`)) return true;
+  if (right.boundary.startsWith(`${left.boundary}/`)) return true;
+  if (left.boundary.startsWith(`${right.boundary}/`)) return true;
   return false;
 }
 
@@ -520,7 +520,15 @@ function validateConcurrentScopes(nodes, children, scopes, dependencies, byId, s
   }
 }
 
-function loadGateStates(root, spec, nodes) {
+function projectRootForSpecDirectory(specDirectory) {
+  const specsDirectory = path.dirname(specDirectory);
+  const controlDirectory = path.dirname(specsDirectory);
+  if (path.basename(specsDirectory).toLowerCase() !== 'specs'
+    || path.basename(controlDirectory).toLowerCase() !== '.proofline') return null;
+  return path.dirname(controlDirectory);
+}
+
+function loadGateStates(root, spec, nodes, children, scopes) {
   const owners = [
     { id: spec.id, specId: spec.id, specRevision: spec.revision },
     ...nodes,
@@ -537,6 +545,9 @@ function loadGateStates(root, spec, nodes) {
   if (orphan.length > 0) fail(`orphan Gate file${orphan.length === 1 ? '' : 's'}: ${orphan.join(', ')}`);
 
   const states = new Map();
+  const documents = [];
+  const requiredOwners = new Map();
+  const projectRoot = projectRootForSpecDirectory(root);
   for (const owner of owners) {
     const { id } = owner;
     const gateFileName = `${id}.md`;
@@ -554,9 +565,50 @@ function loadGateStates(root, spec, nodes) {
     if (document.scopeLine !== expectedScopeLine) {
       fail(`${gateFileName}: Gate Scope must be "Scope: ${expectedScopeLine}"`);
     }
+    for (const gate of document.gates) {
+      for (const required of gate.requires) {
+        const previous = requiredOwners.get(required);
+        if (previous) {
+          fail(`${gateFileName}: ${gate.id} duplicates REQUIRES ${required} owned by ${previous}`);
+        }
+        requiredOwners.set(required, `${gateFileName}:${gate.id}`);
+        if (projectRoot) {
+          const absolute = path.join(projectRoot, ...required.split('/'));
+          try {
+            if (fs.statSync(absolute).isDirectory()) {
+              fail(`${gateFileName}: ${gate.id} REQUIRES must name a file, not directory: ${required}`);
+            }
+          } catch (error) {
+            if (error instanceof ExecutionTreeError) throw error;
+            if (!error || error.code !== 'ENOENT') {
+              fail(`${gateFileName}: cannot inspect REQUIRES ${required}: ${error.message}`);
+            }
+          }
+        }
+      }
+    }
+    if (id !== spec.id) {
+      const pending = [id];
+      const ownedScopes = [];
+      while (pending.length > 0) {
+        const current = pending.shift();
+        ownedScopes.push(...(scopes.get(current) || []));
+        pending.push(...(children.get(current) || []));
+      }
+      for (const gate of document.gates) {
+        for (const required of gate.requires) {
+          if (!ownedScopes.some((scope) => scope.directory
+            ? required.startsWith(`${scope.boundary}/`)
+            : required === scope.boundary)) {
+            fail(`${gateFileName}: ${gate.id} REQUIRES path is outside Node write_scope: ${required}`);
+          }
+        }
+      }
+    }
+    documents.push(document);
     const statuses = document.gates.map(gateStatus);
     states.set(id, {
-      allMet: statuses.length > 0 && statuses.every((status) => status === 'met'),
+      allMet: statuses.every((status) => status === 'met'),
       abandoned: statuses.includes('abandoned'),
       counts: {
         met: statuses.filter((status) => status === 'met').length,
@@ -650,7 +702,7 @@ function inspectExecutionTree(specDirectory) {
   validateConcurrentScopes(nodes, children, scopes, dependencies, byId, spec.id);
 
   const gateIds = [spec.id, ...nodes.map((node) => node.id)];
-  const gateStates = loadGateStates(root, spec, nodes);
+  const gateStates = loadGateStates(root, spec, nodes, children, scopes);
   validateCompletedStates(nodes, children, dependencies, byId, gateStates);
   validateCompletedSpec(spec, children, byId, gateStates);
 

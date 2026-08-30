@@ -113,3 +113,23 @@ test('a missing selected mode fails and records the exact component path', (t) =
   const entries = fs.readFileSync(logPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
   assert.match(entries.at(-1).filePath, /proofline[\\/]normal\.md$/);
 });
+
+test('a missing baseline fails and records the exact component path', (t) => {
+  const { root, env } = fixture(t);
+  const tempPlugin = path.join(root, 'plugin');
+  const hooksDir = path.join(tempPlugin, 'hooks');
+  fs.mkdirSync(hooksDir, { recursive: true });
+  fs.copyFileSync(loaderPath, path.join(hooksDir, 'load-proofline.js'));
+  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-state.js'), path.join(hooksDir, 'proofline-state.js'));
+
+  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'load-proofline.js'));
+  assert.equal(result.status, 1);
+
+  const logPath = path.join(env.HOME, '.codex', 'log', 'proofline-hook.log');
+  const entries = fs.readFileSync(logPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
+  const entry = entries.at(-1);
+  assert.equal(entry.code, 'ENOENT');
+  assert.equal(entry.pluginRoot, tempPlugin);
+  assert.match(entry.skillPath, /proofline[\\/]SKILL\.md$/);
+  assert.match(entry.filePath, /proofline[\\/]SKILL\.md$/);
+});

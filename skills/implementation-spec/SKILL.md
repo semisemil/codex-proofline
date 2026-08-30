@@ -17,6 +17,12 @@ description: "Create, revise, complete, cancel, or supersede a project implement
 - Read the project's domain glossary (`CONTEXT.md`) and relevant ADRs first
 - Use the available `domain-modeling` skill when a project term is ambiguous, conflicts with an existing definition, becomes canonical, or an important design decision settles
 
+## Evidence load
+
+- After discovery, form one bounded manifest of the project evidence needed to settle the contract and load it in one batched tool call; another read is only for a newly discovered or changed source
+- Prefer symbol searches and relevant excerpts for large generated sources and test files; full implementation context belongs to the later execution task
+- Reuse unchanged skill, template, project, and artifact evidence for the rest of this Spec operation
+
 ## Resolve
 
 - **Existing Spec:** Resolve an explicit path or ID directly
@@ -41,7 +47,8 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 - **Sources:** When a ready Plan is supplied or linked, use it as the primary planning source; apply later confirmed user corrections and decisions, then current project evidence and authoritative domain or linked documents. Without a Plan, use the request and the same remaining sources
 - **Standalone body:** Include linked information required for implementation or review
 - **Body:** Current contract only
-- **Acceptance:** Convert the current intent into observable acceptance conditions and a pre-implementation test and verification plan. Every required result has planned evidence capable of deciding it; every acceptance condition is supported by a source
+- **Acceptance:** Convert the current intent into observable acceptance conditions and one minimum-sufficient completion set. For each changed observable behavior, plan one representative success path. Add evidence only for an explicit requirement, a distinct changed result, an authorization, input, state, or concurrency boundary, or a reproduced regression. Add or change tests only when they directly decide one of those items. Distinguish an explicit artifact obligation such as adding a test, migration, or generated contract from merely passing an existing command. One check may cover compatible conditions; unchanged behavior and equivalent combinations get no new test. Every required result has planned evidence capable of deciding it; every acceptance condition is supported by a source
+- **Verification commitment:** Fix the minimum completion set before fan-out. It contains only checks required to decide the acceptance conditions and is the only completion suite. Implementation feedback adds no completion check. A successful check remains evidence for the same code snapshot; only a relevant mutation makes it stale
 - **Boundary:** Do not add product behavior or generic error, performance, or quality conditions absent from the sources
 
 ### Body style
@@ -55,11 +62,14 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 ### Contract structure
 
 - Keep each acceptance condition, its material boundaries and fixed decisions, and its planned evidence together enough for implementation and review
+- Give every required outcome a stable linkable section that keeps its acceptance conditions, owned boundary, prerequisite or ordering relationship, and planned evidence together
+- Keep outcomes together when they must be implemented and reviewed as one final state; separate them only when each remains a coherent independently implementable result
+- Keep execution decomposition out of the Spec; `spec-slice` derives it without changing the implementation contract
 - Use Mermaid for graph-shaped relationships with multiple branches or actors
 
 ## Lifecycle
 
-- **Ready:** Every material source intent is represented, every acceptance condition is source-supported, and each required result has a verification plan capable of producing observable evidence; the implementer can proceed without inventing product behavior, scope, cross-boundary ownership, state or data rules, compatibility obligations, or proof of the required results
+- **Ready:** Every material source intent is represented, every acceptance condition is source-supported, and each required result has a verification plan capable of producing observable evidence; `spec-slice` can map the contract to a root-only or recursive execution tree, and the implementer can proceed without inventing product behavior, scope, outcome ownership, prerequisite or ordering relationships, state or data rules, compatibility obligations, or proof of the required results
 - **Draft:** A material decision or unsupported current-state claim could change the contract; expose the gap instead of filling it by inference
 - **Blocked:** An actual external prerequisite only; transient task, tool, reviewer, or runtime failures do not change status
 - **Create:** Revision `1`, with status determined by the ready rule

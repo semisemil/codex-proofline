@@ -48,13 +48,14 @@ function gateDocument(gates, options) {
   const lines = [
     '# Gates: ' + (settings.scope || 'test'),
     'Scope: ' + (settings.scopeLine || 'gate runner test'),
-    '',
   ];
+  lines.push('');
 
   for (const gate of gates) {
     lines.push('- [' + (gate.checked ? 'x' : ' ') + '] ' + gate.id + ': ' + (gate.outcome || 'outcome'));
-    lines.push('  CHECK: ' + gate.check);
+    lines.push('  CHECK: ' + (Array.isArray(gate.check) ? JSON.stringify(gate.check) : gate.check));
     if (gate.expect !== undefined) lines.push('  EXPECT: ' + gate.expect);
+    if (gate.requires !== undefined) lines.push('  REQUIRES: ' + JSON.stringify(gate.requires));
     lines.push('  EVIDENCE: ' + (gate.evidence || 'pending'));
     lines.push('');
   }
@@ -78,6 +79,24 @@ function runCli(args, cwd) {
   });
 }
 
+function git(root, ...args) {
+  const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout;
+}
+
+function gitFixture(t) {
+  const root = fixture(t);
+  git(root, 'init');
+  git(root, 'config', 'user.email', 'proofline@example.invalid');
+  git(root, 'config', 'user.name', 'Proofline Test');
+  fs.writeFileSync(path.join(root, '.gitignore'), '.gate-count\n');
+  fs.writeFileSync(path.join(root, 'product.txt'), 'before\n');
+  git(root, 'add', '--', '.gitignore', 'product.txt');
+  git(root, 'commit', '-m', 'base');
+  return root;
+}
+
 function readGate(filePath, id) {
   const document = parseGateDocument(fs.readFileSync(filePath, 'utf8'), filePath);
   return document.gates.find((gate) => gate.id === id);
@@ -90,13 +109,164 @@ test('template uses the exact flat Gate format and placeholders', () => {
     'Scope: {{scope_line}}',
     '',
     '- [ ] G1: {{outcome}}',
-    '  CHECK: {{command}}',
+    '  CHECK: {{command_json}}',
     '{{expect_line}}',
+    '{{requires_line}}',
     '  EVIDENCE: pending',
     '',
   ].join('\n'));
   assert.doesNotMatch(template, /^  - (?:CHECK|EXPECT|EVIDENCE):/m);
   assert.doesNotMatch(template, /^ABANDON:/m);
+});
+
+test('Gate sets accept the fixed shell-free completion checks without a numeric budget', (t) => {
+  const root = fixture(t);
+  const allowed = writeGates(root, gateDocument([
+    { id: 'G1', check: ['npm', 'test'] },
+    { id: 'G2', check: ['node', '--test', 'tests/unit.test.js'] },
+  ]), 'allowed.md');
+  const allowedStatus = runCli(['status', allowed]);
+  assert.equal(allowedStatus.status, 1, allowedStatus.stderr);
+  assert.doesNotMatch(allowedStatus.stdout, /verification|units/);
+});
+
+test('Gate rejects obsolete numeric Scale and CLASS fields', (t) => {
+  const root = fixture(t);
+  const scaled = writeGates(root, [
+    '# Gates: test', 'Scope: gate runner test', 'Scale: quick', '',
+    '- [ ] G1: outcome', '  CHECK: ["npm","test"]', '  EVIDENCE: pending', '',
+  ].join('\n'), 'scaled.md');
+  const classified = writeGates(root, [
+    '# Gates: test', 'Scope: gate runner test', '',
+    '- [ ] G1: outcome', '  CLASS: targeted', '  CHECK: ["npm","test"]', '  EVIDENCE: pending', '',
+  ].join('\n'), 'classified.md');
+
+  assert.match(runCli(['status', scaled]).stderr, /Scale is not supported/);
+  assert.match(runCli(['status', classified]).stderr, /CLASS is not supported/);
+});
+
+test('Gate rejects manual argv', (t) => {
+  const root = fixture(t);
+  const filePath = writeGates(root, gateDocument([
+    { id: 'G1', check: ['manual', 'inspect the UI'] },
+  ]));
+
+  const status = runCli(['status', filePath]);
+  assert.equal(status.status, 2);
+  assert.match(status.stderr, /manual gates are not supported/);
+});
+
+test('CHECK NONE closes a boundary without executing a substitute command', (t) => {
+  const root = fixture(t);
+  const filePath = writeGates(root, gateDocument([
+    { id: 'G1', check: 'NONE' },
+  ]));
+
+  const run = runCli(['run', '--cwd', root, filePath]);
+  assert.equal(run.status, 0, run.stderr);
+  const gate = readGate(filePath, 'G1');
+  assert.equal(gate.checked, true);
+  assert.match(gate.evidence, /^pass: no mechanical check/);
+});
+
+test('REQUIRES rejects a missing staged artifact before running its CHECK', (t) => {
+  const root = gitFixture(t);
+  const marker = path.join(root, '.gate-count');
+  const helper = helperCommand(
+    root,
+    'must-not-run',
+    `require("node:fs").writeFileSync(${JSON.stringify(marker)}, "ran");`,
+  );
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'required helper');
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const filePath = writeGates(control, gateDocument([{
+    id: 'G1',
+    check: [process.execPath, helper.path],
+    requires: ['tests/required.test.js'],
+  }]));
+
+  const missing = runCli(['run', '--cwd', root, filePath]);
+  assert.equal(missing.status, 1, missing.stderr);
+  assert.match(readGate(filePath, 'G1').evidence, /required staged paths missing/);
+  assert.equal(fs.existsSync(marker), false);
+
+  fs.mkdirSync(path.join(root, 'tests'));
+  fs.writeFileSync(path.join(root, 'tests', 'required.test.js'), 'required\n');
+  git(root, 'add', '--', 'tests/required.test.js');
+  const present = runCli(['run', '--cwd', root, filePath]);
+  assert.equal(present.status, 0, present.stderr);
+  assert.equal(fs.readFileSync(marker, 'utf8'), 'ran');
+});
+
+test('REQUIRES accepts only unique exact project-relative paths', (t) => {
+  const root = fixture(t);
+  for (const [name, required] of [
+    ['parent', ['../test.js']],
+    ['glob', ['tests/*.js']],
+    ['directory', ['tests/']],
+    ['duplicate', ['tests/a.js', 'tests/a.js']],
+  ]) {
+    const filePath = writeGates(root, gateDocument([{
+      id: 'G1', check: 'NONE', requires: required,
+    }]), `${name}.md`);
+    const result = runCli(['status', filePath]);
+    assert.equal(result.status, 2);
+    assert.match(result.stderr, /REQUIRES/);
+  }
+});
+
+test('feedback records one fixed Gate item and run reuses it on the same staged state', (t) => {
+  const root = gitFixture(t);
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const marker = path.join(root, '.gate-count');
+  const helper = helperCommand(root, 'feedback', [
+    'const fs = require("node:fs");',
+    `const marker = ${JSON.stringify(marker)};`,
+    'const count = fs.existsSync(marker) ? Number(fs.readFileSync(marker, "utf8")) : 0;',
+    'fs.writeFileSync(marker, String(count + 1));',
+    'process.stdout.write("target ready");',
+  ].join('\n'));
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'feedback helper');
+  fs.writeFileSync(path.join(root, 'product.txt'), 'after\n');
+  git(root, 'add', '--', 'product.txt');
+  const filePath = writeGates(control, gateDocument([{ id: 'G1', check: helper.command }]));
+
+  const feedback = runCli([
+    'feedback', '--cwd', root, '--gate', filePath, '--id', 'G1',
+  ]);
+  assert.equal(feedback.status, 0, feedback.stderr);
+  assert.match(feedback.stdout, /^pass: exit 0/);
+  assert.match(feedback.stdout, /target ready/);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '1');
+  assert.match(readGate(filePath, 'G1').evidence, /snapshot sha256:[0-9a-f]{64}/);
+
+  const completion = runCli(['run', '--cwd', root, filePath]);
+  assert.equal(completion.status, 0, completion.stderr);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '1');
+});
+
+test('feedback cannot mutate the Git product snapshot', (t) => {
+  const root = gitFixture(t);
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const helper = helperCommand(
+    root,
+    'mutating-feedback',
+    `require("node:fs").writeFileSync(${JSON.stringify(path.join(root, 'product.txt'))}, "changed\\n");`,
+  );
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'feedback helper');
+  const filePath = writeGates(control, gateDocument([{ id: 'G1', check: helper.command }]));
+
+  const result = runCli([
+    'feedback', '--cwd', root, '--gate', filePath, '--id', 'G1',
+  ]);
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stdout, /^fail: verification changed product snapshot/);
 });
 
 test('exit-code Gate passes on exit 0 and status reports it met', (t) => {
@@ -182,6 +352,55 @@ test('rerun executes a checked Gate again and unchecks a regression', (t) => {
   assert.equal(gate.checked, false);
   assert.match(gate.evidence, /^fail: exit 5/);
   assert.match(gate.evidence, /regression-tail$/);
+});
+
+test('a checked Gate reuses the same Git snapshot and reruns after a product mutation', (t) => {
+  const root = gitFixture(t);
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const marker = path.join(root, '.gate-count');
+  const helper = helperCommand(root, 'snapshot-count', [
+    'const fs = require("node:fs");',
+    `const marker = ${JSON.stringify(marker)};`,
+    'const count = fs.existsSync(marker) ? Number(fs.readFileSync(marker, "utf8")) : 0;',
+    'fs.writeFileSync(marker, String(count + 1));',
+  ].join('\n'));
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'gate helper');
+  const filePath = writeGates(control, gateDocument([{ id: 'G1', check: helper.command }]));
+
+  assert.equal(runCli(['run', '--cwd', root, filePath]).status, 0);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '1');
+  assert.match(readGate(filePath, 'G1').evidence, /snapshot sha256:[0-9a-f]{64}/);
+
+  assert.equal(runCli(['run', '--cwd', root, filePath]).status, 0);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '1');
+
+  fs.writeFileSync(path.join(root, 'product.txt'), 'after\n');
+  git(root, 'add', '--', 'product.txt');
+  assert.equal(runCli(['run', '--cwd', root, filePath]).status, 0);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '2');
+});
+
+test('a Gate that mutates the Git product snapshot cannot pass', (t) => {
+  const root = gitFixture(t);
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const product = path.join(root, 'product.txt');
+  const helper = helperCommand(
+    root,
+    'mutating-check',
+    `require("node:fs").writeFileSync(${JSON.stringify(product)}, "changed by check\\n");`,
+  );
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'mutating helper');
+  const filePath = writeGates(control, gateDocument([{ id: 'G1', check: helper.command }]));
+
+  const run = runCli(['run', '--cwd', root, filePath]);
+  assert.equal(run.status, 1, run.stderr);
+  const gate = readGate(filePath, 'G1');
+  assert.equal(gate.checked, false);
+  assert.match(gate.evidence, /^fail: verification changed product snapshot/);
 });
 
 test('run attempts every non-abandoned CHECK even when an earlier Gate fails', (t) => {
