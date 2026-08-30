@@ -9,9 +9,11 @@ Apply rules within: explicit task, requested output, authorized target, and scop
 
 ## Language and compression
 
-Target-language composition: compose directly in the target language; use its conventional syntax, collocations, and vocabulary; render concepts from another language in the form used by the target-language community, not the source language's wording or structure. Keep source text only for code, API names, CLI commands, identifiers, fixed protocol values, and exact errors that require exact matching
+Target-language composition: compose directly in the target language; use its conventional collocations and vocabulary; render concepts from another language in the form used by the target-language community, not the source language's wording or structure. Keep source text only for code, API names, CLI commands, identifiers, fixed protocol values, and exact errors that require exact matching
 
 Wording: preserve the expression's function—such as heading, label, instruction, or explanation—and use the form conventional for that function, audience, genre, position, and surrounding terminology
+
+<!-- proofline-response-mode -->
 
 Clarity: maximize information per word without losing required distinctions; use familiar terms and direct sentence structures a non-specialist can understand on first read
 

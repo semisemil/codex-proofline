@@ -7,6 +7,7 @@ const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
 const hookPath = path.join(repoRoot, 'hooks', 'proofline-mode.js');
+const loaderPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-mode-'));
@@ -32,6 +33,18 @@ function runHook(env, prompt, sessionId = 'session-a') {
       session_id: sessionId,
       turn_id: 'turn-1',
       prompt,
+    }),
+  });
+}
+
+function runLoader(env, sessionId = 'session-a') {
+  return spawnSync(process.execPath, [loaderPath], {
+    encoding: 'utf8',
+    env,
+    input: JSON.stringify({
+      hook_event_name: 'SessionStart',
+      session_id: sessionId,
+      source: 'startup',
     }),
   });
 }
@@ -62,6 +75,7 @@ test('status and default queries report canonical modes without changing state',
   const { env } = fixture(t);
   let response = output(runHook(env, '$proofline'));
   assert.match(response.systemMessage, /현재 모드 normal, 기본 모드 normal/);
+  assert.equal(response.hookSpecificOutput, undefined);
   assert.equal(fs.existsSync(statePath(env)), false);
 
   output(runHook(env, '$proofline focus'));
@@ -69,24 +83,29 @@ test('status and default queries report canonical modes without changing state',
 
   response = output(runHook(env, '$proofline default'));
   assert.match(response.systemMessage, /기본 모드 normal/);
+  assert.equal(response.hookSpecificOutput, undefined);
   assert.equal(fs.readFileSync(statePath(env), 'utf8'), before);
 });
 
-test('mode changes are ASCII case-insensitive and replace prior mode instructions', (t) => {
+test('mode changes are ASCII case-insensitive and emit the SessionStart prompt', (t) => {
   const { env } = fixture(t);
   const response = output(runHook(env, '\n  $proofline FoCuS  '));
   assert.match(response.systemMessage, /focus/);
-  assert.match(response.hookSpecificOutput.additionalContext, /Replace any previous Proofline response-mode instructions/);
-  assert.match(response.hookSpecificOutput.additionalContext, /# Focus response mode/);
-  assert.doesNotMatch(response.hookSpecificOutput.additionalContext, /# Normal response mode|# Caveman response mode/);
+  const prompt = response.hookSpecificOutput.additionalContext;
+  assert.match(prompt, /# Proofline/);
+  assert.match(prompt, /Use line breaks with noun phrases/);
+  assert.doesNotMatch(prompt, /Replace any previous Proofline response-mode instructions|Do not replace the current Proofline response-mode instructions|The Proofline response mode is unchanged|Both modes remain unchanged|Respond with only|Continue the remaining|proofline-response-mode|^# (?:Normal|Focus|Caveman) response mode/m);
+  const loaded = runLoader(env);
+  assert.equal(loaded.status, 0, loaded.stderr);
+  assert.equal(prompt, loaded.stdout);
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'focus' });
 });
 
 test('a valid command is applied before the remaining task', (t) => {
   const { env } = fixture(t);
   const response = output(runHook(env, '$proofline caveman\nDiagnose the failing test.'));
-  assert.match(response.hookSpecificOutput.additionalContext, /# Caveman response mode/);
-  assert.match(response.hookSpecificOutput.additionalContext, /Continue the remaining user request/);
+  assert.match(response.hookSpecificOutput.additionalContext, /Use ultra-compressed responses/);
+  assert.doesNotMatch(response.hookSpecificOutput.additionalContext, /Continue the remaining user request/);
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'caveman' });
 });
 
@@ -103,7 +122,7 @@ test('invalid modes, missing shapes, and extra arguments preserve the current mo
     const response = output(runHook(env, prompt));
     assert.match(response.systemMessage, /잘못된 명령/);
     assert.doesNotMatch(response.systemMessage, /\r|\n/);
-    assert.match(response.hookSpecificOutput.additionalContext, /Continue the remaining user request/);
+    assert.equal(response.hookSpecificOutput, undefined);
     assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'focus' });
   }
 });
@@ -112,7 +131,10 @@ test('default changes persist first and immediately apply to the current session
   const { env } = fixture(t);
   const response = output(runHook(env, '$proofline default CAVEMAN'));
   assert.match(response.systemMessage, /기본 모드와 현재 모드를 caveman/);
-  assert.match(response.hookSpecificOutput.additionalContext, /# Caveman response mode/);
+  assert.match(response.hookSpecificOutput.additionalContext, /Use ultra-compressed responses/);
+  const loaded = runLoader(env);
+  assert.equal(loaded.status, 0, loaded.stderr);
+  assert.equal(response.hookSpecificOutput.additionalContext, loaded.stdout);
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.APPDATA, 'proofline', 'config.json'), 'utf8')),
     { defaultMode: 'caveman' },
@@ -132,7 +154,7 @@ for (const [label, sessionId] of [
     const { env } = fixture(t);
     const changed = output(runHook(env, '$proofline default focus', sessionId));
     assert.match(changed.systemMessage, /기본 모드와 현재 모드를 focus로 변경/);
-    assert.match(changed.hookSpecificOutput.additionalContext, /# Focus response mode/);
+    assert.match(changed.hookSpecificOutput.additionalContext, /Use line breaks with noun phrases/);
     assert.equal(fs.existsSync(path.join(env.PLUGIN_DATA, 'proofline-mode')), false);
 
     const queried = output(runHook(env, '$proofline', sessionId));
@@ -149,6 +171,7 @@ test('default write failure changes neither mode', (t) => {
   const failedEnv = { ...env, APPDATA: blockedAppData };
   const response = output(runHook(failedEnv, '$proofline default caveman'));
   assert.match(response.systemMessage, /기본 모드 저장 실패/);
+  assert.equal(response.hookSpecificOutput, undefined);
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'focus' });
 });
 
@@ -159,7 +182,7 @@ test('a current-session write failure preserves a successfully saved default and
   const failedEnv = { ...env, PLUGIN_DATA: blockedPluginData };
   const response = output(runHook(failedEnv, '$proofline default focus'));
   assert.match(response.systemMessage, /현재 모드 변경 실패/);
-  assert.match(response.hookSpecificOutput.additionalContext, /Do not replace/);
+  assert.equal(response.hookSpecificOutput, undefined);
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.APPDATA, 'proofline', 'config.json'), 'utf8')),
     { defaultMode: 'focus' },

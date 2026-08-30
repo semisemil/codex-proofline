@@ -1,5 +1,3 @@
-# Caveman response mode
-
 Use ultra-compressed responses
 
 Allow short words, clauses, and sentence fragments; remove filler, pleasantries, empty hedges, and transition phrases

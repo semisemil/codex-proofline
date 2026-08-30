@@ -12,6 +12,9 @@ test('the common skill contains only the preserved baseline contract', () => {
   assert.match(skill, /name: proofline/);
   assert.match(body, /Apply rules within: explicit task, requested output, authorized target, and scope/);
   assert.match(body, /## Language and compression/);
+  assert.equal((body.match(/<!-- proofline-response-mode -->/g) || []).length, 1);
+  assert.doesNotMatch(body, /conventional syntax/);
+  assert.match(body, /conventional collocations and vocabulary/);
   assert.match(body, /^Clarity:/m);
   assert.match(body, /^Attention:/m);
   assert.doesNotMatch(body, /^Compression:/m);
@@ -20,7 +23,7 @@ test('the common skill contains only the preserved baseline contract', () => {
   assert.match(body, /## Review and evidence/);
   assert.match(body, /## UI text and information design/);
   assert.match(body, /## Code/);
-  assert.doesNotMatch(body, /Focus response mode|Caveman response mode|\$proofline|defaultMode|session_id/);
+  assert.doesNotMatch(body, /Normal response mode|Focus response mode|Caveman response mode|\$proofline|defaultMode|session_id/);
 });
 
 test('mode prompts are private frontmatter-free components with distinct contracts', () => {
@@ -30,19 +33,25 @@ test('mode prompts are private frontmatter-free components with distinct contrac
 
   for (const prompt of [normal, focus, caveman]) {
     assert.doesNotMatch(prompt, /^---/);
-    assert.doesNotMatch(prompt, /defaultMode|session_id|\$proofline/);
+    assert.doesNotMatch(prompt, /^#|defaultMode|session_id|\$proofline/);
+    assert.doesNotMatch(prompt, /Replace any previous Proofline response-mode instructions|Do not replace the current Proofline response-mode instructions|The Proofline response mode is unchanged|Both modes remain unchanged|Respond with only|Continue the remaining/);
   }
-  assert.match(normal, /normal conversational response style/);
-  assert.match(normal, /Replace and ignore previous Proofline focus or caveman/);
+  assert.equal(normal.trim(), "Use the target language's conventional syntax");
+  assert.doesNotMatch(normal, /normal conversational response style/);
+  assert.match(normal, /target language's conventional syntax/);
+  assert.doesNotMatch(normal, /Replace and ignore previous Proofline focus or caveman/);
+  assert.doesNotMatch(normal, /shared Proofline baseline/);
   assert.doesNotMatch(normal, /next action|numbered steps|ultra-compressed/);
 
   assert.doesNotMatch(focus, /Start with the conclusion or the next action/);
+  assert.match(focus, /target language's conventional syntax/);
   assert.match(focus, /numbered steps only for multi-step work with a real execution order/);
   assert.doesNotMatch(focus, /Show brief progress state only when needed/);
   assert.match(focus, /Limit a list to five items/);
   assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
 
   assert.match(caveman, /Use ultra-compressed responses/);
+  assert.doesNotMatch(caveman, /conventional syntax/);
   assert.doesNotMatch(caveman, /with the conclusion first/);
   assert.match(caveman, /technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
   assert.doesNotMatch(caveman, /technical terms/);
