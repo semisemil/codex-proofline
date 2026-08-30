@@ -2,3 +2,6 @@ interface:
   display_name: "Proofline Architecture Memory"
   short_description: "Keep opted-in architecture context current"
   default_prompt: "Use $architecture-memory to preserve the architecture context established by this work."
+
+policy:
+  allow_implicit_invocation: false

@@ -1,23 +1,26 @@
 ---
 name: architecture-memory
-description: Maintain an opted-in project's architecture memory when work changes or settles system boundaries, containers, component contracts, data or deployment boundaries, quality constraints, architectural plans, or decisions, including context-only changes. Skip local implementation, renames, temporary debugging, brainstorming, and already-recorded context.
+description: Maintain opted-in architecture memory for durable project context.
 ---
 
-# Architecture Memory
+Use only when the request or inspected work establishes durable architecture context worth keeping as `confirmed`, `inferred`, `proposed`, `unknown`, or `planned`. Otherwise do not read or write architecture memory.
 
-Before architecture-specific tools, decide from the current request and inspected work whether both conditions hold:
+## Gate
 
-1. the work is within the description's architecture scope;
-2. it produced long-lived architecture context worth preserving as `confirmed`, `inferred`, `proposed`, `unknown`, or `planned`.
+Find every `docs/**/.architecture-memory/manifest.json` in one bounded operation. Before any registered-document read, require exactly one schema-v2 `managed: true` manifest; all v2 manifest, checkpoint, and document fields; unique IDs and paths; non-negative integer orders; and normalized relative `.md` paths resolving inside the architecture root and outside `.architecture-memory`. Otherwise stop without a managed-document read or write.
 
-If either fails, finish with no architecture-memory read or write. Otherwise reuse current task evidence and make one bounded operation that first finds and checks every manifest under `docs/**`. Only when exactly one has a supported `schema_version` and `managed: true` may that operation return the target heading or referenced IDs. A missing or ambiguous manifest, `managed: false`, or unsupported `schema_version` ends without reading a managed document or writing.
+The manifest owns only registered documents; `language` controls their headings and prose. Never advance `git_checkpoint`; explicit `architecture-memory-update` owns committed-range reconciliation.
 
-The manifest is under the selected architecture root at `.architecture-memory/manifest.json`. It owns only its registered documents and its `language` governs document headings and prose. This conversational maintenance never advances `git_checkpoint`; committed-range reconciliation belongs to explicit `architecture-memory-update`. Read [the document contract](references/document-contract.md) completely for structural changes, a new ADR, or unfamiliar formatting. Read only the matching template branch: [base documents](references/base-templates.md) for their structure, [components](references/component-templates.md) for a new L3 document, or [decisions](references/decision-templates.md) for a new ADR. Ordinary patches use the existing document's local form without loading templates.
+## Patch
 
-Update the existing canonical item in place; otherwise add one row or list item. Keep tables and Mermaid consistent in the same patch when their shared relationship changes. Use one write call, then accept its success result without a validator or reread. Partial patches retain `verified_at` and `source_revision`; change them only after the whole document's evidence was re-established.
+Patch the canonical item; if none exists, add one row or list item. Keep a table and its Mermaid view consistent in the same patch.
 
-Unmarked content is `confirmed/current`. Mark `inferred`, `proposed`, `unknown`, or `planned` content with evidence beside the affected item; for a table row, put the keyed annotation immediately below that table. C4 and Context describe current architecture and explicitly marked target states. ADRs preserve decision-time context and rationale; create one only for an explicitly established architecture decision, and supersede an accepted ADR with a new ADR instead of rewriting its historical fields.
+Follow local form for ordinary patches. Load only the matching template: [base documents](references/base-templates.md) for a structural base-document change, [components](references/component-templates.md) for a new L3 document, or [decisions](references/decision-templates.md) for a new ADR.
 
-Do not record failed or reverted implementation, easily regenerated code detail, or duplicate meaning. Remove resolved questions, ended risks, and obsolete current descriptions; preserve decision history only when it belongs in an ADR. Code changes are not required for a confirmed architecture update.
+Unmarked content is `confirmed/current`. Put other states and their evidence beside the affected item. Current documents hold current state and explicitly marked target state. Create an ADR only for an explicitly established decision; supersede an accepted ADR with a new ADR instead of rewriting its historical fields.
+
+Record neither failed or reverted work, regenerable code detail, nor duplicate meaning. Remove resolved questions, ended risks, and obsolete current descriptions. Code changes are not required.
+
+Write once and accept success without validation or reread. Partial patches retain `verified_at` and `source_revision`; change them only after a whole-document evidence review.
 
 When a write occurs, add exactly one compact final line: `Architecture: <changed documents>`. Say nothing about architecture memory when no write occurs.

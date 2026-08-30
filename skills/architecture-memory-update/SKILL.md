@@ -1,26 +1,43 @@
 ---
 name: architecture-memory-update
-description: Reconcile opted-in architecture memory through committed Git changes since its checkpoint.
+description: Update or seed opted-in architecture memory from Git.
 ---
 
-# Architecture Memory Update
+Explicit requests only.
 
-Run only on an explicit user request.
+## Results
+
+Final line:
+
+- `stopped`: `Architecture update stopped: <reason>; checkpoint <unchanged or unavailable>`
+- `current`: `Architecture update: documents unchanged; checkpoint <short revision>`
+- `ignored`: `Architecture update: documents unchanged; checkpoint <short unchanged revision>`
+- `written`: `Architecture update: <changed documents or documents unchanged>; checkpoint <short revision>`
+
+`current`/`stopped`/`ignored`: write nothing; keep the checkpoint.
 
 ## Preflight
 
-In one bounded operation, find every `.architecture-memory/manifest.json` under `docs/**`, select exactly one managed schema-v2 manifest, and inspect the repository's full `HEAD`, current branch, and porcelain status. The Git worktree must be clean, and the checkpoint revision must be non-null and resolve to a commit. A failed condition ends without reading managed documents or writing: `Architecture update stopped: <reason>; checkpoint <unchanged or unavailable>`. When the checkpoint equals `HEAD`, end without a document read or write: `Architecture update: documents unchanged; checkpoint <short revision>`. `branch_at_check` is provenance only; the checkpoint revision is the diff authority.
+One bounded preflight finds every `.architecture-memory/manifest.json` under `docs/**` and reads full `HEAD`, branch, and porcelain status. Before registered documents, require:
 
-## Reconcile
+- exactly one schema-v2 `managed: true` manifest: required v2 fields, unique IDs/paths, nonnegative integer orders, and normalized relative `.md` paths resolving inside its architecture root and outside `.architecture-memory`;
+- a clean worktree and committed `HEAD`;
+- non-null revision to be a full 40/64-hex ID resolving to a commit.
 
-Compare committed snapshots with `git diff --name-status --find-renames <checkpoint> <HEAD> -- .` from the project root. Include a bounded diff statistic in the same call. Classify every changed project path before advancing the checkpoint; exclude the managed architecture root from code evidence.
+Preflight failure: `stopped`; `revision == HEAD`: `current`. Both precede registered-document reads. `branch_at_check` is provenance; revision controls the diff.
 
-Read hunks only for paths that may change system boundaries, containers, selected components, data or deployment boundaries, integrations, quality constraints, or explicit decision artifacts. Batch those hunks with the relevant current document sections. If output is truncated or a path remains ambiguous, narrow by exact paths until every change is classified. An unclassifiable range ends with the stopped result and no write.
+## Seed
 
-Update only the current C4, Context, or selected L3 items affected by the final committed state, following each document's local form. Read [the document contract](../architecture-memory/references/document-contract.md) only before a structural document change or unfamiliar formatting. A code delta alone cannot create an ADR; create one only when the range contains an explicit decision record with its rationale or the current user establishes the decision, then read [the decision templates](../architecture-memory/references/decision-templates.md) before writing it. When the checkpoint is not an ancestor of `HEAD`, use the snapshot difference for current state and make no historical inference from commit order.
+For `revision == null`, invent no base and skip history/diffs. From only the [initialization evidence pass](../architecture-memory-init/references/initialization.md#evidence-pass) and committed tree, reconcile every registered current-state document; never reconstruct ADR history. Incomplete classification is `stopped`; otherwise Write with fixes and checkpoint `HEAD`.
 
-## Complete
+## Delta
 
-After every committed change is classified and every architecture effect is addressed, update the affected documents and `git_checkpoint` in one write. Set `revision` to full `HEAD`, `branch_at_check` to the current branch or `null` for detached HEAD, and `checked_at` to the current ISO 8601 time. Advance the checkpoint even when no document content changes, preventing the same range from being scanned again.
+Otherwise, from project root, one call runs `git diff --name-status --find-renames <checkpoint> <HEAD> -- .` plus a bounded statistic. A non-empty architecture-root-only range with both rename/copy paths inside is `ignored` before registered-document read. In mixed ranges, exclude root evidence and classify all other paths before Write.
 
-Delta reconciliation retains document `verified_at` and `source_revision`; those fields require a whole-document evidence review. End a successful write with one line: `Architecture update: <changed documents or documents unchanged>; checkpoint <short revision>`.
+Read hunks only for paths that may change system boundaries, containers, selected components, data/deployment boundaries, integrations, quality constraints, or explicit decision artifacts; batch relevant sections. Narrow truncation or ambiguity by exact path until all paths are classified; unresolved is `stopped`.
+
+Update only affected current C4, Context, or selected L3 content in local form. A code delta cannot create an ADR; require this range to contain an explicit rationale-bearing decision record, or a decision established by the current user, then read [decision templates](../architecture-memory/references/decision-templates.md). For a non-ancestor checkpoint, use snapshot differences and infer no history from commit order.
+
+## Write
+
+After classifying every non-managed change and addressing each architecture effect, write affected documents and `git_checkpoint` once: `revision` = full `HEAD`; `branch_at_check` = current branch or detached `null`; `checked_at` = current ISO 8601 time. Reaching Write advances even without document edits. Keep document `verified_at` and `source_revision`; seeding never refreshes them. Successful write needs no validator/reread; return `written`.

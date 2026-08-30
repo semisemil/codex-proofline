@@ -1,8 +1,8 @@
 # Architecture memory component templates
 
-Read for initialization or when adding the first or another selected C4 L3 document. Write headings and prose in the manifest language. Omit conditional sections when empty. Replace every angle-bracket placeholder.
+Use the manifest language. Replace every angle-bracket placeholder and omit empty conditional sections.
 
-Unmarked content means `confirmed/current`. Put exceptional state and evidence beside the affected content. For a table row, put a keyed annotation immediately below that table.
+Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, or `planned` state and evidence beside the affected content; for a table row, use a keyed annotation directly below its table.
 
 ## `components/README.md`
 
@@ -45,4 +45,4 @@ Unmarked content means `confirmed/current`. Put exceptional state and evidence b
 - <Question> — `unknown/current` — <Evidence needed>
 ~~~
 
-When creating the first L3 document, create `components/README.md`, add its conditional row to the architecture `README.md`, and register both documents in the manifest. Later L3 documents update the component index and manifest in the same write.
+First L3: create `components/README.md`, add its architecture `README.md` row, and register the index as `component-index` and the L3 document as `component` in the same write. Later L3: update the index and register the document as `component` in the same write.

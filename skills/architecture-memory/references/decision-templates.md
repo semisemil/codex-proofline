@@ -1,6 +1,6 @@
 # Architecture memory decision templates
 
-Read only when creating a new ADR. Write headings and prose in the manifest language. Replace every angle-bracket placeholder.
+Use the manifest language and replace every angle-bracket placeholder.
 
 ## `decisions/ADR-<number>-<slug>.md`
 
@@ -34,6 +34,6 @@ Read only when creating a new ADR. Write headings and prose in the manifest lang
 - <User confirmation or repository-relative path and symbol>
 ~~~
 
-Create the ADR, add `[ADR-<number>](ADR-<number>-<slug>.md)` to `decisions/README.md`, add a relative link from the affected current C4 or Context item back to the ADR rationale, and register the ADR in the manifest in the same write.
+In one write, create the ADR, add `[ADR-<number>](ADR-<number>-<slug>.md)` to `decisions/README.md`, add a relative link from the affected current C4 or Context item to its rationale, and register it as `decision`.
 
-An accepted ADR's Context, Decision, Consequences, Alternatives, and Evidence are historical record. Later edits may change only Status, Supersedes, Superseded by, Current document, and clear typographical errors. A changed direction gets a new ADR whose `Supersedes` points to the old ADR; the old ADR's `Superseded by` points to the new one.
+An accepted ADR's Context, Decision, Consequences, Alternatives, and Evidence are immutable history. Only Status, Supersedes, Superseded by, Current document, and clear typographical errors may change. A new direction gets a new ADR pointing `Supersedes` to the old ADR; the old ADR points `Superseded by` to the new one.

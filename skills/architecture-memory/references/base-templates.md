@@ -1,8 +1,8 @@
 # Architecture memory base templates
 
-Write headings and prose in the manifest language. Omit conditional sections and rows when they have no content. Replace every angle-bracket placeholder.
+Use the manifest language. Replace every angle-bracket placeholder and omit empty conditional sections or rows.
 
-Unmarked content means `confirmed/current`. Put `inferred`, `proposed`, `unknown`, or `planned` state and its evidence directly beside the affected list item or paragraph. For a table row, put a keyed annotation immediately below that table. Do not collect annotations in a document-wide exception section.
+Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, or `planned` state and evidence beside the affected content; for a table row, use a keyed annotation directly below its table. No document-wide exception section.
 
 ## `README.md`
 
@@ -11,7 +11,7 @@ Unmarked content means `confirmed/current`. Put `inferred`, `proposed`, `unknown
 
 <One paragraph describing the system and this document set.>
 
-<One-sentence legend: unmarked content is confirmed/current; exceptional states and evidence appear beside the affected content.>
+<One-sentence legend: unmarked is confirmed/current; other states and evidence sit beside the affected content.>
 
 ## <Document map>
 
@@ -153,7 +153,7 @@ Unmarked content means `confirmed/current`. Put `inferred`, `proposed`, `unknown
 - <Relative link to a detailed project Plan>
 ~~~
 
-Keep only architecture-affecting summaries here. Link to detailed product plans instead of copying them.
+Keep only architecture-affecting summaries. Link detailed product plans instead of copying them.
 
 ## `decisions/README.md`
 
@@ -163,3 +163,5 @@ Keep only architecture-affecting summaries here. Link to detailed product plans 
 | ADR | <Decision> | <Status> | <Current document> |
 |---|---|---|---|
 ~~~
+
+Register kinds: `README.md` as `index`, `01-system-context.md` as `system-context`, `02-containers.md` as `containers`, `04-context.md` as `context`, and `decisions/README.md` as `decision-index`.

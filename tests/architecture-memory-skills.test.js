@@ -5,6 +5,7 @@ const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
 const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
+const words = (source) => source.trim().split(/\s+/).length;
 
 function frontmatter(source) {
   const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -12,40 +13,58 @@ function frontmatter(source) {
   return match[1];
 }
 
-test('initializer is explicit-only while maintenance remains model-invoked', () => {
-  const init = read('skills', 'architecture-memory-init', 'SKILL.md');
-  const initMetadata = read('skills', 'architecture-memory-init', 'agents', 'openai.yaml');
-  const maintenance = read('skills', 'architecture-memory', 'SKILL.md');
-  const maintenanceMetadata = read('skills', 'architecture-memory', 'agents', 'openai.yaml');
-
-  assert.match(frontmatter(init), /^name: architecture-memory-init$/m);
-  assert.match(initMetadata, /allow_implicit_invocation:\s*false/);
-  assert.match(frontmatter(maintenance), /^name: architecture-memory$/m);
-  assert.match(frontmatter(maintenance), /^description:\s*\S.+$/m);
-  assert.doesNotMatch(maintenanceMetadata, /allow_implicit_invocation:\s*false/);
+test('architecture-memory skills are explicit-only', () => {
+  for (const skill of [
+    'architecture-memory-init',
+    'architecture-memory',
+    'architecture-memory-update',
+  ]) {
+    const source = read('skills', skill, 'SKILL.md');
+    const metadata = read('skills', skill, 'agents', 'openai.yaml');
+    assert.match(frontmatter(source), new RegExp(`^name: ${skill}$`, 'm'));
+    assert.match(frontmatter(source), /^description:\s*\S.+$/m);
+    assert.match(metadata, /allow_implicit_invocation:\s*false/);
+    assert.match(metadata, new RegExp(`default_prompt: "Use \\$${skill}\\b`));
+  }
 });
 
-test('Git reconciliation is explicit-only and owns only committed checkpoint updates', () => {
+test('Git reconciliation owns only committed checkpoint updates', () => {
   const update = read('skills', 'architecture-memory-update', 'SKILL.md');
-  const metadata = read('skills', 'architecture-memory-update', 'agents', 'openai.yaml');
   const maintenance = read('skills', 'architecture-memory', 'SKILL.md');
 
   assert.match(frontmatter(update), /^name: architecture-memory-update$/m);
-  assert.match(metadata, /allow_implicit_invocation:\s*false/);
-  assert.match(update, /Git worktree must be clean/);
-  assert.match(update, /checkpoint revision[\s\S]*resolve to a commit/);
+  assert.match(update, /clean worktree/);
+  assert.match(update, /non-null revision[\s\S]*full 40\/64-hex ID resolving to a commit/);
   assert.match(update, /Architecture update stopped: <reason>; checkpoint <unchanged or unavailable>/);
-  assert.match(update, /checkpoint equals `HEAD`[\s\S]*without a document read or write/);
-  assert.match(update, /`branch_at_check` is provenance only/);
+  assert.match(update, /`revision == HEAD`[\s\S]*`current`/);
+  assert.match(update, /Both precede registered-document reads/);
+  assert.match(update, /`current`\/`stopped`\/`ignored`[\s\S]*write nothing[\s\S]*keep the checkpoint/);
+  assert.match(update, /`branch_at_check` is provenance/);
   assert.match(update, /git diff --name-status --find-renames <checkpoint> <HEAD> -- \./);
-  assert.match(update, /classify every changed project path before advancing the checkpoint/i);
-  assert.match(update, /code delta alone cannot create an ADR/);
-  assert.match(update, /document-contract\.md\) only before a structural document change or unfamiliar formatting/);
-  assert.match(update, /decision-templates\.md\) before writing it/);
-  assert.doesNotMatch(update, /document-contract\.md\) completely before the first write/);
-  assert.match(update, /Advance the checkpoint even when no document content changes/);
+  assert.match(update, /classify all other paths before Write/i);
+  assert.match(update, /code delta cannot create an ADR/);
+  assert.match(update, /decision-templates\.md\)/);
+  assert.doesNotMatch(update, /document-contract\.md/);
+  assert.match(update, /Reaching Write advances even without document edits/);
   assert.doesNotMatch(update, /does not include staged, unstaged, or untracked changes/);
-  assert.match(maintenance, /never advances `git_checkpoint`/);
+  assert.match(maintenance, /never advance `git_checkpoint`/i);
+});
+
+test('Git reconciliation seeds null checkpoints and ignores its own document-only tail', () => {
+  const update = read('skills', 'architecture-memory-update', 'SKILL.md');
+
+  assert.match(update, /`revision == null`[\s\S]*committed tree[\s\S]*every registered current-state document/);
+  assert.match(update, /Write with fixes and checkpoint `HEAD`/);
+  assert.match(update, /Keep document `verified_at` and `source_revision`[\s\S]*seeding never refreshes them/);
+  assert.match(update, /architecture-root-only range[\s\S]*rename\/copy paths inside[\s\S]*`ignored`[\s\S]*registered-document read/);
+  assert.match(update, /mixed ranges[\s\S]*exclude root evidence[\s\S]*classify all other paths/);
+});
+
+test('explicit Git reconciliation stays compact', () => {
+  const update = read('skills', 'architecture-memory-update', 'SKILL.md');
+  const words = update.trim().split(/\s+/).length;
+
+  assert.ok(words <= 400, `update skill is ${words} words`);
 });
 
 test('initialization and maintenance route conditional template branches', () => {
@@ -55,19 +74,18 @@ test('initialization and maintenance route conditional template branches', () =>
   const baseTemplates = read('skills', 'architecture-memory', 'references', 'base-templates.md');
   const componentTemplates = read('skills', 'architecture-memory', 'references', 'component-templates.md');
   const decisionTemplates = read('skills', 'architecture-memory', 'references', 'decision-templates.md');
-  const contract = read('skills', 'architecture-memory', 'references', 'document-contract.md');
 
   assert.match(init, /references\/initialization\.md/);
-  assert.match(init, /\.\.\/architecture-memory\/references\/document-contract\.md/);
+  assert.doesNotMatch(init, /document-contract\.md/);
   for (const name of ['base-templates', 'component-templates', 'decision-templates']) {
-    assert.match(init, new RegExp(`architecture-memory\\/references\\/${name}\\.md`));
+    assert.match(initProcedure, new RegExp(`architecture-memory\\/references\\/${name}\\.md`));
     assert.match(maintenance, new RegExp(`references\\/${name}\\.md`));
   }
-  assert.match(init, /component templates[\s\S]*only when an L3 document is selected/);
-  assert.match(init, /decision template[\s\S]*only when an ADR is warranted/);
-  assert.match(maintenance, /Ordinary patches[\s\S]*without loading templates/);
+  assert.match(initProcedure, /component templates[\s\S]*only when selecting L3/);
+  assert.match(initProcedure, /decision template[\s\S]*only when an ADR is warranted/);
+  assert.match(maintenance, /local form for ordinary patches[\s\S]*Load only the matching template/);
   assert.ok(maintenance.length < initProcedure.length
-    + baseTemplates.length + componentTemplates.length + decisionTemplates.length + contract.length);
+    + baseTemplates.length + componentTemplates.length + decisionTemplates.length);
 
   for (const [source, relativePath] of [
     [baseTemplates, 'README.md'],
@@ -89,31 +107,54 @@ test('initialization and maintenance route conditional template branches', () =>
 
 test('maintenance gate and discovery preserve every durable state without broad reads', () => {
   const maintenance = read('skills', 'architecture-memory', 'SKILL.md');
-  const contract = read('skills', 'architecture-memory', 'references', 'document-contract.md');
 
   for (const state of ['confirmed', 'inferred', 'proposed', 'unknown', 'planned']) {
-    assert.match(maintenance, new RegExp('worth preserving[^\\n]*`' + state + '`'));
+    assert.match(maintenance, new RegExp('worth keeping[^\\n]*`' + state + '`'));
   }
-  assert.match(maintenance, /one bounded operation[\s\S]*every manifest under `docs\/\*\*`/);
-  assert.match(maintenance, /Only when exactly one[\s\S]*`managed: true`[\s\S]*return the target heading/);
-  assert.match(maintenance, /`managed: false`[\s\S]*without reading a managed document or writing/);
-  assert.match(contract, /Exactly one supported manifest selects its parent architecture root/);
-  assert.match(contract, /more than one is a conflict/);
-  assert.match(maintenance, /Use one write call[\s\S]*without a validator or reread/);
+  assert.match(maintenance, /every `docs\/\*\*\/\.architecture-memory\/manifest\.json`[\s\S]*one bounded operation/);
+  assert.match(maintenance, /exactly one schema-v2 `managed: true` manifest/);
+  assert.match(maintenance, /normalized relative `\.md` paths resolving inside the architecture root and outside `.architecture-memory`/);
+  assert.match(maintenance, /otherwise stop without a managed-document read or write/i);
+  assert.doesNotMatch(maintenance, /document-contract\.md/);
+  assert.match(maintenance, /Write once[\s\S]*without validation or reread/);
+});
+
+test('explicit maintenance keeps its description and entrypoint compact', () => {
+  const maintenance = read('skills', 'architecture-memory', 'SKILL.md');
+  const description = frontmatter(maintenance).match(/^description:\s*(.+)$/m)?.[1] || '';
+
+  assert.ok(description.length <= 240, `description is ${description.length} characters`);
+  assert.ok(maintenance.length <= 2500, `maintenance skill is ${maintenance.length} characters`);
+  assert.ok(words(maintenance) <= 310, `maintenance skill is ${words(maintenance)} words`);
+});
+
+test('initialization and conditional templates stay compact', () => {
+  const init = read('skills', 'architecture-memory-init', 'SKILL.md');
+  const procedure = read('skills', 'architecture-memory-init', 'references', 'initialization.md');
+  const templates = [
+    read('skills', 'architecture-memory', 'references', 'base-templates.md'),
+    read('skills', 'architecture-memory', 'references', 'component-templates.md'),
+    read('skills', 'architecture-memory', 'references', 'decision-templates.md'),
+  ].join('\n');
+
+  assert.ok(words(init) <= 50, `init skill is ${words(init)} words`);
+  assert.ok(words(init) + words(procedure) <= 710, 'init entry path exceeded its word budget');
+  assert.ok(words(templates) <= 835, `templates are ${words(templates)} words`);
 });
 
 test('initialization supports reactivation and sets the manifest document language', () => {
   const procedure = read('skills', 'architecture-memory-init', 'references', 'initialization.md');
-  const contract = read('skills', 'architecture-memory', 'references', 'document-contract.md');
 
   assert.match(procedure, /`managed: false`[\s\S]*change only `managed` to `true`/);
   assert.ok(procedure.indexOf('## Preflight') < procedure.indexOf('## Evidence pass'));
-  assert.match(procedure, /before repository analysis or template reads/);
+  assert.match(procedure, /before repository analysis or template reads/i);
   assert.match(procedure, /BCP 47 tag in manifest `language`/);
-  assert.match(contract, /`language` is the BCP 47 tag of the initialization conversation language/);
-  assert.match(contract, /`"ko"` above is only an example/);
   assert.match(procedure, /set `git_checkpoint\.revision` to its full object ID/);
-  assert.match(procedure, /working-tree evidence[\s\S]*is not part of that checkpoint/);
+  assert.match(procedure, /working-tree evidence[\s\S]*outside the checkpoint/);
+  assert.match(procedure, /After the first commit[\s\S]*fills the checkpoint/);
+  assert.match(procedure, /normalized relative `\.md` paths inside the architecture root/);
+  assert.match(procedure, /symlinks or junctions[\s\S]*resolve inside the root/);
+  assert.match(procedure, /`order` is a non-negative integer/);
 });
 
 test('human templates expose the legend, selected L3, adjacent evidence, and immutable ADR history', () => {
@@ -121,19 +162,19 @@ test('human templates expose the legend, selected L3, adjacent evidence, and imm
   const components = read('skills', 'architecture-memory', 'references', 'component-templates.md');
   const decisions = read('skills', 'architecture-memory', 'references', 'decision-templates.md');
 
-  assert.match(base, /One-sentence legend: unmarked content is confirmed\/current/);
+  assert.match(base, /One-sentence legend: unmarked is confirmed\/current/);
   assert.match(base, /\]\(components\/README\.md\)[^\n]*include only when L3 documents exist/);
-  assert.match(base, /keyed annotation immediately below that table/);
+  assert.match(base, /keyed annotation directly below its table/);
   assert.doesNotMatch(base, /^## <Exceptional states and evidence>$/m);
-  assert.match(components, /first L3 document[\s\S]*architecture `README\.md`[\s\S]*manifest/);
+  assert.match(components, /First L3:[\s\S]*architecture `README\.md`[\s\S]*register/);
   assert.match(components, /\[<Component document>\]\(<container-slug>\.md\)/);
   assert.match(decisions, /\[ADR-<number>\]\(ADR-<number>-<slug>\.md\)/);
-  assert.match(decisions, /relative link from the affected current C4 or Context item back to the ADR rationale/);
+  assert.match(decisions, /relative link from the affected current C4 or Context item to its rationale/);
   for (const field of ['Context', 'Decision', 'Consequences', 'Alternatives', 'Evidence']) {
     assert.match(decisions, new RegExp(`accepted ADR's[^\\n]*${field}`));
   }
   assert.match(decisions, /Status, Supersedes, Superseded by, Current document, and clear typographical errors/);
-  assert.match(decisions, /new ADR whose `Supersedes` points to the old ADR[\s\S]*old ADR's `Superseded by` points to the new one/);
+  assert.match(decisions, /new ADR pointing `Supersedes` to the old ADR[\s\S]*old ADR points `Superseded by` to the new one/);
 });
 
 test('all document kinds remain represented across split templates', () => {
@@ -157,9 +198,9 @@ test('all document kinds remain represented across split templates', () => {
   }
 });
 
-test('manifest example exposes the complete neutral document contract', () => {
-  const contract = read('skills', 'architecture-memory', 'references', 'document-contract.md');
-  const jsonBlock = contract.match(/```json\r?\n([\s\S]*?)\r?\n```/);
+test('initialization procedure exposes the complete neutral manifest schema', () => {
+  const procedure = read('skills', 'architecture-memory-init', 'references', 'initialization.md');
+  const jsonBlock = procedure.match(/```json\r?\n([\s\S]*?)\r?\n```/);
   assert.ok(jsonBlock, 'manifest example must be JSON');
   const manifest = JSON.parse(jsonBlock[1]);
 
@@ -181,7 +222,21 @@ test('manifest example exposes the complete neutral document contract', () => {
     'component', 'context', 'decision-index', 'decision',
   ];
   for (const kind of kinds) {
-    assert.ok(contract.includes('`' + kind + '`'), `missing document kind ${kind}`);
+    assert.ok(procedure.includes('`' + kind + '`'), `missing document kind ${kind}`);
+  }
+});
+
+test('skills do not depend on a standalone document contract', () => {
+  assert.equal(
+    fs.existsSync(path.join(repoRoot, 'skills', 'architecture-memory', 'references', 'document-contract.md')),
+    false,
+  );
+  for (const skill of [
+    'architecture-memory-init',
+    'architecture-memory',
+    'architecture-memory-update',
+  ]) {
+    assert.doesNotMatch(read('skills', skill, 'SKILL.md'), /document-contract\.md/);
   }
 });
 
