@@ -14,7 +14,7 @@ Assignment
 
 Load the Leaf and Gate once; follow linked Spec sections as needed. Reuse reads and successful evidence until relevant state changes. Cap output at 4,000 tokens; inspect large/generated sources by exact search and small ranges.
 
-Implement the fixed Leaf contract and change only tests mapped by Leaf or Spec evidence. Stage exact product and test paths. If one fixed Gate item is needed before callback, run `node <plugin-root>/skills/spec-slice/scripts/run-gates.js feedback --cwd <worktree> --gate <gate-link> --id <G#>`; select at most one and never run its command directly. Its success belongs to the unchanged staged state. Then callback only `<node-id> complete` or the blocker via `send_message_to_thread` without a destination ID, and end.
+Implement the fixed Leaf contract and change only tests mapped by Leaf or Spec evidence. Artifact-generation commands may create required outputs that will be staged. Stage exact product and test paths, then callback only `<node-id> complete` or the blocker via `send_message_to_thread` without a destination ID, and end.
 
-The Leaf owns no completion Gate, commit, review, nested task, wider verdict, or frozen-contract change.
+The assigning coordinator's `coordinator-state close` is the only completion validation. This task runs no test, build, lint, type-check, end-to-end, or Gate command. The Leaf owns no completion Gate, commit, review, nested task, wider verdict, or frozen-contract change.
 ```

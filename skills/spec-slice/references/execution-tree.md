@@ -107,7 +107,7 @@ The complete Gate set is exactly the Spec's fixed completion set. Test discovery
 
 When a boundary owns no mechanical completion check, render one item with `CHECK: NONE`. Running it records that the frozen completion set contains no command for that boundary; it is not evidence of product behavior. Do not invent a test, build, lint, or type check to avoid this state. JSON-array checks reject shell strings, chaining, pipes, redirection, and command substitution; legacy shell-string Gate files remain readable.
 
-Gate success belongs to the exact code snapshot that produced it. Reuse it through staging, review, commit, and unchanged transport; a relevant mutation invalidates only affected checks and ancestors. Implementation feedback may execute one fixed Gate item and records its result instead of creating another check. Review cannot add tests beyond the fixed completion set.
+Gate success belongs to the exact code snapshot that produced it. Reuse it through staging, review, commit, and unchanged transport; a relevant mutation invalidates only affected checks and ancestors. After implementation stages its final state, `coordinator-state close` runs the fixed Gate set once for that snapshot. Review cannot add tests beyond the fixed completion set.
 
 Every Gate item starts unchecked with `EVIDENCE: pending`. An optional expectation may narrow a runnable command's observable success condition. `CHECK: NONE` has no expectation but may carry `REQUIRES`.
 
@@ -144,8 +144,7 @@ Use these exact CLI names and argument order:
 ```text
 inspect-execution-tree.js <spec-directory>
 run-gates.js run --cwd <checkout-root> [--timeout N] <gate-files...>
-run-gates.js feedback --cwd <checkout-root> [--timeout N] --gate <gate-file> --id <G#>
 run-gates.js status <gate-files...>
 ```
 
-`spec-slice` runs `inspect-execution-tree.js` and `run-gates.js status` before reporting planning complete. It does not run project Gate checks. During implementation, `feedback` runs one fixed Gate item against the staged product state and records reusable evidence without changing product files. The implementation workflow uses `run` after fan-out and supplies the root and applicable Node Gate files together.
+`spec-slice` runs `inspect-execution-tree.js` and `run-gates.js status` before reporting planning complete. It does not run project Gate checks. The implementation workflow uses `coordinator-state close` after staging; it supplies the applicable Gate files to `run` and reuses matching success evidence.

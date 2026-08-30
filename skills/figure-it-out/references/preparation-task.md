@@ -10,7 +10,7 @@ Assignment
 - Proofline skill root: {{skill_root}}
 - Candidate artifact identifiers: {{artifact_identifiers}}
 
-Run from the earliest incomplete stage. At each reached stage, load only its named `SKILL.md` and triggered references; later-stage skills remain unloaded. Batch narrow evidence, limit potentially large command output to 4,000 tokens, and reuse successful evidence until a relevant source changes.
+Run from the earliest incomplete stage. At each reached stage, load only its named `SKILL.md` and triggered references; later-stage skills remain unloaded. Batch narrow evidence, limit potentially large command output to 4,000 tokens, and reuse successful evidence until a relevant source changes. Use helper invocations directly from the loaded skill; inspect helper source or usage only after its documented invocation fails.
 
 1. Decide from the request and current artifacts whether a Plan is needed. If the Spec would otherwise invent the outcome, scope, direction, or material tradeoff, load `<skill-root>/development-plan/SKILL.md` and produce it. Otherwise continue without loading that skill.
 2. Load `<skill-root>/implementation-spec/SKILL.md` and produce one compact authoritative Spec.

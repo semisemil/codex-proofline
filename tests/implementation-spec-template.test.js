@@ -67,7 +67,10 @@ test('Spec plans minimum sufficient evidence instead of equivalent test combinat
   assert.match(skill, /Fix the minimum completion set before fan-out/);
   assert.match(skill, /only checks required to decide the acceptance conditions/);
   assert.match(skill, /Add or change tests only when they directly decide/);
-  assert.match(skill, /Implementation feedback adds no completion check/);
+  assert.match(
+    skill,
+    /Implementation tasks create and stage required artifacts without pre-running completion checks/,
+  );
   assert.doesNotMatch(skill, /verification units|targeted, broad, and deep checks/);
   assert.match(skill, /only a relevant mutation makes it stale/);
 });

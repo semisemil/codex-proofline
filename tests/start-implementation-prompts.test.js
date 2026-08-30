@@ -64,6 +64,9 @@ test('implementation, root-only, and review assignments keep their fixed boundar
 
   assert.match(implementation, /PROOFLINE_EXECUTION_ROLE: implementer/);
   assert.match(implementation, /Stage exact product and test paths/);
+  assert.match(implementation, /only completion validation/);
+  assert.match(implementation, /runs no test, build, lint, type-check, end-to-end, or Gate command/);
+  assert.doesNotMatch(implementation, /run-gates\.js feedback/);
   assert.match(implementation, /without a destination ID/);
   assert.doesNotMatch(implementation, /fewest coherent tool calls|longest blocking interval/);
   assert.doesNotMatch(implementation, /spawn_agent|fork_thread|create_thread|wait_agent|wait_threads/);
@@ -71,6 +74,9 @@ test('implementation, root-only, and review assignments keep their fixed boundar
   assert.match(rootImplementation, /PROOFLINE_EXECUTION_ROLE: root-implementer/);
   assert.doesNotMatch(rootImplementation, /Spec directory:|Spec ID:/);
   assert.match(rootImplementation, /coordinator-state\.js close/);
+  assert.match(rootImplementation, /only completion validation/);
+  assert.match(rootImplementation, /Proceed directly with only/);
+  assert.doesNotMatch(rootImplementation, /run-gates\.js feedback/);
   assert.match(rootImplementation, /coordinator-state\.js review-pass/);
   assert.match(rootImplementation, /spawn_agent\(fork_turns: "none"\)/);
   assert.match(rootImplementation, /repair only blocking findings within this Spec/);

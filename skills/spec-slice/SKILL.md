@@ -17,7 +17,7 @@ Choose root-only or recursively decompose the work using the contract's decompos
 
 ## Validate
 
-Run [the execution-tree inspector](scripts/inspect-execution-tree.js); it must exit 0. Then use [the Gate runner](scripts/run-gates.js) for a read-only `status` check. Newly pending Gates normally make status exit 1, and that expected pending result does not invalidate planning. Exit 2 or any parse failure blocks planning. Never run project Gate checks during planning.
+Run [the execution-tree inspector](scripts/inspect-execution-tree.js); it must exit 0. Then use [the Gate runner](scripts/run-gates.js) for a read-only `status` check. Newly pending Gates normally make status exit 1, and that expected pending result does not invalidate planning. The successful inspector result remains final tree evidence after this expected pending status; report it directly. Exit 2 or any parse failure blocks planning. Never run project Gate checks during planning.
 
 ## Report
 

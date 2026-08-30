@@ -36,6 +36,8 @@ test('figure-it-out is a compact linked workflow without copied stage contracts'
   assert.match(preparation, /Batch narrow evidence/);
   assert.match(preparation, /limit potentially large command output to 4,000 tokens/);
   assert.match(preparation, /reuse successful evidence until a relevant source changes/);
+  assert.match(preparation, /Use helper invocations directly from the loaded skill/);
+  assert.match(preparation, /only after its documented invocation fails/);
   assert.match(preparation, /later-stage skills remain unloaded/);
   assert.match(preparation, /Otherwise continue without loading that skill/);
   assert.match(preparation, /After the Spec exists, load `<skill-root>\/tenet-me\/SKILL\.md`/);

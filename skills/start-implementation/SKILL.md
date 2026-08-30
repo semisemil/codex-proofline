@@ -55,7 +55,7 @@ Choose a safe runnable subset from the frozen tree and capacity. On callback, us
 
 Fill the implementation assignment with the Leaf link, Gate link, plugin root, current constraint delta, and Worktree. The Leaf document owns scope, Spec links, and Context.
 
-The implementation task works directly from the frozen Leaf contract. After staging its final state, it may run one fixed Gate item through the Gate runner's `feedback` action; that action records evidence for coordinator reuse. It never runs a Gate command directly or adds a check. Test changes must map directly to the Leaf or linked Spec evidence. It callbacks only its Node ID and terminal state. Coordinator state runs only Gate items still unmet for that staged fingerprint and supplies every other fact.
+The implementation task works directly from the frozen Leaf contract, creates every required artifact, stages its final state, and callbacks only its Node ID and terminal state. Test changes must map directly to the Leaf or linked Spec evidence. `coordinator-state close` is the sole completion-validation entrypoint: implementation tasks do not run tests, builds, lints, type checks, end-to-end checks, or Gate commands before it. Coordinator state runs the fixed Gate set once for that staged fingerprint and supplies every other fact.
 
 A failed Gate or review returns only the evidenced failure to the deepest existing task that owns it. Resume that implementation task for a Leaf-owned Repair; a Branch coordinator routes a broader owned failure to its affected descendants. No owner means `explicit re-slice required`. The assigning coordinator ends its turn after sending the Repair.
 
@@ -67,7 +67,7 @@ Any `ABANDON` leaves that path, its dependents, and ancestors incomplete.
 
 ## Close and review a Slice
 
-On a completion callback, the coordinator-state `close` action verifies staged scope, reuses matching feedback evidence, runs only still-unmet items for that boundary, marks a completed Leaf or SubSlice, and returns the next action. The Root Slice closes bottom-up. Branch Gates decide combined behavior at the earliest completed boundary. Root-only uses its root Gate. Review begins only after every applicable completion check is met for the staged snapshot.
+On a completion callback, the coordinator-state `close` action verifies staged scope, runs the still-unmet items for that boundary, marks a completed Leaf or SubSlice, and returns the next action. The Root Slice closes bottom-up. Branch Gates decide combined behavior at the earliest completed boundary. Root-only uses its root Gate. Review begins only after every applicable completion check is met for the staged snapshot.
 
 All Leaf changes in one Root Slice form one staged final state. `scripts/prepare-review.js snapshot` returns its paths, per-file change counts, and fingerprint; pass that compact manifest and the review boundary to the Reviewer without copying the Spec or diff. The Reviewer result is `pass | fail`; observations never affect it.
 

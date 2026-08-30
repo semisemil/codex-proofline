@@ -55,3 +55,8 @@ test('Spec Slice permits only contract-fixed file requirements with one Gate own
   assert.match(contract, /Directories, discovered repository boundaries, inferred output files, and duplicate ownership are invalid/);
   assert.match(contract, /does not fix its exact file path, omit `REQUIRES`/);
 });
+
+test('Spec Slice leaves completion validation to coordinator close', () => {
+  assert.match(contract, /`coordinator-state close` runs the fixed Gate set once/);
+  assert.doesNotMatch(contract, /run-gates\.js feedback/);
+});

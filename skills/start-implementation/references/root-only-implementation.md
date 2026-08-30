@@ -17,9 +17,9 @@ Assignment
 
 Load the Spec and Gate once. Reuse reads and successful evidence until relevant state changes. Cap output at 4,000 tokens; inspect large or generated sources by exact search and small ranges.
 
-Implement only the fixed Spec contract and change only tests mapped by its evidence. Stage exact product and test paths. If one fixed Gate item is needed during implementation, run `node <plugin-root>/skills/spec-slice/scripts/run-gates.js feedback --cwd <worktree> --gate <gate-link> --id <G#>`; select at most one and never run its command directly.
+Implement only the fixed Spec contract and change only tests mapped by its evidence. Artifact-generation commands may create required outputs that will be staged. Stage exact product and test paths. `coordinator-state close` is the only completion validation; before it, run no test, build, lint, type-check, end-to-end, or Gate command.
 
-Then run only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <spec-id> --mode root-only`. Render `reviewer.md` with its returned snapshot, create one fresh reviewer with `spawn_agent(fork_turns: "none")` using the listed route, and wait only for it.
+Proceed directly with only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <spec-id> --mode root-only`. Render `reviewer.md` with its returned snapshot, create one fresh reviewer with `spawn_agent(fork_turns: "none")` using the listed route, and wait only for it.
 
 On `pass`, run only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js review-pass --cwd <worktree> --spec <spec-directory> --node <spec-id> --mode root-only --fingerprint <returned-fingerprint> --message <one-line-message>`. Callback its compact result through `send_message_to_thread` without a destination ID, then end.
 
