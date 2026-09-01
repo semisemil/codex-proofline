@@ -23,10 +23,12 @@ codex plugin add proofline@proofline
 codex
 ```
 
+Proofline 훅을 실행하려면 `node` 22 이상이 `PATH`에 있어야 합니다. 저장소 테스트는 Windows와 Linux의 Node 22·24를 대상으로 하며, 기능별 필수 Codex 기능과 중단 조건은 [호환성 및 지원 환경](docs/compatibility.md)에 정리되어 있습니다.
+
 Codex가 열리면 다음 순서로 마무리합니다.
 
 1. `/hooks`를 엽니다.
-2. Proofline의 `SessionStart`와 `UserPromptSubmit` 훅을 확인하고 승인합니다.
+2. Proofline의 `SessionStart`, `UserPromptSubmit`, `PreToolUse` 훅을 확인하고 승인합니다.
 3. 새 세션을 시작합니다.
 
 ## 🚀 빠르게 사용하기
@@ -190,6 +192,16 @@ $proofline:dashboard-server stop
 
 파일 변경은 프로젝트별 cache만 무효화합니다. 화면이 보이는 동안 30초마다 확인하고, 탭 복귀 시 한 번 확인하며, `다시 읽기`는 watcher 상태와 무관하게 선택 프로젝트 원본을 재파싱합니다. 기존 `.proofline/dashboard/`는 직접 열 수 있지만 새 기능과 지원 진입점은 통합 로컬 서버입니다.
 
+## ✅ 개발 검증
+
+저장소 루트에서 다음 한 명령으로 전체 테스트를 실행합니다. 별도 패키지 설치는 필요하지 않습니다.
+
+```bash
+npm test
+```
+
+GitHub Actions는 push와 pull request마다 Windows와 Linux에서 Node 22·24 조합을 검사합니다. 저장소의 텍스트 파일은 운영체제와 무관하게 LF로 체크아웃됩니다.
+
 ## 🔄 업데이트
 
 설정된 Proofline 마켓플레이스 정보를 갱신합니다.
@@ -205,7 +217,7 @@ codex plugin marketplace upgrade proofline
 ### `proofline` 또는 응답 모드가 적용되지 않을 때
 
 1. 플러그인 설치 뒤 새 세션을 시작했는지 확인합니다.
-2. `/hooks`에서 Proofline의 `SessionStart`와 `UserPromptSubmit` 훅이 승인되어 있는지 확인합니다.
+2. `/hooks`에서 Proofline의 `SessionStart`, `UserPromptSubmit`, `PreToolUse` 훅이 승인되어 있는지 확인합니다.
 3. 터미널에서 `node --version`이 실행되는지 확인합니다.
 4. 재개한 작업이라면 새 작업을 시작하세요. `resume`에서는 Proofline을 다시 주입하지 않습니다.
 

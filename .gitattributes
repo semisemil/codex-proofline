@@ -1,2 +1,2 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Keep repository text deterministic across Windows and Unix checkouts.
+* text=auto eol=lf
