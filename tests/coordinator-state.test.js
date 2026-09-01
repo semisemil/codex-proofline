@@ -20,6 +20,10 @@ function git(cwd, ...args) {
   return result.stdout;
 }
 
+function normalizedText(filePath) {
+  return fs.readFileSync(filePath, 'utf8').replaceAll('\r\n', '\n');
+}
+
 function document(filePath, metadata, body) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `---\n${JSON.stringify(metadata, null, 2)}\n---\n\n${body}\n`);
@@ -141,6 +145,68 @@ function rootOnlyFixture(t) {
   return { cwd, spec };
 }
 
+function reviewedApplicationFixture(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-coordinator-apply-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10 }));
+  const cwd = path.join(root, 'destination');
+  const source = path.join(root, 'source');
+  fs.mkdirSync(cwd);
+  git(cwd, 'init');
+  git(cwd, 'config', 'user.email', 'proofline@example.invalid');
+  git(cwd, 'config', 'user.name', 'Proofline Test');
+  const spec = path.join(cwd, '.proofline', 'specs', 'SPEC-0001');
+  document(path.join(spec, 'SPEC.md'), {
+    schema_version: 2,
+    id: 'SPEC-0001',
+    title: 'Apply reviewed',
+    kind: 'feature',
+    status: 'ready',
+    revision: 1,
+    supersedes: [],
+    superseded_by: null,
+    related_issues: [],
+  }, '# Apply reviewed');
+  fs.mkdirSync(path.join(spec, 'gates'), { recursive: true });
+  fs.writeFileSync(path.join(spec, 'gates', 'SPEC-0001.md'), [
+    '# Gates: SPEC-0001',
+    'Scope: SPEC-0001 revision 1',
+    '',
+    '- [ ] G1: product exists',
+    `  CHECK: ${JSON.stringify([process.execPath, '-e', 'process.exit(0)'])}`,
+    '  REQUIRES: ["product.txt"]',
+    '  EVIDENCE: pending',
+    '',
+  ].join('\n'));
+  fs.writeFileSync(path.join(cwd, 'product.txt'), 'before\n');
+  fs.writeFileSync(path.join(cwd, 'removed.txt'), 'before\n');
+  fs.writeFileSync(path.join(cwd, 'unrelated.txt'), 'before\n');
+  git(cwd, 'add', '--', '.');
+  git(cwd, 'commit', '-m', 'base');
+  const base = git(cwd, 'rev-parse', 'HEAD').toString('utf8').trim();
+  git(cwd, 'worktree', 'add', '--detach', source, base);
+  const sourceSpec = path.join(source, '.proofline', 'specs', 'SPEC-0001');
+  fs.writeFileSync(path.join(source, 'product.txt'), 'after\n');
+  fs.writeFileSync(path.join(source, 'created.txt'), 'created\n');
+  fs.unlinkSync(path.join(source, 'removed.txt'));
+  git(source, 'add', '--', 'product.txt', 'created.txt', 'removed.txt');
+  const closed = runAction(
+    { cwd: source, spec: sourceSpec }, 'close', 'SPEC-0001', '--mode', 'root-only',
+  );
+  assert.equal(closed.status, 0, closed.stderr);
+  const fingerprint = JSON.parse(closed.stdout).review_snapshot.fingerprint;
+  const passed = runAction(
+    { cwd: source, spec: sourceSpec },
+    'review-pass',
+    'SPEC-0001',
+    '--mode', 'root-only',
+    '--fingerprint', fingerprint,
+    '--message', 'feat: reviewed product',
+  );
+  assert.equal(passed.status, 0, passed.stderr);
+  const commit = JSON.parse(passed.stdout).commit;
+  return { cwd, source, spec, sourceSpec, base, commit, fingerprint };
+}
+
 test('one callback inspection accepts a leaf inside a combined staged Slice', (t) => {
   const state = fixture(t);
   fs.writeFileSync(path.join(state.cwd, 'src', 'backend', 'item.txt'), 'backend\n');
@@ -202,6 +268,9 @@ test('close runs the one root Gate and returns its review snapshot', (t) => {
   assert.match(output.review_snapshot.fingerprint, /^sha256:[0-9a-f]{64}$/);
   assert.equal(output.gates.length, 1);
   assert.equal(output.gates[0].passed, true);
+  assert.equal(output.gates[0].evidence, undefined);
+  assert.equal(output.review_snapshot.review_command, undefined);
+  assert.equal(output.state, undefined);
 });
 
 test('relative Spec paths resolve from --cwd instead of the process directory', (t) => {
@@ -239,7 +308,129 @@ test('review-pass completes, commits, and verifies a root-only transport once', 
   assert.equal(output.fingerprint, fingerprint);
   assert.deepEqual(output.paths, ['product.txt']);
   assert.match(output.commit, /^[0-9a-f]{40}$/);
+  assert.equal(output.state, undefined);
+  assert.deepEqual(output.gates, { checked: 1, unmet: [] });
   assert.equal(JSON.parse(
     fs.readFileSync(path.join(state.spec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
   ).status, 'completed');
+});
+
+test('capture and apply-reviewed transport one reviewed range as uncommitted changes', (t) => {
+  const state = reviewedApplicationFixture(t);
+  const captured = runAction(state, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 0, captured.stderr);
+  const destination = JSON.parse(captured.stdout);
+  assert.equal(destination.action, 'dispatch');
+  assert.deepEqual(destination.overlap, []);
+
+  const applied = runAction(
+    { ...state, spec: state.sourceSpec },
+    'apply-reviewed',
+    'SPEC-0001',
+    '--source', state.source,
+    '--base', state.base,
+    '--commit', state.commit,
+    '--fingerprint', state.fingerprint,
+    '--destination-fingerprint', destination.destination_fingerprint,
+  );
+  assert.equal(applied.status, 0, applied.stderr);
+  const output = JSON.parse(applied.stdout);
+  assert.equal(output.action, 'complete');
+  assert.equal(output.head, state.base);
+  assert.equal(output.commit, state.commit);
+  assert.equal(output.fingerprint, state.fingerprint);
+  assert.deepEqual(output.paths, ['created.txt', 'product.txt', 'removed.txt']);
+  assert.equal(normalizedText(path.join(state.cwd, 'product.txt')), 'after\n');
+  assert.equal(normalizedText(path.join(state.cwd, 'created.txt')), 'created\n');
+  assert.equal(fs.existsSync(path.join(state.cwd, 'removed.txt')), false);
+  assert.equal(git(state.cwd, 'rev-parse', 'HEAD').toString('utf8').trim(), state.base);
+  assert.equal(git(state.cwd, 'diff', '--cached', '--name-only').length, 0);
+});
+
+test('apply-reviewed preserves an accepted non-overlapping destination change', (t) => {
+  const state = reviewedApplicationFixture(t);
+  fs.writeFileSync(path.join(state.cwd, 'unrelated.txt'), 'local\n');
+  fs.writeFileSync(path.join(state.cwd, 'local.txt'), 'untracked\n');
+  const captured = runAction(state, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 1, captured.stderr);
+  const destination = JSON.parse(captured.stdout);
+  assert.equal(destination.action, 'need_confirm');
+  assert.deepEqual(destination.overlap, ['local.txt', 'unrelated.txt']);
+
+  const applied = runAction(
+    { ...state, spec: state.sourceSpec },
+    'apply-reviewed',
+    'SPEC-0001',
+    '--source', state.source,
+    '--base', state.base,
+    '--commit', state.commit,
+    '--fingerprint', state.fingerprint,
+    '--destination-fingerprint', destination.destination_fingerprint,
+  );
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.equal(normalizedText(path.join(state.cwd, 'product.txt')), 'after\n');
+  assert.equal(normalizedText(path.join(state.cwd, 'unrelated.txt')), 'local\n');
+  assert.equal(normalizedText(path.join(state.cwd, 'local.txt')), 'untracked\n');
+});
+
+test('apply-reviewed stops without mutation on a changed or overlapping destination', (t) => {
+  const state = reviewedApplicationFixture(t);
+  const captured = runAction(state, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 0, captured.stderr);
+  const destination = JSON.parse(captured.stdout);
+  fs.writeFileSync(path.join(state.cwd, 'product.txt'), 'local\n');
+
+  const changed = runAction(
+    { ...state, spec: state.sourceSpec },
+    'apply-reviewed',
+    'SPEC-0001',
+    '--source', state.source,
+    '--base', state.base,
+    '--commit', state.commit,
+    '--fingerprint', state.fingerprint,
+    '--destination-fingerprint', destination.destination_fingerprint,
+  );
+  assert.equal(changed.status, 2);
+  assert.match(changed.stderr, /destination state changed/);
+  assert.equal(fs.readFileSync(path.join(state.cwd, 'product.txt'), 'utf8'), 'local\n');
+});
+
+test('apply-reviewed rejects a reviewed range outside the frozen root scope', (t) => {
+  const state = fixture(t);
+  const source = path.join(path.dirname(state.cwd), `${path.basename(state.cwd)}-source`);
+  t.after(() => fs.rmSync(source, { recursive: true, force: true, maxRetries: 10 }));
+  const base = git(state.cwd, 'rev-parse', 'HEAD').toString('utf8').trim();
+  git(state.cwd, 'worktree', 'add', '--detach', source, base);
+  fs.writeFileSync(path.join(source, 'outside.txt'), 'outside\n');
+  git(source, 'add', '--', 'outside.txt');
+  git(source, 'commit', '-m', 'reviewed outside');
+  const commit = git(source, 'rev-parse', 'HEAD').toString('utf8').trim();
+  const diff = git(
+    source,
+    'diff',
+    `${base}..${commit}`,
+    '--binary',
+    '--no-ext-diff',
+    '--no-renames',
+    '--',
+    'outside.txt',
+  );
+  const fingerprint = `sha256:${crypto.createHash('sha256').update(diff).digest('hex')}`;
+  const captured = runAction(state, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 0, captured.stderr);
+  const destination = JSON.parse(captured.stdout);
+
+  const applied = runAction(
+    { cwd: state.cwd, spec: path.join(source, '.proofline', 'specs', 'SPEC-0001') },
+    'apply-reviewed',
+    'SPEC-0001',
+    '--source', source,
+    '--base', base,
+    '--commit', commit,
+    '--fingerprint', fingerprint,
+    '--destination-fingerprint', destination.destination_fingerprint,
+  );
+  assert.equal(applied.status, 2);
+  assert.match(applied.stderr, /reviewed paths outside root scope: outside\.txt/);
+  assert.equal(fs.existsSync(path.join(state.cwd, 'outside.txt')), false);
 });

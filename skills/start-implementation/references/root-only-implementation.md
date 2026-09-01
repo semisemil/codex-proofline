@@ -19,7 +19,7 @@ Load the Spec and Gate once. Reuse reads and successful evidence until relevant 
 
 Implement only the fixed Spec contract and change only tests mapped by its evidence. Artifact-generation commands may create required outputs that will be staged. Stage exact product and test paths. `coordinator-state close` is the only completion validation; before it, run no test, build, lint, type-check, end-to-end, or Gate command.
 
-Proceed directly with only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <spec-id> --mode root-only`. Render `reviewer.md` with its returned snapshot, create one fresh reviewer with `spawn_agent(fork_turns: "none")` using the listed route, and wait only for it.
+Proceed directly with only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <spec-id> --mode root-only`. It runs every pending Gate: start it once with a sufficient execution window and resume the same process if it yields; do not restart it only because it has not returned. Render `reviewer.md` with its returned snapshot, create one fresh reviewer with `spawn_agent(fork_turns: "none")` using the listed route, and wait only for it.
 
 On `pass`, run only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js review-pass --cwd <worktree> --spec <spec-directory> --node <spec-id> --mode root-only --fingerprint <returned-fingerprint> --message <one-line-message>`. Callback its compact result through `send_message_to_thread` without a destination ID, then end.
 

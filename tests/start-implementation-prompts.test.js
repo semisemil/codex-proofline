@@ -26,6 +26,9 @@ test('start-implementation keeps top coordination in the entrypoint and child wo
   assert.match(skill, /fork_thread\(threadId:/);
   assert.doesNotMatch(skill, /fork_thread\(thread_id:/);
   assert.match(skill, /For two or more direct Root Slices/);
+  assert.match(skill, /coordinator-state\.js capture/);
+  assert.match(skill, /coordinator-state\.js apply-reviewed/);
+  assert.doesNotMatch(skill, /then apply only the reviewed product diff/);
   assert.match(skill, /## Recursive tasks/);
   assert.match(skill, /## Leaf implementation/);
   assert.match(skill, /## Close and review a Slice/);
@@ -50,6 +53,7 @@ test('Slice coordinator assignments own subtree execution but not integration re
   assert.match(coordinator, /wait only for it/);
   assert.match(coordinator, /Repair reuses the owning task/);
   assert.match(coordinator, /Callback its compact result and end/);
+  assert.match(coordinator, /resume the same process if it yields/);
   assert.doesNotMatch(coordinator, /repair-task|review_snapshot\.review_command|thread_id|create_thread|wait_threads/);
 });
 
@@ -76,6 +80,7 @@ test('implementation, root-only, and review assignments keep their fixed boundar
   assert.match(rootImplementation, /coordinator-state\.js close/);
   assert.match(rootImplementation, /only completion validation/);
   assert.match(rootImplementation, /Proceed directly with only/);
+  assert.match(rootImplementation, /resume the same process if it yields/);
   assert.doesNotMatch(rootImplementation, /run-gates\.js feedback/);
   assert.match(rootImplementation, /coordinator-state\.js review-pass/);
   assert.match(rootImplementation, /spawn_agent\(fork_turns: "none"\)/);

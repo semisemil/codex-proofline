@@ -14,12 +14,16 @@ const { snapshot, verify } = require('./prepare-review.js');
 
 const USAGE = [
   'Usage:',
+  '  coordinator-state.js capture --cwd <checkout> --spec <spec-directory> --node <id>',
   '  coordinator-state.js [inspect] --cwd <worktree> --spec <spec-directory> --node <id>',
   '    [--fingerprint <sha256:...>] [--commit <sha>]',
   '  coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <id>',
   '    --mode <leaf|subslice|root-slice|root-only>',
   '  coordinator-state.js review-pass --cwd <worktree> --spec <spec-directory> --node <id>',
   '    --mode <root-slice|root-only> --fingerprint <sha256:...> --message <text>',
+  '  coordinator-state.js apply-reviewed --cwd <checkout> --source <worktree>',
+  '    --spec <source-spec-directory> --node <id> --base <commit> --commit <commit>',
+  '    --fingerprint <sha256:...> --destination-fingerprint <sha256:...>',
 ].join('\n');
 
 class CoordinatorStateError extends Error {}
@@ -31,10 +35,12 @@ function fail(message) {
 function parseArgs(argv) {
   const values = [...argv];
   const action = values[0] && !values[0].startsWith('--') ? values.shift() : 'inspect';
-  if (!['inspect', 'close', 'review-pass'].includes(action)) fail(USAGE);
+  if (!['capture', 'inspect', 'close', 'review-pass', 'apply-reviewed'].includes(action)) {
+    fail(USAGE);
+  }
   const result = {
     action, cwd: null, spec: null, node: null, fingerprint: null, commit: null,
-    mode: null, message: null,
+    mode: null, message: null, source: null, base: null, destinationFingerprint: null,
   };
   for (let index = 0; index < values.length; index += 2) {
     const name = values[index];
@@ -47,6 +53,11 @@ function parseArgs(argv) {
     else if (name === '--commit' && result.commit === null) result.commit = value;
     else if (name === '--mode' && result.mode === null) result.mode = value;
     else if (name === '--message' && result.message === null) result.message = value;
+    else if (name === '--source' && result.source === null) result.source = value;
+    else if (name === '--base' && result.base === null) result.base = value;
+    else if (name === '--destination-fingerprint' && result.destinationFingerprint === null) {
+      result.destinationFingerprint = value;
+    }
     else fail(USAGE);
   }
   if (!result.cwd || !result.spec || !result.node) fail(USAGE);
@@ -54,6 +65,11 @@ function parseArgs(argv) {
     fail('invalid --fingerprint');
   }
   if (result.commit && !/^[0-9a-fA-F]{7,64}$/.test(result.commit)) fail('invalid --commit');
+  if (result.base && !/^[0-9a-fA-F]{7,64}$/.test(result.base)) fail('invalid --base');
+  if (result.destinationFingerprint
+    && !/^sha256:[0-9a-f]{64}$/.test(result.destinationFingerprint)) {
+    fail('invalid --destination-fingerprint');
+  }
   if (action === 'close' && !['leaf', 'subslice', 'root-slice', 'root-only'].includes(result.mode)) {
     fail(USAGE);
   }
@@ -61,15 +77,19 @@ function parseArgs(argv) {
     if (!['root-slice', 'root-only'].includes(result.mode) || !result.fingerprint
       || !result.message || /[\0\r\n]/.test(result.message)) fail(USAGE);
   }
+  if (action === 'apply-reviewed' && (!result.source || !result.base || !result.commit
+    || !result.fingerprint || !result.destinationFingerprint)) fail(USAGE);
   return result;
 }
 
 function resolveOptions(options) {
   const cwd = path.resolve(options.cwd);
+  const source = options.source ? path.resolve(options.source) : null;
   return {
     ...options,
     cwd,
-    spec: path.resolve(cwd, options.spec),
+    source,
+    spec: path.resolve(options.action === 'apply-reviewed' ? source : cwd, options.spec),
   };
 }
 
@@ -80,6 +100,18 @@ function git(cwd, args, encoding = 'utf8') {
     const detail = Buffer.isBuffer(result.stderr)
       ? result.stderr.toString('utf8').trim()
       : String(result.stderr || '').trim();
+    fail(`git ${args[0]} failed${detail ? `: ${detail}` : ''}`);
+  }
+  return result.stdout;
+}
+
+function gitInput(cwd, args, input) {
+  const result = spawnSync('git', args, {
+    cwd, encoding: null, input, maxBuffer: 64 * 1024 * 1024, windowsHide: true,
+  });
+  if (result.error) fail(`git ${args[0]} failed: ${result.error.message}`);
+  if (result.status !== 0) {
+    const detail = String(result.stderr || '').trim();
     fail(`git ${args[0]} failed${detail ? `: ${detail}` : ''}`);
   }
   return result.stdout;
@@ -98,6 +130,37 @@ function unstagedPaths(cwd) {
   const tracked = nullPaths(git(cwd, ['diff', '--name-only', '--no-renames', '-z', '--']));
   const untracked = nullPaths(git(cwd, ['ls-files', '--others', '--exclude-standard', '-z', '--']));
   return [...new Set([...tracked, ...untracked])].sort();
+}
+
+function dirtyPaths(cwd) {
+  return [...new Set([...stagedPaths(cwd), ...unstagedPaths(cwd)])].sort();
+}
+
+function hashPart(hash, label, value) {
+  const data = Buffer.isBuffer(value) ? value : Buffer.from(String(value), 'utf8');
+  hash.update(`${label.length}:${label}:${data.length}:`);
+  hash.update(data);
+}
+
+function dirtyFingerprint(cwd) {
+  const hash = crypto.createHash('sha256');
+  hashPart(hash, 'index', git(cwd, [
+    'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', '--',
+  ], null));
+  hashPart(hash, 'worktree', git(cwd, [
+    'diff', '--binary', '--no-ext-diff', '--no-renames', '--',
+  ], null));
+  const untracked = nullPaths(git(cwd, ['ls-files', '--others', '--exclude-standard', '-z', '--']));
+  for (const filePath of untracked) {
+    const absolute = path.join(cwd, ...filePath.split('/'));
+    const stat = fs.lstatSync(absolute);
+    hashPart(hash, 'untracked-path', filePath);
+    hashPart(hash, 'untracked-mode', stat.mode);
+    hashPart(hash, 'untracked-content', stat.isSymbolicLink()
+      ? fs.readlinkSync(absolute, 'utf8')
+      : fs.readFileSync(absolute));
+  }
+  return `sha256:${hash.digest('hex')}`;
 }
 
 function diffFingerprint(cwd, commit) {
@@ -161,6 +224,23 @@ function commitPaths(cwd, commit) {
   return nullPaths(git(cwd, [
     'diff', `${commit}^`, commit, '--name-only', '--no-renames', '-z', '--',
   ]));
+}
+
+function rangePaths(cwd, base, commit) {
+  return nullPaths(git(cwd, [
+    'diff', `${base}..${commit}`, '--name-only', '--no-ext-diff', '--no-renames', '-z', '--',
+  ]));
+}
+
+function rangeFingerprint(cwd, base, commit, paths = []) {
+  const args = [
+    'diff', `${base}..${commit}`, '--binary', '--no-ext-diff', '--no-renames', '--', ...paths,
+  ];
+  const diff = git(cwd, args, null);
+  return {
+    diff,
+    fingerprint: `sha256:${crypto.createHash('sha256').update(diff).digest('hex')}`,
+  };
 }
 
 function inspectState(options) {
@@ -250,13 +330,45 @@ function gatePath(specDirectory, nodeId) {
 }
 
 function compactExecutions(executions) {
-  return executions.map((item) => ({
-    id: item.id,
-    passed: item.passed,
-    skipped: item.skipped,
-    reason: item.reason,
-    evidence: item.evidence,
-  }));
+  return executions.map((item) => {
+    const result = { id: item.id, passed: item.passed, skipped: item.skipped };
+    if (!item.passed || item.skipped) {
+      if (item.reason) result.reason = item.reason;
+      if (item.evidence) result.evidence = item.evidence;
+    }
+    return result;
+  });
+}
+
+function compactReview(evidence) {
+  return {
+    paths: evidence.paths,
+    changes: evidence.changes,
+    fingerprint: evidence.fingerprint,
+  };
+}
+
+function captureDestination(options) {
+  options = resolveOptions(options);
+  const actualRoot = path.resolve(String(git(options.cwd, ['rev-parse', '--show-toplevel'])).trim());
+  if (actualRoot.toLowerCase() !== options.cwd.toLowerCase()) fail('--cwd must be the checkout root');
+  const tree = inspectExecutionTree(options.spec);
+  if (options.node !== tree.spec_id) fail('capture requires the root Spec ID');
+  const controlPrefix = relativeControlPrefix(options.cwd, options.spec);
+  const productPaths = withoutControl(dirtyPaths(options.cwd), controlPrefix);
+  const rootOnly = tree.nodes.length === 0;
+  const scopes = leafScopes(tree.nodes);
+  const overlap = rootOnly
+    ? productPaths
+    : productPaths.filter((filePath) => inScopes(filePath, scopes));
+  return {
+    ok: overlap.length === 0,
+    action: overlap.length === 0 ? 'dispatch' : 'need_confirm',
+    head: String(git(options.cwd, ['rev-parse', 'HEAD'])).trim(),
+    destination_fingerprint: dirtyFingerprint(options.cwd),
+    dirty_paths: productPaths,
+    overlap,
+  };
 }
 
 function replaceStatus(filePath, expected, next) {
@@ -311,7 +423,14 @@ function closeBoundary(options) {
   if (options.mode === 'leaf' || options.mode === 'subslice') {
     completeBoundary(options);
     state = inspectState(options);
-    return { ok: state.ok, action: 'callback', state, gates: compactExecutions(gate.executions) };
+    return {
+      ok: state.ok,
+      action: 'callback',
+      node: state.node,
+      status: state.status,
+      gates: compactExecutions(gate.executions),
+      next: state.next,
+    };
   }
 
   const paths = state.paths.root;
@@ -319,9 +438,9 @@ function closeBoundary(options) {
   return {
     ok: true,
     action: 'review',
-    state,
+    node: state.node,
     gates: compactExecutions(gate.executions),
-    review_snapshot: snapshot(path.resolve(options.cwd), paths),
+    review_snapshot: compactReview(snapshot(path.resolve(options.cwd), paths)),
   };
 }
 
@@ -342,21 +461,133 @@ function reviewPass(options) {
   return {
     ok: state.ok,
     action: 'callback',
+    node: state.node,
     commit,
     fingerprint: reviewed.fingerprint,
     paths: reviewed.paths,
-    state,
+    gates: state.gates,
+    next: state.next,
+  };
+}
+
+function rollbackApplied(cwd, patch, expectedFingerprint) {
+  gitInput(cwd, ['apply', '--index', '--reverse', '--binary', '--whitespace=nowarn', '-'], patch);
+  const actual = dirtyFingerprint(cwd);
+  if (actual !== expectedFingerprint) {
+    fail(`reviewed patch rollback changed destination state: expected ${expectedFingerprint}, actual ${actual}`);
+  }
+}
+
+function rollbackWorking(cwd, patch, expectedFingerprint) {
+  gitInput(cwd, ['apply', '--reverse', '--binary', '--whitespace=nowarn', '-'], patch);
+  const actual = dirtyFingerprint(cwd);
+  if (actual !== expectedFingerprint) {
+    fail(`reviewed patch rollback changed destination state: expected ${expectedFingerprint}, actual ${actual}`);
+  }
+}
+
+function applyReviewed(options) {
+  options = resolveOptions(options);
+  const destinationRoot = path.resolve(String(
+    git(options.cwd, ['rev-parse', '--show-toplevel']),
+  ).trim());
+  const sourceRoot = path.resolve(String(
+    git(options.source, ['rev-parse', '--show-toplevel']),
+  ).trim());
+  if (destinationRoot.toLowerCase() !== options.cwd.toLowerCase()) {
+    fail('--cwd must be the destination checkout root');
+  }
+  if (sourceRoot.toLowerCase() !== options.source.toLowerCase()) {
+    fail('--source must be the reviewed Worktree root');
+  }
+
+  const base = String(git(options.cwd, ['rev-parse', '--verify', `${options.base}^{commit}`])).trim();
+  const destinationHead = String(git(options.cwd, ['rev-parse', 'HEAD'])).trim();
+  if (destinationHead !== base) {
+    fail(`destination HEAD changed: expected ${base}, actual ${destinationHead}`);
+  }
+  const sourceCommit = String(
+    git(options.source, ['rev-parse', '--verify', `${options.commit}^{commit}`]),
+  ).trim();
+  const sourceHead = String(git(options.source, ['rev-parse', 'HEAD'])).trim();
+  if (sourceHead !== sourceCommit) {
+    fail(`source HEAD ${sourceHead} does not match reviewed commit ${sourceCommit}`);
+  }
+  git(options.source, ['merge-base', '--is-ancestor', base, sourceCommit]);
+
+  const currentDestinationFingerprint = dirtyFingerprint(options.cwd);
+  if (currentDestinationFingerprint !== options.destinationFingerprint) {
+    fail(`destination state changed: expected ${options.destinationFingerprint}, actual ${currentDestinationFingerprint}`);
+  }
+
+  const controlPrefix = relativeControlPrefix(options.source, options.spec);
+  const paths = withoutControl(rangePaths(options.source, base, sourceCommit), controlPrefix);
+  if (paths.length === 0) fail('reviewed range has no product paths');
+  const tree = inspectExecutionTree(options.spec);
+  if (options.node !== tree.spec_id) fail('apply-reviewed requires the root Spec ID');
+  if (tree.nodes.length > 0) {
+    const scopes = leafScopes(tree.nodes);
+    const outside = paths.filter((filePath) => !inScopes(filePath, scopes));
+    if (outside.length > 0) fail(`reviewed paths outside root scope: ${outside.join(', ')}`);
+  }
+  const sourceRange = rangeFingerprint(options.source, base, sourceCommit, paths);
+  if (sourceRange.fingerprint !== options.fingerprint) {
+    fail(`reviewed range fingerprint changed: expected ${options.fingerprint}, actual ${sourceRange.fingerprint}`);
+  }
+
+  const overlap = dirtyPaths(options.cwd).filter((filePath) => paths.includes(filePath));
+  if (overlap.length > 0) fail(`destination overlaps reviewed paths: ${overlap.join(', ')}`);
+
+  let phase = 'baseline';
+  try {
+    gitInput(options.cwd, ['apply', '--check', '--index', '--binary', '--whitespace=nowarn', '-'], sourceRange.diff);
+    gitInput(options.cwd, ['apply', '--index', '--binary', '--whitespace=nowarn', '-'], sourceRange.diff);
+    phase = 'staged';
+    const destinationDiff = git(options.cwd, [
+      'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', '--', ...paths,
+    ], null);
+    const appliedFingerprint = `sha256:${crypto.createHash('sha256').update(destinationDiff).digest('hex')}`;
+    if (appliedFingerprint !== options.fingerprint) {
+      fail(`applied fingerprint differs: expected ${options.fingerprint}, actual ${appliedFingerprint}`);
+    }
+    git(options.cwd, ['diff', '--cached', '--check', '--', ...paths]);
+    git(options.cwd, ['restore', '--staged', '--', ...paths]);
+    phase = 'worktree';
+    const appliedPaths = dirtyPaths(options.cwd).filter((filePath) => paths.includes(filePath));
+    if (appliedPaths.length !== paths.length) {
+      fail(`applied paths differ: expected [${paths.join(', ')}], actual [${appliedPaths.join(', ')}]`);
+    }
+  } catch (error) {
+    if (phase === 'staged') {
+      rollbackApplied(options.cwd, sourceRange.diff, options.destinationFingerprint);
+    } else if (phase === 'worktree') {
+      rollbackWorking(options.cwd, sourceRange.diff, options.destinationFingerprint);
+    }
+    throw error;
+  }
+  return {
+    ok: true,
+    action: 'complete',
+    head: destinationHead,
+    commit: sourceCommit,
+    fingerprint: options.fingerprint,
+    paths,
+    destination_fingerprint: dirtyFingerprint(options.cwd),
   };
 }
 
 function main(argv = process.argv.slice(2)) {
   try {
     const options = resolveOptions(parseArgs(argv));
-    const output = options.action === 'close'
-      ? closeBoundary(options)
-      : options.action === 'review-pass'
-        ? reviewPass(options)
-        : inspectState(options);
+    const output = options.action === 'capture'
+      ? captureDestination(options)
+      : options.action === 'close'
+        ? closeBoundary(options)
+        : options.action === 'review-pass'
+          ? reviewPass(options)
+          : options.action === 'apply-reviewed'
+            ? applyReviewed(options)
+            : inspectState(options);
     process.stdout.write(`${JSON.stringify(output)}\n`);
     return output.ok ? 0 : 1;
   } catch (error) {
@@ -371,6 +602,8 @@ function main(argv = process.argv.slice(2)) {
 if (require.main === module) process.exitCode = main();
 
 module.exports = {
+  applyReviewed,
+  captureDestination,
   CoordinatorStateError,
   closeBoundary,
   inspectState,
