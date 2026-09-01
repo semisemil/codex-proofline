@@ -158,13 +158,21 @@ function isExistingLockContention(error, lockPath) {
   return new Set(['EACCES', 'EBUSY', 'EPERM']).has(error.code) && fs.existsSync(lockPath);
 }
 
+function isRecoveryClaimContention(error, recoveryPath, options) {
+  if (isExistingLockContention(error, recoveryPath)) {
+    return true;
+  }
+  const platform = options.platform || process.platform;
+  return platform === 'win32' && error.code === 'EPERM';
+}
+
 function tryRecoverRegistryLock(lockPath, options) {
   const recoveryPath = `${lockPath}.recovery`;
   let recoveryDescriptor;
   try {
     recoveryDescriptor = fs.openSync(recoveryPath, 'wx');
   } catch (error) {
-    if (isExistingLockContention(error, recoveryPath)) {
+    if (isRecoveryClaimContention(error, recoveryPath, options)) {
       return false;
     }
     throw new RegistryError(

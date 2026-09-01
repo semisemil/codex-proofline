@@ -208,6 +208,47 @@ test('an abandoned registry lock is recovered before registration', (t) => {
   assert.equal(fs.existsSync(`${lockPath}.recovery`), false);
 });
 
+test('Windows recovery-claim EPERM is retried as lock contention', (t) => {
+  const root = makeRoot(t);
+  const configRoot = path.join(root, 'config');
+  const projectRoot = path.join(root, 'project');
+  const env = { ...configEnv(configRoot), APPDATA: configRoot };
+  const options = registryOptions(configRoot, {
+    env,
+    platform: 'win32',
+    lockRetryMs: 0,
+  });
+  const registryPath = getRegistryPath(options);
+  const lockPath = `${registryPath}.lock`;
+  const recoveryPath = `${lockPath}.recovery`;
+  fs.mkdirSync(projectRoot, { recursive: true });
+  fs.mkdirSync(path.dirname(registryPath), { recursive: true });
+  fs.writeFileSync(lockPath, JSON.stringify({
+    schema_version: 1,
+    token: '99999999-9999-4999-8999-999999999999',
+    owner_pid: 2147483647,
+    started_at: new Date().toISOString(),
+  }), 'utf8');
+
+  const originalOpen = fs.openSync;
+  let denied = true;
+  fs.openSync = function denyFirstRecoveryClaim(filePath, flags, ...args) {
+    if (denied && filePath === recoveryPath && flags === 'wx') {
+      denied = false;
+      const error = new Error('recovery claim is temporarily locked');
+      error.code = 'EPERM';
+      throw error;
+    }
+    return originalOpen.call(this, filePath, flags, ...args);
+  };
+  t.after(() => { fs.openSync = originalOpen; });
+
+  assert.equal(registerProject(projectRoot, options).status, 'registered');
+  assert.equal(denied, false);
+  assert.equal(fs.existsSync(lockPath), false);
+  assert.equal(fs.existsSync(recoveryPath), false);
+});
+
 test('missing roots are rejected without creating global state', (t) => {
   const root = makeRoot(t);
   const configRoot = path.join(root, 'config');
