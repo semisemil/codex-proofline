@@ -10,12 +10,14 @@ const loaderPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-loader-'));
+  const configRoot = path.join(root, 'config');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return {
     root,
     env: {
       ...process.env,
-      APPDATA: path.join(root, 'appdata'),
+      APPDATA: configRoot,
+      XDG_CONFIG_HOME: configRoot,
       PLUGIN_DATA: path.join(root, 'plugin-data'),
       HOME: path.join(root, 'home'),
       USERPROFILE: path.join(root, 'home'),

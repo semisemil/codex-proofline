@@ -17,15 +17,17 @@ const {
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-state-'));
+  const configRoot = path.join(root, 'config');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return {
     root,
     options: {
       env: {
-        APPDATA: path.join(root, 'appdata'),
+        APPDATA: configRoot,
+        XDG_CONFIG_HOME: configRoot,
         PLUGIN_DATA: path.join(root, 'plugin-data'),
       },
-      platform: 'win32',
+      platform: process.platform,
       homeDir: path.join(root, 'home'),
       hook: 'test',
       event: 'test',
@@ -51,7 +53,7 @@ test('default mode paths follow Windows and POSIX configuration roots', () => {
 test('safe session IDs stay readable and unsafe IDs use reversible collision-free encoding', (t) => {
   const { options } = fixture(t);
   assert.equal(encodeSessionId('thread-1.alpha', 'win32'), 'thread-1.alpha');
-  assert.equal(path.win32.basename(getSessionPath('thread-1.alpha', options)), 'thread-1.alpha.json');
+  assert.equal(path.basename(getSessionPath('thread-1.alpha', options)), 'thread-1.alpha.json');
 
   const unsafe = 'thread/%:한글';
   const encoded = encodeSessionId(unsafe, 'win32');
@@ -83,7 +85,7 @@ test('empty and oversized session IDs never create state paths', (t) => {
   assert.equal(getSessionPath('', options), null);
   assert.equal(
     getSessionPath('a'.repeat(175), options),
-    path.win32.join(options.env.PLUGIN_DATA, 'proofline-mode', `${'a'.repeat(175)}.json`),
+    path.join(options.env.PLUGIN_DATA, 'proofline-mode', `${'a'.repeat(175)}.json`),
   );
   assert.equal(getSessionPath('a'.repeat(176), options), null);
 });
@@ -142,7 +144,11 @@ test('missing, corrupt, unreadable, and unsupported state safely falls back and 
   };
   const unreadableOptions = {
     ...options,
-    env: { ...options.env, APPDATA: path.join(root, 'unreadable') },
+    env: {
+      ...options.env,
+      APPDATA: path.join(root, 'unreadable'),
+      XDG_CONFIG_HOME: path.join(root, 'unreadable'),
+    },
     fsModule,
   };
   assert.equal(readDefaultMode(unreadableOptions), 'normal');

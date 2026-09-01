@@ -11,12 +11,14 @@ const loaderPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-mode-'));
+  const configRoot = path.join(root, 'config');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return {
     root,
     env: {
       ...process.env,
-      APPDATA: path.join(root, 'appdata'),
+      APPDATA: configRoot,
+      XDG_CONFIG_HOME: configRoot,
       PLUGIN_DATA: path.join(root, 'plugin-data'),
       HOME: path.join(root, 'home'),
       USERPROFILE: path.join(root, 'home'),
@@ -168,7 +170,7 @@ test('default write failure changes neither mode', (t) => {
   output(runHook(env, '$proofline focus'));
   const blockedAppData = path.join(root, 'blocked-appdata');
   fs.writeFileSync(blockedAppData, 'file', 'utf8');
-  const failedEnv = { ...env, APPDATA: blockedAppData };
+  const failedEnv = { ...env, APPDATA: blockedAppData, XDG_CONFIG_HOME: blockedAppData };
   const response = output(runHook(failedEnv, '$proofline default caveman'));
   assert.match(response.systemMessage, /기본 모드 저장 실패/);
   assert.equal(response.hookSpecificOutput, undefined);

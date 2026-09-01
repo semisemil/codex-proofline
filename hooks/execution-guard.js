@@ -153,7 +153,7 @@ function isCompletionCommand(command) {
     if (executable === 'go' && /^(?:test|vet)$/i.test(words[1])) return true;
     if (/^(?:tsc|playwright|cypress)$/i.test(executable)) return true;
     if (executable === 'node') {
-      const script = path.basename(words[1] || '');
+      const script = String(words[1] || '').split(/[\\/]/).pop();
       if (/(?:check|verify|test|e2e|benchmark|audit).*\.m?js$/i.test(script)) return true;
     }
   }
