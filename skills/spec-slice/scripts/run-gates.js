@@ -2,9 +2,11 @@
 'use strict';
 
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const { gitEnvironment, spawnGit } = require('../../../lib/git-policy.js');
 
 const DEFAULT_TIMEOUT_MS = 120000;
 const EVIDENCE_LIMIT = 240;
@@ -383,17 +385,15 @@ function makeEvidence(decision, output) {
 }
 
 function gitOutput(cwd, args, encoding = null) {
-  const result = spawnSync('git', args, { cwd, encoding, windowsHide: true });
+  const result = spawnGit(cwd, args, { encoding });
   if (result.error || result.status !== 0) return null;
   return result.stdout;
 }
 
 function workspaceFingerprint(cwd) {
-  const head = gitOutput(cwd, ['rev-parse', 'HEAD'], 'utf8');
-  if (head === null) return null;
   const pathspec = ['--', '.', ':(exclude).proofline/**'];
-  const staged = gitOutput(cwd, [
-    'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', ...pathspec,
+  const index = gitOutput(cwd, [
+    'ls-files', '--stage', '-z', ...pathspec,
   ]);
   const unstaged = gitOutput(cwd, [
     'diff', '--binary', '--no-ext-diff', '--no-renames', ...pathspec,
@@ -401,12 +401,10 @@ function workspaceFingerprint(cwd) {
   const untracked = gitOutput(cwd, [
     'ls-files', '--others', '--exclude-standard', '-z', ...pathspec,
   ]);
-  if (staged === null || unstaged === null || untracked === null) return null;
+  if (index === null || unstaged === null || untracked === null) return null;
 
   const hash = crypto.createHash('sha256');
-  hash.update(head.trim());
-  hash.update('\0');
-  hash.update(staged);
+  hash.update(index);
   hash.update('\0');
   hash.update(unstaged);
   for (const relative of untracked.toString('utf8').split('\0').filter(Boolean).sort()) {
@@ -469,6 +467,7 @@ function executeGate(gate, options) {
         timeout: options.timeout,
         encoding: 'utf8',
         windowsHide: true,
+        env: gitEnvironment([options.cwd]),
       })
       : spawnSync(gate.check, {
       shell: true,
@@ -476,6 +475,7 @@ function executeGate(gate, options) {
       timeout: options.timeout,
       encoding: 'utf8',
       windowsHide: true,
+      env: gitEnvironment([options.cwd]),
       });
   } catch (error) {
     thrown = error;
@@ -537,6 +537,82 @@ function writeGateDocuments(documents) {
   }
 }
 
+function gateDefinitionFingerprint(documents) {
+  const value = documents.map((document) => ({
+    filePath: path.resolve(document.filePath),
+    scope: document.scope,
+    scopeLine: document.scopeLine,
+    gates: document.gates.map((gate) => ({
+      id: gate.id,
+      outcome: gate.outcome,
+      check: gate.check,
+      expect: gate.expect,
+      requires: gate.requires,
+    })),
+  }));
+  return `sha256:${crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+}
+
+function pendingResultPath(cwd, filePaths) {
+  const key = JSON.stringify([
+    path.resolve(cwd),
+    ...filePaths.map((filePath) => path.resolve(filePath)).sort(),
+  ]);
+  const root = path.join(
+    process.env.PLUGIN_DATA || path.join(os.tmpdir(), 'proofline-plugin-data'),
+    'pending-gate-results',
+  );
+  return path.join(root, `${crypto.createHash('sha256').update(key).digest('hex')}.json`);
+}
+
+function writePendingResult(target, value) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const temporary = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(value), { encoding: 'utf8', mode: 0o600 });
+  fs.renameSync(temporary, target);
+}
+
+function compactPendingExecutions(executions) {
+  return executions.map(({ output, ...execution }) => execution);
+}
+
+function resumePendingResult(target, cwd, documents, requiredSnapshot) {
+  let pending;
+  try {
+    pending = JSON.parse(fs.readFileSync(target, 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return null;
+    throw new GateUsageError(`cannot read pending Gate result: ${error.message}`);
+  }
+  if (!pending || pending.version !== 2
+    || pending.definition_fingerprint !== gateDefinitionFingerprint(documents)
+    || JSON.stringify(pending.required_snapshot) !== JSON.stringify(requiredSnapshot)
+    || !Array.isArray(pending.rendered) || !Array.isArray(pending.executions)) {
+    throw new GateUsageError('pending Gate result does not match the frozen Gate definitions');
+  }
+  const current = workspaceFingerprint(cwd);
+  if (current !== pending.workspace_fingerprint) {
+    fs.rmSync(target, { force: true });
+    return null;
+  }
+  if (pending.rendered.length !== documents.length) {
+    throw new GateUsageError('pending Gate result has an invalid document count');
+  }
+  const resumed = pending.rendered.map((content, index) => {
+    if (typeof content !== 'string') throw new GateUsageError('pending Gate result is malformed');
+    const document = parseGateDocument(content, documents[index].filePath);
+    document.originalContent = documents[index].originalContent;
+    return document;
+  });
+  writeGateDocuments(resumed);
+  fs.rmSync(target, { force: true });
+  return {
+    documents: resumed,
+    executions: pending.executions.map((execution) => ({ ...execution, resumed: true })),
+    status: summarizeGateStatus(resumed),
+  };
+}
+
 function ensureDirectory(directory) {
   const resolved = path.resolve(directory);
   let stat;
@@ -551,9 +627,25 @@ function ensureDirectory(directory) {
   return resolved;
 }
 
-function evaluateGate(cwd, gate, timeout) {
+function normalizeRequiredSnapshot(value) {
+  if (value === undefined) return null;
+  try {
+    return parseRequiredPaths(JSON.stringify(value), 'required product snapshot');
+  } catch (error) {
+    throw new GateUsageError(error.message);
+  }
+}
+
+function evaluateGate(cwd, gate, timeout, requiredSnapshot = null) {
   const before = workspaceFingerprint(cwd);
-  if (before !== null && gate.checked && evidenceFingerprint(gate.evidence) === before) {
+  const available = gate.requires.length > 0
+    ? (requiredSnapshot === null ? stagedProductPaths(cwd) : requiredSnapshot)
+    : [];
+  const missing = available === null
+    ? gate.requires
+    : gate.requires.filter((required) => !available.includes(required));
+  if (missing.length === 0 && before !== null && gate.checked
+    && evidenceFingerprint(gate.evidence) === before) {
     return {
       passed: true,
       skipped: true,
@@ -562,10 +654,6 @@ function evaluateGate(cwd, gate, timeout) {
       evidence: gate.evidence,
     };
   }
-  const staged = gate.requires.length > 0 ? stagedProductPaths(cwd) : [];
-  const missing = staged === null
-    ? gate.requires
-    : gate.requires.filter((required) => !staged.includes(required));
   let result = missing.length > 0
     ? {
       passed: false,
@@ -573,9 +661,9 @@ function evaluateGate(cwd, gate, timeout) {
       status: null,
       signal: null,
       output: '',
-      evidence: staged === null
+      evidence: available === null
         ? 'fail: REQUIRES needs a Git worktree'
-        : `fail: required staged paths missing: ${missing.join(', ')}`,
+        : `fail: required ${requiredSnapshot === null ? 'staged' : 'review-range'} paths missing: ${missing.join(', ')}`,
     }
     : executeGate(gate, { cwd, timeout });
   const after = workspaceFingerprint(cwd);
@@ -597,7 +685,11 @@ function runGateFiles(filePaths, options) {
     throw new GateUsageError('--timeout must be a positive integer in milliseconds');
   }
 
+  const requiredSnapshot = normalizeRequiredSnapshot(options.requiredPaths);
   const documents = loadGateFiles(filePaths);
+  const pendingPath = pendingResultPath(cwd, filePaths);
+  const resumed = resumePendingResult(pendingPath, cwd, documents, requiredSnapshot);
+  if (resumed) return resumed;
   const executions = [];
 
   for (const document of documents) {
@@ -606,7 +698,7 @@ function runGateFiles(filePaths, options) {
         executions.push({ filePath: document.filePath, id: gate.id, skipped: true });
         continue;
       }
-      const result = evaluateGate(cwd, gate, timeout);
+      const result = evaluateGate(cwd, gate, timeout, requiredSnapshot);
       if (result.skipped) {
         executions.push({ filePath: document.filePath, id: gate.id, ...result });
         continue;
@@ -616,7 +708,23 @@ function runGateFiles(filePaths, options) {
     }
   }
 
-  writeGateDocuments(documents);
+  try {
+    writeGateDocuments(documents);
+  } catch (error) {
+    try {
+      writePendingResult(pendingPath, {
+        version: 2,
+        definition_fingerprint: gateDefinitionFingerprint(documents),
+        required_snapshot: requiredSnapshot,
+        workspace_fingerprint: workspaceFingerprint(cwd),
+        rendered: documents.map(renderGateDocument),
+        executions: compactPendingExecutions(executions),
+      });
+    } catch (journalError) {
+      throw new GateParseError(`${error.message}; cannot preserve Gate result: ${journalError.message}`);
+    }
+    throw new GateParseError(`${error.message}; result preserved for the unchanged workspace snapshot`);
+  }
 
   return { documents, executions, status: summarizeGateStatus(documents) };
 }
@@ -784,6 +892,7 @@ module.exports = {
   parseExpectation,
   parseGateDocument,
   parseGateFile,
+  pendingResultPath,
   renderGateDocument,
   runFeedback,
   runGateFiles,

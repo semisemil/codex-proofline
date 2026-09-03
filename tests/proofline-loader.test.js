@@ -25,14 +25,23 @@ function fixture(t) {
   };
 }
 
-function runLoader(env, sessionId, source, script = loaderPath) {
+function runLoader(
+  env,
+  sessionId,
+  source,
+  script = loaderPath,
+  hookEventName = 'SessionStart',
+) {
   return spawnSync(process.execPath, [script], {
     encoding: 'utf8',
     env,
     input: JSON.stringify({
-      hook_event_name: 'SessionStart',
+      hook_event_name: hookEventName,
       session_id: sessionId,
       source,
+      ...(hookEventName === 'SubagentStart'
+        ? { agent_id: 'agent-a', agent_type: 'explorer' }
+        : {}),
     }),
   });
 }
@@ -114,6 +123,18 @@ test('resume produces no injection and creates no session state', (t) => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(Buffer.byteLength(result.stdout), 0);
   assert.equal(fs.existsSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json')), false);
+});
+
+test('SubagentStart receives the parent session Proofline mode', (t) => {
+  const { env } = fixture(t);
+  const statePath = path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json');
+  writeJson(statePath, { mode: 'focus' });
+
+  const result = runLoader(env, 'session-a', undefined, loaderPath, 'SubagentStart');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /# Proofline/);
+  assertModeAtResponseSlot(result.stdout, /Use line breaks with noun phrases/);
+  assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf8')), { mode: 'focus' });
 });
 
 test('a missing selected mode fails and records the exact component path', (t) => {

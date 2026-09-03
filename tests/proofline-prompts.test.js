@@ -66,11 +66,16 @@ test('hook registration keeps lifecycle boundaries and removes legacy owners', (
   const loader = hooks.SessionStart.find((entry) => entry.hooks.some((hook) => (
     hook.command.includes('load-proofline.js')
   )));
+  const subagentLoader = hooks.SubagentStart.find((entry) => entry.hooks.some((hook) => (
+    hook.command.includes('load-proofline.js')
+  )));
   const modeHook = hooks.UserPromptSubmit[0].hooks[0];
   const numberHook = hooks.UserPromptSubmit[0].hooks[1];
 
   assert.equal(loader.matcher, 'startup|clear|compact');
   assert.doesNotMatch(loader.matcher, /resume/);
+  assert.ok(subagentLoader);
+  assert.equal(subagentLoader.matcher, undefined);
   assert.match(modeHook.command, /proofline-mode\.js/);
   assert.match(numberHook.command, /next-document-number\.js/);
   assert.equal(hooks.SessionEnd, undefined);

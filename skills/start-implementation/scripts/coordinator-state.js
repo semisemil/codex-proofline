@@ -4,13 +4,30 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
 const {
   ExecutionTreeError,
   inspectExecutionTree,
 } = require('../../spec-slice/scripts/inspect-execution-tree.js');
-const { runGateFiles } = require('../../spec-slice/scripts/run-gates.js');
-const { snapshot, verify } = require('./prepare-review.js');
+const {
+  GateParseError,
+  GateUsageError,
+  runGateFiles,
+} = require('../../spec-slice/scripts/run-gates.js');
+const {
+  PrepareReviewError,
+  snapshot,
+  snapshotRange,
+  verify,
+  verifyRange,
+} = require('./prepare-review.js');
+const { diffCheckArgs, gitCommandName, spawnGit } = require('../../../lib/git-policy.js');
+const {
+  commitControlMerge,
+  ControlStateError,
+  controlManifest,
+  planControlMerge,
+  specRelativePath,
+} = require('./control-state.js');
 
 const USAGE = [
   'Usage:',
@@ -21,9 +38,14 @@ const USAGE = [
   '    --mode <leaf|subslice|root-slice|root-only>',
   '  coordinator-state.js review-pass --cwd <worktree> --spec <spec-directory> --node <id>',
   '    --mode <root-slice|root-only> --fingerprint <sha256:...> --message <text>',
+  '  coordinator-state.js finalize --cwd <worktree> --spec <spec-directory> --node <spec-id>',
+  '    --mode <single-root|multi-root> --base <commit> [--fingerprint <sha256:...>]',
+  '  coordinator-state.js finalize-review-pass --cwd <worktree> --spec <spec-directory>',
+  '    --node <spec-id> --base <commit> --commit <commit> --fingerprint <sha256:...>',
   '  coordinator-state.js apply-reviewed --cwd <checkout> --source <worktree>',
   '    --spec <source-spec-directory> --node <id> --base <commit> --commit <commit>',
-  '    --fingerprint <sha256:...> --destination-fingerprint <sha256:...>',
+  '    [--fingerprint <sha256:...>] --destination-fingerprint <sha256:...>',
+  '    --control-fingerprint <sha256:...>',
 ].join('\n');
 
 class CoordinatorStateError extends Error {}
@@ -35,12 +57,16 @@ function fail(message) {
 function parseArgs(argv) {
   const values = [...argv];
   const action = values[0] && !values[0].startsWith('--') ? values.shift() : 'inspect';
-  if (!['capture', 'inspect', 'close', 'review-pass', 'apply-reviewed'].includes(action)) {
+  if (![
+    'capture', 'inspect', 'close', 'review-pass', 'finalize', 'finalize-review-pass',
+    'apply-reviewed',
+  ].includes(action)) {
     fail(USAGE);
   }
   const result = {
     action, cwd: null, spec: null, node: null, fingerprint: null, commit: null,
     mode: null, message: null, source: null, base: null, destinationFingerprint: null,
+    controlFingerprint: null,
   };
   for (let index = 0; index < values.length; index += 2) {
     const name = values[index];
@@ -58,6 +84,9 @@ function parseArgs(argv) {
     else if (name === '--destination-fingerprint' && result.destinationFingerprint === null) {
       result.destinationFingerprint = value;
     }
+    else if (name === '--control-fingerprint' && result.controlFingerprint === null) {
+      result.controlFingerprint = value;
+    }
     else fail(USAGE);
   }
   if (!result.cwd || !result.spec || !result.node) fail(USAGE);
@@ -70,6 +99,9 @@ function parseArgs(argv) {
     && !/^sha256:[0-9a-f]{64}$/.test(result.destinationFingerprint)) {
     fail('invalid --destination-fingerprint');
   }
+  if (result.controlFingerprint && !/^sha256:[0-9a-f]{64}$/.test(result.controlFingerprint)) {
+    fail('invalid --control-fingerprint');
+  }
   if (action === 'close' && !['leaf', 'subslice', 'root-slice', 'root-only'].includes(result.mode)) {
     fail(USAGE);
   }
@@ -77,8 +109,14 @@ function parseArgs(argv) {
     if (!['root-slice', 'root-only'].includes(result.mode) || !result.fingerprint
       || !result.message || /[\0\r\n]/.test(result.message)) fail(USAGE);
   }
+  if (action === 'finalize') {
+    if (!['single-root', 'multi-root'].includes(result.mode) || !result.base
+      || (result.mode === 'single-root' && !result.fingerprint)) fail(USAGE);
+  }
+  if (action === 'finalize-review-pass'
+    && (!result.base || !result.commit || !result.fingerprint)) fail(USAGE);
   if (action === 'apply-reviewed' && (!result.source || !result.base || !result.commit
-    || !result.fingerprint || !result.destinationFingerprint)) fail(USAGE);
+    || !result.destinationFingerprint || !result.controlFingerprint)) fail(USAGE);
   return result;
 }
 
@@ -94,20 +132,25 @@ function resolveOptions(options) {
 }
 
 function git(cwd, args, encoding = 'utf8') {
-  const result = spawnSync('git', args, { cwd, encoding, windowsHide: true });
-  if (result.error) fail(`git ${args[0]} failed: ${result.error.message}`);
+  const result = spawnGit(cwd, args, { encoding });
+  const command = gitCommandName(args);
+  if (result.error) fail(`git ${command} failed: ${result.error.message}`);
   if (result.status !== 0) {
-    const detail = Buffer.isBuffer(result.stderr)
+    const stderr = Buffer.isBuffer(result.stderr)
       ? result.stderr.toString('utf8').trim()
       : String(result.stderr || '').trim();
-    fail(`git ${args[0]} failed${detail ? `: ${detail}` : ''}`);
+    const stdout = Buffer.isBuffer(result.stdout)
+      ? result.stdout.toString('utf8').trim()
+      : String(result.stdout || '').trim();
+    const detail = stderr || stdout;
+    fail(`git ${command} failed${detail ? `: ${detail}` : ''}`);
   }
   return result.stdout;
 }
 
 function gitInput(cwd, args, input) {
-  const result = spawnSync('git', args, {
-    cwd, encoding: null, input, maxBuffer: 64 * 1024 * 1024, windowsHide: true,
+  const result = spawnGit(cwd, args, {
+    encoding: null, input, maxBuffer: 64 * 1024 * 1024,
   });
   if (result.error) fail(`git ${args[0]} failed: ${result.error.message}`);
   if (result.status !== 0) {
@@ -142,15 +185,26 @@ function hashPart(hash, label, value) {
   hash.update(data);
 }
 
-function dirtyFingerprint(cwd) {
+function fingerprintPathspec(excludedPrefixes = []) {
+  if (excludedPrefixes.length === 0) return ['--'];
+  return [
+    '--', '.',
+    ...excludedPrefixes.map((prefix) => `:(exclude)${prefix.replace(/\/$/, '')}/**`),
+  ];
+}
+
+function dirtyFingerprint(cwd, excludedPrefixes = []) {
+  const pathspec = fingerprintPathspec(excludedPrefixes);
   const hash = crypto.createHash('sha256');
   hashPart(hash, 'index', git(cwd, [
-    'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', '--',
+    'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', ...pathspec,
   ], null));
   hashPart(hash, 'worktree', git(cwd, [
-    'diff', '--binary', '--no-ext-diff', '--no-renames', '--',
+    'diff', '--binary', '--no-ext-diff', '--no-renames', ...pathspec,
   ], null));
-  const untracked = nullPaths(git(cwd, ['ls-files', '--others', '--exclude-standard', '-z', '--']));
+  const untracked = nullPaths(git(cwd, [
+    'ls-files', '--others', '--exclude-standard', '-z', ...pathspec,
+  ]));
   for (const filePath of untracked) {
     const absolute = path.join(cwd, ...filePath.split('/'));
     const stat = fs.lstatSync(absolute);
@@ -291,7 +345,7 @@ function inspectState(options) {
     const resolved = String(git(cwd, ['rev-parse', options.commit])).trim();
     if (actualCommit !== resolved) fail(`HEAD ${actualCommit} does not match callback commit ${resolved}`);
   } else {
-    git(cwd, ['diff', '--cached', '--check', '--']);
+    git(cwd, diffCheckArgs(['--cached', '--check', '--']));
   }
 
   const actualFingerprint = diffFingerprint(cwd, options.commit);
@@ -354,6 +408,8 @@ function captureDestination(options) {
   if (actualRoot.toLowerCase() !== options.cwd.toLowerCase()) fail('--cwd must be the checkout root');
   const tree = inspectExecutionTree(options.spec);
   if (options.node !== tree.spec_id) fail('capture requires the root Spec ID');
+  const specRelative = specRelativePath(options.cwd, options.spec);
+  const control = controlManifest(options.spec);
   const controlPrefix = relativeControlPrefix(options.cwd, options.spec);
   const productPaths = withoutControl(dirtyPaths(options.cwd), controlPrefix);
   const rootOnly = tree.nodes.length === 0;
@@ -365,7 +421,9 @@ function captureDestination(options) {
     ok: overlap.length === 0,
     action: overlap.length === 0 ? 'dispatch' : 'need_confirm',
     head: String(git(options.cwd, ['rev-parse', 'HEAD'])).trim(),
-    destination_fingerprint: dirtyFingerprint(options.cwd),
+    destination_fingerprint: dirtyFingerprint(options.cwd, [controlPrefix]),
+    control_fingerprint: control.full_fingerprint,
+    spec: specRelative,
     dirty_paths: productPaths,
     overlap,
   };
@@ -408,7 +466,19 @@ function closeBoundary(options) {
     return { ok: false, action: 'repair', state: before, errors: blocking };
   }
 
-  const gate = runGateFiles([gatePath(options.spec, options.node)], { cwd: options.cwd });
+  let gate;
+  try {
+    gate = runGateFiles([gatePath(options.spec, options.node)], { cwd: options.cwd });
+  } catch (error) {
+    if (error instanceof GateParseError || error instanceof GateUsageError) {
+      return {
+        ok: false,
+        action: 'environment_blocked',
+        error: error.message,
+      };
+    }
+    throw error;
+  }
   let state = inspectState(options);
   if (!gate.status.allMet || state.errors.length > 0) {
     return {
@@ -463,24 +533,218 @@ function reviewPass(options) {
     action: 'callback',
     node: state.node,
     commit,
-    fingerprint: reviewed.fingerprint,
     paths: reviewed.paths,
     gates: state.gates,
     next: state.next,
   };
 }
 
-function rollbackApplied(cwd, patch, expectedFingerprint) {
+function finalizationContext(options) {
+  const cwd = path.resolve(options.cwd);
+  const actualRoot = path.resolve(String(git(cwd, ['rev-parse', '--show-toplevel'])).trim());
+  if (actualRoot.toLowerCase() !== cwd.toLowerCase()) fail('--cwd must be the Worktree root');
+  const tree = inspectExecutionTree(options.spec);
+  if (options.node !== tree.spec_id) fail('finalization requires the root Spec ID');
+  if (tree.nodes.length === 0) fail('root-only Specs complete through review-pass');
+  const directRoots = tree.nodes.filter((node) => node.parent_id === tree.spec_id);
+  if (options.action === 'finalize') {
+    if (options.mode === 'single-root' && directRoots.length !== 1) {
+      fail(`single-root finalization requires exactly one direct Root Slice, found ${directRoots.length}`);
+    }
+    if (options.mode === 'multi-root' && directRoots.length < 2) {
+      fail(`multi-root finalization requires at least two direct Root Slices, found ${directRoots.length}`);
+    }
+  } else if (directRoots.length < 2) {
+    fail(`finalize-review-pass requires at least two direct Root Slices, found ${directRoots.length}`);
+  }
+  if (!['ready', 'completed'].includes(tree.spec_status)) {
+    fail(`${tree.spec_id} status is ${tree.spec_status}, expected ready or completed`);
+  }
+  const controlPrefix = relativeControlPrefix(cwd, options.spec);
+  return {
+    cwd,
+    tree,
+    directRoots,
+    controlPrefix,
+    productDirty: withoutControl(dirtyPaths(cwd), controlPrefix),
+  };
+}
+
+function incompleteExecution(tree) {
+  return tree.nodes
+    .filter((node) => node.status !== 'completed' || !node.gates_all_met)
+    .map((node) => node.id);
+}
+
+function finalRange(context, base, expectedCommit = null) {
+  const resolvedBase = String(
+    git(context.cwd, ['rev-parse', '--verify', `${base}^{commit}`]),
+  ).trim();
+  git(context.cwd, ['merge-base', '--is-ancestor', resolvedBase, 'HEAD']);
+  const head = String(git(context.cwd, ['rev-parse', 'HEAD'])).trim();
+  if (expectedCommit) {
+    const resolvedCommit = String(
+      git(context.cwd, ['rev-parse', '--verify', `${expectedCommit}^{commit}`]),
+    ).trim();
+    if (head !== resolvedCommit) {
+      fail(`Worktree HEAD changed: expected ${resolvedCommit}, actual ${head}`);
+    }
+  }
+  const evidence = snapshotRange(context.cwd, resolvedBase);
+  const scopes = leafScopes(context.tree.nodes);
+  const outside = evidence.paths.filter((filePath) => !inScopes(filePath, scopes));
+  return { evidence, outside };
+}
+
+function markSpecCompleted(options) {
+  const tree = inspectExecutionTree(options.spec);
+  if (tree.spec_status === 'completed') return;
+  const restore = replaceStatus(path.join(options.spec, 'SPEC.md'), 'ready', 'completed');
+  try {
+    inspectExecutionTree(options.spec);
+  } catch (error) {
+    restore();
+    throw error;
+  }
+}
+
+function finalizeSpec(options) {
+  options = resolveOptions(options);
+  let context = finalizationContext(options);
+  const incomplete = incompleteExecution(context.tree);
+  if (incomplete.length > 0 || context.productDirty.length > 0) {
+    const errors = [];
+    if (incomplete.length > 0) errors.push('node-incomplete');
+    if (context.productDirty.length > 0) errors.push('product-state-dirty');
+    return {
+      ok: false,
+      action: 'repair',
+      errors,
+      nodes: incomplete,
+      paths: context.productDirty,
+    };
+  }
+
+  const range = finalRange(context, options.base);
+  if (range.outside.length > 0) {
+    return {
+      ok: false,
+      action: 'repair',
+      errors: ['range-outside-spec-scope'],
+      paths: range.outside,
+    };
+  }
+  if (options.mode === 'single-root'
+    && range.evidence.fingerprint !== options.fingerprint) {
+    return {
+      ok: false,
+      action: 'review_required',
+      errors: ['root-review-range-mismatch'],
+    };
+  }
+
+  let gate = { executions: [] };
+  if (!context.tree.root_gate_all_met) {
+    try {
+      gate = runGateFiles([gatePath(options.spec, context.tree.spec_id)], {
+        cwd: context.cwd,
+        requiredPaths: range.evidence.paths,
+      });
+    } catch (error) {
+      if (error instanceof GateParseError || error instanceof GateUsageError) {
+        return { ok: false, action: 'environment_blocked', error: error.message };
+      }
+      throw error;
+    }
+  }
+  context = finalizationContext(options);
+  const afterGateIncomplete = incompleteExecution(context.tree);
+  if (!context.tree.root_gate_all_met || afterGateIncomplete.length > 0
+    || context.productDirty.length > 0) {
+    return {
+      ok: false,
+      action: 'repair',
+      errors: [
+        ...(!context.tree.root_gate_all_met ? ['root-gate-unmet'] : []),
+        ...(afterGateIncomplete.length > 0 ? ['node-incomplete'] : []),
+        ...(context.productDirty.length > 0 ? ['product-state-dirty'] : []),
+      ],
+      nodes: afterGateIncomplete,
+      paths: context.productDirty,
+      gates: compactExecutions(gate.executions),
+    };
+  }
+  if (options.mode === 'multi-root') {
+    return {
+      ok: true,
+      action: 'review',
+      node: context.tree.spec_id,
+      commit: range.evidence.head,
+      gates: compactExecutions(gate.executions),
+      review_snapshot: compactReview(range.evidence),
+    };
+  }
+
+  markSpecCompleted(options);
+  return {
+    ok: true,
+    action: 'callback',
+    node: context.tree.spec_id,
+    status: 'completed',
+    commit: range.evidence.head,
+    gates: compactExecutions(gate.executions),
+  };
+}
+
+function finalizeReviewPass(options) {
+  options = resolveOptions(options);
+  const context = finalizationContext(options);
+  const incomplete = incompleteExecution(context.tree);
+  const errors = [];
+  if (!context.tree.root_gate_all_met) errors.push('root-gate-unmet');
+  if (incomplete.length > 0) errors.push('node-incomplete');
+  if (context.productDirty.length > 0) errors.push('product-state-dirty');
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      action: 'repair',
+      errors,
+      nodes: incomplete,
+      paths: context.productDirty,
+    };
+  }
+  const range = finalRange(context, options.base, options.commit);
+  if (range.outside.length > 0) {
+    return {
+      ok: false,
+      action: 'repair',
+      errors: ['range-outside-spec-scope'],
+      paths: range.outside,
+    };
+  }
+  const reviewed = verifyRange(context.cwd, options.base, options.fingerprint);
+  if (reviewed.head !== range.evidence.head) fail('reviewed range HEAD changed');
+  markSpecCompleted(options);
+  return {
+    ok: true,
+    action: 'callback',
+    node: context.tree.spec_id,
+    status: 'completed',
+    commit: reviewed.head,
+  };
+}
+
+function rollbackApplied(cwd, patch, expectedFingerprint, controlPrefix) {
   gitInput(cwd, ['apply', '--index', '--reverse', '--binary', '--whitespace=nowarn', '-'], patch);
-  const actual = dirtyFingerprint(cwd);
+  const actual = dirtyFingerprint(cwd, [controlPrefix]);
   if (actual !== expectedFingerprint) {
     fail(`reviewed patch rollback changed destination state: expected ${expectedFingerprint}, actual ${actual}`);
   }
 }
 
-function rollbackWorking(cwd, patch, expectedFingerprint) {
+function rollbackWorking(cwd, patch, expectedFingerprint, controlPrefix) {
   gitInput(cwd, ['apply', '--reverse', '--binary', '--whitespace=nowarn', '-'], patch);
-  const actual = dirtyFingerprint(cwd);
+  const actual = dirtyFingerprint(cwd, [controlPrefix]);
   if (actual !== expectedFingerprint) {
     fail(`reviewed patch rollback changed destination state: expected ${expectedFingerprint}, actual ${actual}`);
   }
@@ -515,10 +779,19 @@ function applyReviewed(options) {
   }
   git(options.source, ['merge-base', '--is-ancestor', base, sourceCommit]);
 
-  const currentDestinationFingerprint = dirtyFingerprint(options.cwd);
+  const specRelative = specRelativePath(options.source, options.spec);
+  const destinationSpec = path.resolve(options.cwd, ...specRelative.split('/'));
+  const destinationControlPrefix = relativeControlPrefix(options.cwd, destinationSpec);
+  const currentDestinationFingerprint = dirtyFingerprint(options.cwd, [destinationControlPrefix]);
   if (currentDestinationFingerprint !== options.destinationFingerprint) {
     fail(`destination state changed: expected ${options.destinationFingerprint}, actual ${currentDestinationFingerprint}`);
   }
+
+  const controlPlan = planControlMerge(
+    options.spec,
+    destinationSpec,
+    options.controlFingerprint,
+  );
 
   const controlPrefix = relativeControlPrefix(options.source, options.spec);
   const paths = withoutControl(rangePaths(options.source, base, sourceCommit), controlPrefix);
@@ -531,14 +804,16 @@ function applyReviewed(options) {
     if (outside.length > 0) fail(`reviewed paths outside root scope: ${outside.join(', ')}`);
   }
   const sourceRange = rangeFingerprint(options.source, base, sourceCommit, paths);
-  if (sourceRange.fingerprint !== options.fingerprint) {
+  if (options.fingerprint && sourceRange.fingerprint !== options.fingerprint) {
     fail(`reviewed range fingerprint changed: expected ${options.fingerprint}, actual ${sourceRange.fingerprint}`);
   }
+  const reviewedFingerprint = sourceRange.fingerprint;
 
   const overlap = dirtyPaths(options.cwd).filter((filePath) => paths.includes(filePath));
   if (overlap.length > 0) fail(`destination overlaps reviewed paths: ${overlap.join(', ')}`);
 
   let phase = 'baseline';
+  let restoreControl = null;
   try {
     gitInput(options.cwd, ['apply', '--check', '--index', '--binary', '--whitespace=nowarn', '-'], sourceRange.diff);
     gitInput(options.cwd, ['apply', '--index', '--binary', '--whitespace=nowarn', '-'], sourceRange.diff);
@@ -547,21 +822,28 @@ function applyReviewed(options) {
       'diff', '--cached', '--binary', '--no-ext-diff', '--no-renames', '--', ...paths,
     ], null);
     const appliedFingerprint = `sha256:${crypto.createHash('sha256').update(destinationDiff).digest('hex')}`;
-    if (appliedFingerprint !== options.fingerprint) {
-      fail(`applied fingerprint differs: expected ${options.fingerprint}, actual ${appliedFingerprint}`);
+    if (appliedFingerprint !== reviewedFingerprint) {
+      fail(`applied fingerprint differs: expected ${reviewedFingerprint}, actual ${appliedFingerprint}`);
     }
-    git(options.cwd, ['diff', '--cached', '--check', '--', ...paths]);
+    git(options.cwd, diffCheckArgs(['--cached', '--check', '--', ...paths]));
     git(options.cwd, ['restore', '--staged', '--', ...paths]);
     phase = 'worktree';
     const appliedPaths = dirtyPaths(options.cwd).filter((filePath) => paths.includes(filePath));
     if (appliedPaths.length !== paths.length) {
       fail(`applied paths differ: expected [${paths.join(', ')}], actual [${appliedPaths.join(', ')}]`);
     }
+    restoreControl = commitControlMerge(controlPlan);
+    phase = 'control';
   } catch (error) {
+    if (restoreControl) restoreControl();
     if (phase === 'staged') {
-      rollbackApplied(options.cwd, sourceRange.diff, options.destinationFingerprint);
-    } else if (phase === 'worktree') {
-      rollbackWorking(options.cwd, sourceRange.diff, options.destinationFingerprint);
+      rollbackApplied(
+        options.cwd, sourceRange.diff, options.destinationFingerprint, destinationControlPrefix,
+      );
+    } else if (phase === 'worktree' || phase === 'control') {
+      rollbackWorking(
+        options.cwd, sourceRange.diff, options.destinationFingerprint, destinationControlPrefix,
+      );
     }
     throw error;
   }
@@ -570,9 +852,9 @@ function applyReviewed(options) {
     action: 'complete',
     head: destinationHead,
     commit: sourceCommit,
-    fingerprint: options.fingerprint,
+    fingerprint: reviewedFingerprint,
     paths,
-    destination_fingerprint: dirtyFingerprint(options.cwd),
+    destination_fingerprint: dirtyFingerprint(options.cwd, [destinationControlPrefix]),
   };
 }
 
@@ -585,13 +867,20 @@ function main(argv = process.argv.slice(2)) {
         ? closeBoundary(options)
         : options.action === 'review-pass'
           ? reviewPass(options)
+          : options.action === 'finalize'
+            ? finalizeSpec(options)
+            : options.action === 'finalize-review-pass'
+              ? finalizeReviewPass(options)
           : options.action === 'apply-reviewed'
             ? applyReviewed(options)
             : inspectState(options);
     process.stdout.write(`${JSON.stringify(output)}\n`);
     return output.ok ? 0 : 1;
   } catch (error) {
-    if (error instanceof CoordinatorStateError || error instanceof ExecutionTreeError) {
+    if (error instanceof CoordinatorStateError || error instanceof ControlStateError
+      || error instanceof ExecutionTreeError || error instanceof GateParseError
+      || error instanceof PrepareReviewError
+      || error instanceof GateUsageError) {
       process.stderr.write(`${error.message}\n`);
       return 2;
     }
@@ -606,6 +895,8 @@ module.exports = {
   captureDestination,
   CoordinatorStateError,
   closeBoundary,
+  finalizeReviewPass,
+  finalizeSpec,
   inspectState,
   main,
   parseArgs,

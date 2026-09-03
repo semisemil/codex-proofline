@@ -1,20 +1,20 @@
-# Implementation task assignment
+# Leaf implementation assignment
 
-Use this code block as the complete task prompt.
+Use this code block as the complete agent prompt. A Leaf receives this prompt directly; do not create an intermediate Leaf coordinator.
 
 ```text
 PROOFLINE_EXECUTION_ROLE: implementer
 
-Implement {{leaf_link}} in Worktree {{worktree}}.
+Implement {{leaf_link}} in the current Worktree.
 
 Assignment
 - Gate: {{gate_link}}
 - Plugin root: {{plugin_root}}
 - Constraint delta: {{constraint_delta}}
 
-Load the Leaf and Gate once; follow linked Spec sections as needed. Reuse reads and successful evidence until relevant state changes. Cap output at 4,000 tokens; inspect large/generated sources by exact search and small ranges.
+Load the Leaf and Gate once; follow linked Spec sections only as needed. Reuse reads and successful evidence until relevant state changes. Inspect large or generated sources by exact search and small ranges.
 
-Implement the fixed Leaf contract and change only tests mapped by Leaf or Spec evidence. Artifact-generation commands may create required outputs that will be staged. Stage exact product and test paths, then callback only `<node-id> complete` or the blocker via `send_message_to_thread` without a destination ID, and end.
+Implement only the frozen Leaf contract and change only tests mapped by Leaf or Spec evidence. When one frozen Gate item can guide implementation or Repair, you may stage the current exact paths with `node <plugin-root>/skills/start-implementation/scripts/prepare-review.js stage --cwd . --path <path>...` and run only `node <plugin-root>/skills/spec-slice/scripts/run-gates.js feedback --cwd . --gate <gate-link> --id <gate-id>`. This is optional feedback, not completion. Do not run arbitrary tests, builds, lint, type checks, end-to-end checks, or Gate commands.
 
-The assigning coordinator's `coordinator-state close` is the only completion validation. This task runs no test, build, lint, type-check, end-to-end, or Gate command. The Leaf owns no completion Gate, commit, review, nested task, wider verdict, or frozen-contract change.
+Stage every final product and test path through `prepare-review.js stage`. Return only `<node-id> complete` or one exact blocker in the final response. Do not create another task, run completion Gates, commit, review, change the frozen contract, or send a callback. A Repair follow-up keeps this same implementer role.
 ```

@@ -33,13 +33,13 @@ Use only `id`, `title`, `status`, and optional nonempty `related_issues` for exp
 
 ## Write the Plan
 
-Develop the user's rough idea and current planning conversation into a concrete direction grounded in the project. Treat the initial idea, later clarifications, corrections, and confirmed choices as sources; synthesize their current effect rather than recounting the conversation.
+Develop the user's rough idea and current planning conversation only far enough to choose a concrete direction inside the requested outcome. Treat the requested outcome and every explicit boundary as the Plan's scope ceiling. Repository evidence constrains delivery; it does not add adjacent features, generic hardening, cleanup, migration, future extensibility, or new product goals. Include supporting work only when omitting it would leave a requested result incomplete or break an existing contract on the changed path. Treat the initial idea, later clarifications, corrections, and confirmed choices as sources; synthesize their current effect rather than recounting the conversation.
 
 Write the current Plan so its direction can be understood and judged without the conversation. Retain only rationale and tradeoffs that materially support the selected direction. Record technical or architectural direction when it settles a planning decision; leave observable acceptance conditions and the pre-implementation verification plan to a later Spec.
 
 ## Set readiness
 
-Use `ready` when an implementation Spec can be written without reopening the conversation or inventing a material product decision, with no unresolved decision that would materially change the problem, intended outcome, scope, selected direction, or its material tradeoffs and risks. `ready` means the Plan is complete enough for that use; it does not mean user acceptance or authorize Spec creation or implementation.
+Use `ready` when an implementation Spec can be written without reopening the conversation or inventing a material product decision, with no unresolved decision that would materially change the problem, intended outcome, scope, selected direction, or its material tradeoffs and risks. A choice is not material merely because implementation must fix it or expose it in a file, schema, or API. Leave a narrow repository-consistent default to the Spec or implementation when plausible choices do not materially change the requested capability, compatibility with an existing consumer or authority, safety, data retention, or meaningful scope and cost. `ready` means the Plan is complete enough for that use; it does not mean user acceptance or authorize Spec creation or implementation.
 
 Use `draft` while a material decision or uncertainty prevents that state. Preserve what is known and expose the gap. Return a revised `ready` Plan to `draft` when such a gap appears.
 

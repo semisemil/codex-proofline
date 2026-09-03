@@ -10,21 +10,26 @@ function readInput() {
   return input.trim() ? JSON.parse(input) : {};
 }
 
+let event = 'SessionStart';
+
 try {
   const input = readInput();
-  if (input.source === 'resume') {
+  event = input.hook_event_name === 'SubagentStart'
+    ? 'SubagentStart'
+    : 'SessionStart';
+  if (event === 'SessionStart' && input.source === 'resume') {
     process.exit(0);
   }
   const state = getCurrentMode(input.session_id, {
     hook: 'load-proofline',
-    event: 'SessionStart',
+    event,
   });
   process.stdout.write(composeProoflinePrompt(state.mode));
 } catch (error) {
   const filePath = error.prooflineFilePath;
   logDiagnostic({
     hook: 'load-proofline',
-    event: 'SessionStart',
+    event,
     error,
     pluginRoot: path.resolve(__dirname, '..'),
     skillPath: filePath,

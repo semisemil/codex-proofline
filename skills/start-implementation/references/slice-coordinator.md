@@ -1,32 +1,39 @@
-# Slice coordinator assignment
+# Branch coordinator assignment
 
-Replace the placeholders and use this code block as the complete task prompt. `{{assignment_mode}}` is `root-slice`, `subslice`, or `integration-review`.
+Use only for a Slice with direct children. Replace the placeholders and use this code block as the complete task prompt.
 
 ```text
 PROOFLINE_EXECUTION_ROLE: slice-coordinator
 
-Coordinate {{boundary_link}} in Worktree {{worktree}} from {{slice_base}}.
+Coordinate {{boundary_link}} in the current Worktree.
+
+Bootstrap
+{{bootstrap}}
 
 Assignment
 - Mode: {{assignment_mode}}
+- Root finalization: {{root_finalization}}
+- Base: {{base_sha}}
 - Direct children: {{direct_children}}
 - Gate: {{gate_link}}
-- Review boundary: {{review_boundary_link}}
 - Plugin root: {{plugin_root}}
 - Constraint delta: {{constraint_delta}}
-- Assignment directory: {{assignment_directory}}
-- Routes: Branch coordinator {{coordinator_route}}; implementation {{implementation_route}}; Reviewer {{reviewer_route}}
-- Terminal callback fields: {{callback_fields}}
+- Routes: Branch {{coordinator_route}}; Leaf {{implementation_route}}; Reviewer {{reviewer_route}}
 
-Product changes belong to child implementation tasks.
+Original request authority (verbatim)
+{{original_request}}
 
-Inherited context is authoritative. Load this boundary, its Gate, and only the next assignment files. Reuse successful evidence until mutation. Cap large output at 4,000 tokens; inspect generated, minified, or large sources by exact search and small ranges.
+For a Root Slice, first run the supplied `prepare-worktree.js` command exactly once. Use only its Worktree-local Spec path. On `environment_blocked`, create no child, Reviewer, or Repair task; callback only that state and error, then end. A nested Branch receives `already prepared` and must not bootstrap again.
 
-If `Direct children` lacks metadata, run `node <plugin-root>/skills/spec-slice/scripts/inspect-execution-tree.js <spec-directory>` once. Fork runnable Branches with `slice-coordinator.md` and Leaves with `implementation-task.md`, using `fork_thread(environment: { type: "same-directory" })` without `threadId` and the listed route. A Leaf forks one implementation task. For a bare fork, apply route and assignment in its first message. End after dispatch; resume only on a terminal callback; coordinators do not wait or poll.
+Load this boundary, its Gate, and the direct-child metadata once. A direct Leaf gets `implementation-task.md` directly through a fresh `spawn_agent(fork_turns: "none")`; that Leaf agent implements the Leaf itself. A direct Branch gets this coordinator assignment in a same-directory `fork_thread`; this is a same-role fork and must never be reused for an implementer or Reviewer. Schedule only a runnable subset supported by capacity.
 
-On callback, run only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <closing-node-id> --mode <leaf|subslice|root-slice>`; it checks scope, runs every pending Gate, updates a completed Leaf/SubSlice, and returns the next action or review snapshot. Start it once with a sufficient execution window and resume the same process if it yields; do not restart it only because it has not returned. Do not inspect helper source or repeat its commands.
+Wait for fresh Leaf agents with `wait_agent`; their final result is the Leaf result and needs no callback. Branch tasks callback only `<node-id> complete` or one blocker. For each completed child, run `coordinator-state.js close` once with mode `leaf` or `subslice`. Reuse current evidence and do not reconstruct helper checks.
 
-For a Root Slice, render `reviewer.md` with the returned snapshot. Create one fresh reviewer with `spawn_agent(fork_turns: "none")` using the listed Reviewer route and wait only for it. On `pass`, run only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js review-pass --cwd <worktree> --spec <spec-directory> --node <boundary-id> --mode root-slice --fingerprint <returned-fingerprint> --message <one-line-message>`; it marks the boundary complete, commits, and verifies transport. Callback its compact result and end. On `fail`, send each evidenced repair to its deepest existing owner and end. No owner means `explicit re-slice required`.
+When every direct child is completed:
+- A nested Branch callbacks only `<boundary-id> complete`; its parent owns that SubSlice close.
+- A Root Slice runs `coordinator-state.js close --mode root-slice`, retains the returned fingerprint locally, creates one fresh history-free Reviewer from `reviewer.md`, and waits.
 
-Repair reuses the owning task. Invalidate only affected Gates and reviews; after its callback, re-close them and review the changed snapshot once.
+On Root Slice review `pass`, run `coordinator-state.js review-pass --mode root-slice`. If Root finalization is `single-root`, run `coordinator-state.js finalize --mode single-root` with Base and the retained review fingerprint before callback. If it is `multi-root`, callback after `review-pass`. Callback only `state=reviewed`, boundary ID, returned commit, and current Worktree root. On `fail`, route each blocking finding to the deepest existing owner: use `followup_task` for a Leaf agent and a new turn in the same Branch task for a Branch. Roles never change. Re-close only affected boundaries and use a fresh Reviewer. No owner means `explicit re-slice required`.
+
+Do not edit product files, run checks directly, create an intermediate Leaf coordinator, switch roles, or send paths, fingerprints, base SHA, Gate evidence, or copied helper output in callbacks.
 ```

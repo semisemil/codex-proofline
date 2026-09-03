@@ -60,15 +60,26 @@ test('stage, verify, and unstage preserve the reviewed working changes', (t) => 
   assert.equal(fs.existsSync(path.join(cwd, 'added.txt')), true);
 });
 
-test('stage rejects a nonempty index without changing it', (t) => {
+test('stage adds one Leaf to a shared nonempty Slice index', (t) => {
   const cwd = fixture(t);
   fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'staged first\n');
   git(cwd, 'add', '--', 'tracked.txt');
   fs.writeFileSync(path.join(cwd, 'added.txt'), 'new\n');
 
   const result = run(cwd, 'stage', '--cwd', cwd, '--path', 'added.txt');
-  assert.equal(result.status, 2);
-  assert.match(result.stderr, /index is not empty: tracked\.txt/);
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).paths, ['added.txt', 'tracked.txt']);
+  assert.equal(git(cwd, 'diff', '--cached', '--name-only'), 'added.txt\ntracked.txt\n');
+});
+
+test('diff prints only an unchanged exact staged manifest', (t) => {
+  const cwd = fixture(t);
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'review me\n');
+  git(cwd, 'add', '--', 'tracked.txt');
+  const result = run(cwd, 'diff', '--cwd', cwd, '--path', 'tracked.txt');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /-before/);
+  assert.match(result.stdout, /\+review me/);
   assert.equal(git(cwd, 'diff', '--cached', '--name-only'), 'tracked.txt\n');
 });
 
@@ -147,4 +158,46 @@ test('snapshot-range and verify-range bind an integrated committed diff', (t) =>
   );
   assert.equal(stale.status, 2);
   assert.match(stale.stderr, /range fingerprint changed/);
+});
+
+test('diff-range prints only the exact integrated manifest', (t) => {
+  const cwd = fixture(t);
+  const base = git(cwd, 'rev-parse', 'HEAD').trim();
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'integrated\n');
+  fs.writeFileSync(path.join(cwd, 'added.txt'), 'added\n');
+  git(cwd, 'add', '--', 'tracked.txt', 'added.txt');
+  git(cwd, 'commit', '-m', 'integrate reviewed roots');
+
+  const reviewed = run(
+    cwd,
+    'diff-range', '--cwd', cwd, '--base', base,
+    '--path', 'tracked.txt', '--path', 'added.txt',
+  );
+  assert.equal(reviewed.status, 0, reviewed.stderr);
+  assert.match(reviewed.stdout, /-before/);
+  assert.match(reviewed.stdout, /\+integrated/);
+  assert.match(reviewed.stdout, /\+added/);
+
+  const incomplete = run(
+    cwd, 'diff-range', '--cwd', cwd, '--base', base, '--path', 'tracked.txt',
+  );
+  assert.equal(incomplete.status, 2);
+  assert.match(incomplete.stderr, /range paths differ/);
+});
+
+test('stage accepts CRLF terminators but still rejects real trailing whitespace', (t) => {
+  const cwd = fixture(t);
+  git(cwd, 'config', 'core.autocrlf', 'false');
+
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'after\r\nsecond\r\n');
+  const accepted = run(cwd, 'stage', '--cwd', cwd, '--path', 'tracked.txt');
+  assert.equal(accepted.status, 0, accepted.stderr);
+  assert.deepEqual(JSON.parse(accepted.stdout).paths, ['tracked.txt']);
+  git(cwd, 'restore', '--staged', '--', 'tracked.txt');
+
+  fs.writeFileSync(path.join(cwd, 'tracked.txt'), 'after \r\nsecond\r\n');
+  const rejected = run(cwd, 'stage', '--cwd', cwd, '--path', 'tracked.txt');
+  assert.equal(rejected.status, 2);
+  assert.match(rejected.stderr, /trailing whitespace/);
+  assert.equal(git(cwd, 'diff', '--cached', '--name-only'), '');
 });

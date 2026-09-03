@@ -3,12 +3,15 @@
 
 const crypto = require('node:crypto');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { diffCheckArgs, gitCommandName, spawnGit } = require('../../../lib/git-policy.js');
 
 const USAGE = [
   'Usage:',
   '  prepare-review.js stage --cwd <checkout> --path <path> [--path <path>...]',
   '  prepare-review.js snapshot --cwd <checkout> --path <path> [--path <path>...]',
+  '  prepare-review.js diff --cwd <checkout> --path <path> [--path <path>...]',
+  '  prepare-review.js diff-range --cwd <checkout> --base <commit>',
+  '    --path <path> [--path <path>...]',
   '  prepare-review.js verify --cwd <checkout> --fingerprint <sha256:...>',
   '  prepare-review.js snapshot-range --cwd <checkout> --base <commit>',
   '  prepare-review.js verify-range --cwd <checkout> --base <commit> --fingerprint <sha256:...>',
@@ -23,7 +26,10 @@ function fail(message) {
 
 function parseArgs(argv) {
   const [action, ...rest] = argv;
-  if (!['stage', 'snapshot', 'verify', 'snapshot-range', 'verify-range', 'unstage'].includes(action)) fail(USAGE);
+  if (![
+    'stage', 'snapshot', 'diff', 'diff-range', 'verify', 'snapshot-range', 'verify-range',
+    'unstage',
+  ].includes(action)) fail(USAGE);
   const result = { action, cwd: null, paths: [], fingerprint: null, base: null };
   for (let index = 0; index < rest.length; index += 2) {
     const name = rest[index];
@@ -36,10 +42,12 @@ function parseArgs(argv) {
     else fail(USAGE);
   }
   if (!result.cwd) fail(USAGE);
-  if ((action === 'stage' || action === 'snapshot' || action === 'unstage')
+  if ((action === 'stage' || action === 'snapshot' || action === 'diff'
+    || action === 'diff-range' || action === 'unstage')
     && result.paths.length === 0) fail(USAGE);
   if ((action === 'verify' || action === 'verify-range') && !result.fingerprint) fail(USAGE);
-  if ((action === 'snapshot-range' || action === 'verify-range') && !result.base) fail(USAGE);
+  if ((action === 'diff-range' || action === 'snapshot-range' || action === 'verify-range')
+    && !result.base) fail(USAGE);
   return result;
 }
 
@@ -61,13 +69,18 @@ function normalizePaths(values) {
 }
 
 function git(cwd, args, encoding = 'utf8') {
-  const result = spawnSync('git', args, { cwd, encoding, windowsHide: true });
-  if (result.error) fail(`git ${args[0]} failed: ${result.error.message}`);
+  const result = spawnGit(cwd, args, { encoding });
+  const command = gitCommandName(args);
+  if (result.error) fail(`git ${command} failed: ${result.error.message}`);
   if (result.status !== 0) {
-    const detail = Buffer.isBuffer(result.stderr)
+    const stderr = Buffer.isBuffer(result.stderr)
       ? result.stderr.toString('utf8').trim()
       : String(result.stderr || '').trim();
-    fail(`git ${args[0]} failed${detail ? `: ${detail}` : ''}`);
+    const stdout = Buffer.isBuffer(result.stdout)
+      ? result.stdout.toString('utf8').trim()
+      : String(result.stdout || '').trim();
+    const detail = stderr || stdout;
+    fail(`git ${command} failed${detail ? `: ${detail}` : ''}`);
   }
   return result.stdout;
 }
@@ -134,22 +147,40 @@ function restoreStaged(cwd, paths) {
 
 function stage(cwd, paths) {
   const existing = stagedPaths(cwd);
-  if (existing.length > 0) fail(`index is not empty: ${existing.join(', ')}`);
+  const expected = [...new Set([...existing, ...paths])].sort();
+  const newlyStaged = paths.filter((item) => !existing.includes(item));
   try {
     git(cwd, ['add', '--', ...paths]);
     const actual = stagedPaths(cwd);
-    if (!samePaths(actual, paths)) {
-      fail(`staged paths differ: expected [${paths.join(', ')}], actual [${actual.join(', ')}]`);
+    if (!samePaths(actual, expected)) {
+      fail(`staged paths differ: expected [${expected.join(', ')}], actual [${actual.join(', ')}]`);
     }
-    git(cwd, ['diff', '--cached', '--check', '--']);
+    git(cwd, diffCheckArgs(['--cached', '--check', '--', ...paths]));
     return reviewEvidence(cwd, actual);
   } catch (error) {
     try {
-      const actual = stagedPaths(cwd);
-      if (actual.length > 0) restoreStaged(cwd, actual);
+      if (newlyStaged.length > 0) restoreStaged(cwd, newlyStaged);
     } catch {}
     throw error;
   }
+}
+
+function showDiff(cwd, paths) {
+  snapshot(cwd, paths);
+  return git(cwd, [
+    'diff', '--cached', '--unified=3', '--no-ext-diff', '--no-renames', '--', ...paths,
+  ]);
+}
+
+function showRangeDiff(cwd, value, paths) {
+  const evidence = snapshotRange(cwd, value);
+  if (!samePaths(evidence.paths, paths)) {
+    fail(`range paths differ: expected [${paths.join(', ')}], actual [${evidence.paths.join(', ')}]`);
+  }
+  return git(cwd, [
+    'diff', `${evidence.base}..${evidence.head}`, '--unified=3', '--no-ext-diff',
+    '--no-renames', '--', ...paths,
+  ]);
 }
 
 function snapshot(cwd, paths) {
@@ -157,7 +188,7 @@ function snapshot(cwd, paths) {
   if (!samePaths(actual, paths)) {
     fail(`staged paths differ: expected [${paths.join(', ')}], actual [${actual.join(', ')}]`);
   }
-  git(cwd, ['diff', '--cached', '--check', '--']);
+  git(cwd, diffCheckArgs(['--cached', '--check', '--']));
   return reviewEvidence(cwd, actual);
 }
 
@@ -188,7 +219,7 @@ function snapshotRange(cwd, value) {
   const head = String(git(cwd, ['rev-parse', 'HEAD'])).trim();
   const paths = rangePaths(cwd, base, head);
   if (paths.length === 0) fail('review range has no changed paths');
-  git(cwd, ['diff', `${base}..${head}`, '--check', '--']);
+  git(cwd, diffCheckArgs([`${base}..${head}`, '--check', '--']));
   return { base, head, ...reviewEvidence(cwd, paths, base, head) };
 }
 
@@ -213,6 +244,14 @@ function main(argv = process.argv.slice(2)) {
     const cwd = path.resolve(options.cwd);
     git(cwd, ['rev-parse', '--show-toplevel']);
     const paths = normalizePaths(options.paths);
+    if (options.action === 'diff') {
+      process.stdout.write(showDiff(cwd, paths));
+      return 0;
+    }
+    if (options.action === 'diff-range') {
+      process.stdout.write(showRangeDiff(cwd, options.base, paths));
+      return 0;
+    }
     const output = options.action === 'stage'
       ? stage(cwd, paths)
       : options.action === 'snapshot'
@@ -245,6 +284,8 @@ module.exports = {
   normalizePaths,
   rangePaths,
   reviewCommand,
+  showDiff,
+  showRangeDiff,
   snapshot,
   snapshotRange,
   stagedPaths,

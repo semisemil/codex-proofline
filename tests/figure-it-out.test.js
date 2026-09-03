@@ -15,7 +15,7 @@ test('figure-it-out is a compact linked workflow without copied stage contracts'
   assert.match(skill, /Run from the earliest incomplete applicable stage/);
   assert.match(skill, /thin top coordinator/);
   assert.match(skill, /references\/preparation-task\.md/);
-  assert.match(skill, /spawn_agent\(fork_turns: "none"\)/);
+  assert.match(skill, /spawn_agent\(task_name: "preparation", fork_turns: "none"\)/);
   assert.doesNotMatch(skill, /model:|reasoning_effort:/);
   assert.match(skill, /wait only for it/);
   assert.match(skill, /Retain only returned artifact links, revision, readiness/);
@@ -34,18 +34,25 @@ test('figure-it-out is a compact linked workflow without copied stage contracts'
   const renderedPrompt = preparation.match(/```text\r?\n([\s\S]*?)\r?\n```/)[1];
   assert.doesNotMatch(renderedPrompt, /AGENTS\.md|system, developer, project/);
   assert.match(preparation, /Batch narrow evidence/);
-  assert.match(preparation, /limit potentially large command output to 4,000 tokens/);
-  assert.match(preparation, /reuse successful evidence until a relevant source changes/);
-  assert.match(preparation, /Use helper invocations directly from the loaded skill/);
-  assert.match(preparation, /only after its documented invocation fails/);
-  assert.match(preparation, /later-stage skills remain unloaded/);
-  assert.match(preparation, /Otherwise continue without loading that skill/);
+  assert.match(preparation, /^PROOFLINE_EXECUTION_ROLE: preparation$/m);
+  assert.match(preparation, /Execute in/);
+  assert.match(preparation, /do not invoke `figure-it-out` or another agent/);
+  assert.match(preparation, /cap output at 4,000 tokens/);
+  assert.match(preparation, /reuse it until its source changes/);
+  assert.match(preparation, /Use documented helpers/);
+  assert.match(preparation, /inspect source only after failure/);
+  assert.match(preparation, /Load only its `SKILL\.md` and triggered references/);
+  assert.match(preparation, /Source result-changing behavior/);
+  assert.match(preparation, /do not fill gaps/);
+  assert.match(preparation, /Leave only material gaps unknown/);
+  assert.match(preparation, /instead of guessing/);
+  assert.match(preparation, /only if the Spec would otherwise invent/);
   assert.match(preparation, /produce one authoritative Spec/);
   assert.doesNotMatch(preparation, /compact authoritative Spec/);
-  assert.match(preparation, /After the Spec exists, load `<skill-root>\/tenet-me\/SKILL\.md`/);
-  assert.match(preparation, /Only after readiness, load `<skill-root>\/spec-slice\/SKILL\.md`/);
-  assert.match(preparation, /fewest reliable execution Nodes/);
-  assert.match(preparation, /Perform no implementation/);
+  assert.match(preparation, /After the Spec, load `<skill-root>\/tenet-me\/SKILL\.md`/);
+  assert.match(preparation, /Once ready, load `<skill-root>\/spec-slice\/SKILL\.md`/);
+  assert.match(preparation, /fewest reliable Nodes/);
+  assert.match(preparation, /No implementation/);
   assert.ok(preparation.length <= 1700);
   assert.doesNotMatch(skill, /## Authority|## Stage contracts|## Stop|Implementation Gate|cherry-pick|run_after|blocked_by/);
 });
@@ -60,6 +67,10 @@ test('owned stages return to figure-it-out while standalone calls keep their bou
   assert.match(spec, /implementation requires a separate user request unless `\.\.\/figure-it-out\/SKILL\.md` owns the explicit request/);
   assert.match(tenet, /explicitly invokes \$tenet-me or \$figure-it-out owns the explicit workflow/);
   assert.match(tenet, /return the final result to it for the next revision or stage/);
+  assert.match(spec, /named algorithm, policy, standard, format/);
+  assert.match(spec, /derived from the candidate implementation cannot independently decide/);
+  assert.match(tenet, /unversioned algorithm or policy name as non-authoritative/);
+  assert.match(tenet, /derived from the candidate implementation as circular/);
 });
 
 test('figure-it-out is explicit-only and exposed by the plugin', () => {
@@ -70,5 +81,7 @@ test('figure-it-out is explicit-only and exposed by the plugin', () => {
   assert.match(metadata, /default_prompt: "Use \$figure-it-out/);
   assert.match(metadata, /allow_implicit_invocation: false/);
   assert.match(readme, /\$proofline:figure-it-out/);
+  assert.ok(manifest.interface.defaultPrompt.length <= 3);
+  assert.ok(manifest.interface.defaultPrompt.every((prompt) => prompt.length <= 128));
   assert.ok(manifest.interface.defaultPrompt.some((prompt) => prompt.startsWith('$proofline:figure-it-out')));
 });

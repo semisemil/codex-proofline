@@ -13,6 +13,9 @@ Build one internal directed graph containing every current intended result at it
 
 - For a Plan, trace each intended result through the selected direction and the material decisions and constraints that shape it
 - For an implementation Spec, trace source intent to each acceptance condition and planned verification, then trace every acceptance condition back to its source intent and forward to verification capable of deciding it
+- Treat model familiarity, examples, current implementation, and an unversioned algorithm or policy name as non-authoritative for omitted result-changing semantics
+- Treat an oracle or expected result derived from the candidate implementation as circular rather than a verification path
+- Treat the requested outcome and explicit boundaries as the scope ceiling; repository facts may constrain delivery but cannot create another intended result
 
 For every required result:
 
@@ -45,7 +48,7 @@ Resolve repository and supplied-material facts without asking the user. Inspect 
 
 Limit each subagent to its assigned facts and evidence. Subagents do not judge the graph or choose questions.
 
-Integrate each result only into supported edges. Do not delay unrelated ready decisions.
+Integrate each result only into supported edges. Do not delay unrelated ready decisions. Before asking, distinguish a material result choice from a necessary implementation detail. A detail is not material merely because it must be fixed or appears in a file, schema, or API. If plausible choices do not materially change the requested capability, compatibility with an existing consumer or authority, safety, privacy, data retention, or meaningful scope and cost, use the narrowest repository-consistent default and do not promote it into a user requirement or acceptance condition.
 
 In each numbered round, ask every user decision whose prerequisites are resolved and that is independent of the others in that round. For each, state in natural Korean:
 

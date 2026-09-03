@@ -8,89 +8,95 @@ const test = require('node:test');
 const repoRoot = path.resolve(__dirname, '..');
 const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
 
-test('start-implementation keeps top coordination in the entrypoint and child work in assignments', () => {
+test('start-implementation creates the final Worktree owner without a holder role', () => {
   const skill = read('skills', 'start-implementation', 'SKILL.md');
+  assert.match(skill, /create a Worktree task.*final owner assignment/s);
+  assert.match(skill, /prepare-worktree\.js/);
+  assert.match(skill, /copies only the active Spec directory/);
+  assert.match(skill, /Worktree-local Spec and Gate path/);
+  assert.match(skill, /process-local `safe\.directory`/);
+  assert.match(skill, /Do not create a holder task/);
+  assert.doesNotMatch(skill, /worktree-holder\.md|register-safe-directory\.js|--global/);
+  assert.equal(fs.existsSync(path.join(
+    repoRoot, 'skills', 'start-implementation', 'references', 'worktree-holder.md',
+  )), false);
+});
 
-  for (const assignment of [
-    'worktree-holder.md',
-    'root-only-implementation.md',
-    'slice-coordinator.md',
-    'implementation-task.md',
-    'reviewer.md',
-  ]) {
-    assert.equal((skill.match(new RegExp(`references/${assignment}`, 'g')) || []).length, 1);
+test('roles stay immutable and cross-role work starts without inherited history', () => {
+  const skill = read('skills', 'start-implementation', 'SKILL.md');
+  assert.match(skill, /one immutable execution role/);
+  assert.match(skill, /Never send a different `PROOFLINE_EXECUTION_ROLE`/);
+  assert.match(skill, /same-directory fork is permitted only.*Branch coordinator.*Branch coordinator/s);
+  assert.match(skill, /spawn_agent\(fork_turns: "none"\)/);
+
+  const assignments = ['root-only-implementation.md', 'slice-coordinator.md', 'implementation-task.md', 'reviewer.md'];
+  const markers = assignments.map((name) => {
+    const content = read('skills', 'start-implementation', 'references', name);
+    const found = content.match(/PROOFLINE_EXECUTION_ROLE: [a-z-]+/g) || [];
+    assert.equal(found.length, 1, name);
+    return found[0];
+  });
+  assert.equal(new Set(markers).size, 4);
+});
+
+test('a Leaf agent implements directly and returns through its agent result', () => {
+  const skill = read('skills', 'start-implementation', 'SKILL.md');
+  const coordinator = read('skills', 'start-implementation', 'references', 'slice-coordinator.md');
+  const implementation = read('skills', 'start-implementation', 'references', 'implementation-task.md');
+
+  assert.match(skill, /Leaf assignment is implementation itself/);
+  assert.match(coordinator, /direct Leaf gets `implementation-task\.md` directly/);
+  assert.match(coordinator, /Leaf agent implements the Leaf itself/);
+  assert.match(coordinator, /final result is the Leaf result and needs no callback/);
+  assert.match(implementation, /Stage every final product and test path through `prepare-review\.js stage`/);
+  assert.match(implementation, /Do not create another task/);
+  assert.match(implementation, /send a callback/);
+  assert.doesNotMatch(implementation, /spawn_agent|fork_thread|create_thread|wait_agent|send_message_to_thread/);
+});
+
+test('Branch and direct review-boundary owners use local control state and minimal callbacks', () => {
+  const coordinator = read('skills', 'start-implementation', 'references', 'slice-coordinator.md');
+  const direct = read('skills', 'start-implementation', 'references', 'root-only-implementation.md');
+  for (const content of [coordinator, direct]) {
+    assert.match(content, /prepare-worktree\.js/);
+    assert.match(content, /environment_blocked/);
+    assert.match(content, /Worktree-local Spec path/);
+    assert.match(content, /current Worktree root/);
+    assert.match(content, /Do not send fingerprints|send paths, fingerprints/);
   }
+  assert.match(coordinator, /same-directory `fork_thread`/);
+  assert.match(coordinator, /same-role fork/);
+  assert.match(coordinator, /followup_task/);
+  assert.match(direct, /spawn_agent\(fork_turns: "none"\)/);
+  assert.match(direct, /Keep the root-implementer role/);
+});
 
-  assert.match(skill, /top coordinator/);
-  assert.match(skill, /owns no execution Node, implementation, Repair, or review/);
-  assert.match(skill, /fork_thread\(threadId:/);
-  assert.doesNotMatch(skill, /fork_thread\(thread_id:/);
-  assert.match(skill, /For two or more direct Root Slices/);
-  assert.match(skill, /coordinator-state\.js capture/);
-  assert.match(skill, /coordinator-state\.js apply-reviewed/);
-  assert.doesNotMatch(skill, /then apply only the reviewed product diff/);
-  assert.match(skill, /## Recursive tasks/);
-  assert.match(skill, /## Leaf implementation/);
-  assert.match(skill, /## Close and review a Slice/);
-  assert.match(skill, /For root-only, the task forked from the holder implements the Spec directly/);
-  assert.ok(skill.length <= 12000);
+test('Reviewer reads the diff only through the safe helper', () => {
+  const reviewer = read('skills', 'start-implementation', 'references', 'reviewer.md');
+  assert.match(reviewer, /PROOFLINE_EXECUTION_ROLE: reviewer/);
+  assert.match(reviewer, /prepare-review\.js diff/);
+  assert.match(reviewer, /prepare-review\.js diff-range/);
+  assert.match(reviewer, /\{\{review_command\}\}/);
+  assert.match(reviewer, /process-local Git policy/);
+  assert.match(reviewer, /original request and authoritative sources as primary/);
+  assert.match(reviewer, /circular oracle/);
+  assert.match(reviewer, /Do not run verification/);
+  assert.doesNotMatch(reviewer, /git diff --cached/);
+});
+
+test('final apply merges validated control state without overwriting definitions', () => {
+  const skill = read('skills', 'start-implementation', 'SKILL.md');
+  assert.match(skill, /--control-fingerprint <captured-control-fingerprint>/);
+  assert.match(skill, /merges only monotonic Spec\/Slice status plus Gate check state, evidence/);
+  assert.match(skill, /never overwrites Spec requirements, Gate definitions, Slice structure/);
+  assert.match(skill, /Any validation or write failure rolls back/);
+  assert.match(skill, /sync-control-state\.js/);
+  assert.match(skill, /integrate-reviewed\.js/);
+  assert.match(skill, /finalize --mode single-root/);
+  assert.match(skill, /finalize --mode multi-root/);
+  assert.match(skill, /finalize-review-pass/);
 });
 
 test('the source skill root does not contain the removed authoring instruction file', () => {
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'AGENTS.md')), false);
-});
-
-test('Slice coordinator assignments own subtree execution but not integration review', () => {
-  const coordinator = read(
-    'skills', 'start-implementation', 'references', 'slice-coordinator.md',
-  );
-
-  assert.match(coordinator, /PROOFLINE_EXECUTION_ROLE: slice-coordinator/);
-  assert.match(coordinator, /<spec-directory>/);
-  assert.match(coordinator, /<boundary-id>/);
-  assert.match(coordinator, /fork_thread\(environment: \{ type: "same-directory" \}\)/);
-  assert.match(coordinator, /spawn_agent\(fork_turns: "none"\)/);
-  assert.match(coordinator, /wait only for it/);
-  assert.match(coordinator, /Repair reuses the owning task/);
-  assert.match(coordinator, /Callback its compact result and end/);
-  assert.match(coordinator, /resume the same process if it yields/);
-  assert.doesNotMatch(coordinator, /repair-task|review_snapshot\.review_command|thread_id|create_thread|wait_threads/);
-});
-
-test('implementation, root-only, and review assignments keep their fixed boundaries', () => {
-  const implementation = read(
-    'skills', 'start-implementation', 'references', 'implementation-task.md',
-  );
-  const rootImplementation = read(
-    'skills', 'start-implementation', 'references', 'root-only-implementation.md',
-  );
-  const reviewer = read('skills', 'start-implementation', 'references', 'reviewer.md');
-
-  assert.match(implementation, /PROOFLINE_EXECUTION_ROLE: implementer/);
-  assert.match(implementation, /Stage exact product and test paths/);
-  assert.match(implementation, /only completion validation/);
-  assert.match(implementation, /runs no test, build, lint, type-check, end-to-end, or Gate command/);
-  assert.doesNotMatch(implementation, /run-gates\.js feedback/);
-  assert.match(implementation, /without a destination ID/);
-  assert.doesNotMatch(implementation, /fewest coherent tool calls|longest blocking interval/);
-  assert.doesNotMatch(implementation, /spawn_agent|fork_thread|create_thread|wait_agent|wait_threads/);
-
-  assert.match(rootImplementation, /PROOFLINE_EXECUTION_ROLE: root-implementer/);
-  assert.doesNotMatch(rootImplementation, /Spec directory:|Spec ID:/);
-  assert.match(rootImplementation, /coordinator-state\.js close/);
-  assert.match(rootImplementation, /only completion validation/);
-  assert.match(rootImplementation, /Proceed directly with only/);
-  assert.match(rootImplementation, /resume the same process if it yields/);
-  assert.doesNotMatch(rootImplementation, /run-gates\.js feedback/);
-  assert.match(rootImplementation, /coordinator-state\.js review-pass/);
-  assert.match(rootImplementation, /spawn_agent\(fork_turns: "none"\)/);
-  assert.match(rootImplementation, /repair only blocking findings within this Spec/);
-  assert.doesNotMatch(rootImplementation, /fewest coherent tool calls|longest blocking interval/);
-  assert.match(rootImplementation, /without a destination ID/);
-  assert.doesNotMatch(rootImplementation, /fork_thread|create_thread|wait_threads|repair-task|review_snapshot\.review_command/);
-
-  assert.match(reviewer, /PROOFLINE_EXECUTION_ROLE: reviewer/);
-  assert.match(reviewer, /git diff --cached --unified=3/);
-  assert.match(reviewer, /run no verification/);
-  assert.doesNotMatch(reviewer, /fork_thread|create_thread|send_message_to_thread|wait_/);
 });

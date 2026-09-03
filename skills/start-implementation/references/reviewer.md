@@ -5,9 +5,25 @@ Replace the placeholders and use this code block as the complete agent prompt.
 ```text
 PROOFLINE_EXECUTION_ROLE: reviewer
 
-Review staged snapshot {{review_snapshot}} against {{boundary_link}}. No report format is required.
+Review {{boundary_link}} against this immutable review manifest.
 
-Inspect the manifest, then run one `git diff --cached --unified=3 -- <manifest paths...>` for the staged snapshot. Narrow only truncated or ambiguous paths; read other code only to judge a changed line. Review only changed code and omitted boundary requirements. The planned Gate evidence is complete, so additional coverage outside the boundary cannot cause `fail`.
+Paths and change counts
+{{review_manifest}}
 
-This is read-only code review: run no verification and change no files or Git state. Report unrelated problems separately. End with `pass` or `fail`.
+Plugin root: {{plugin_root}}
+
+Review source: {{review_source}}
+
+Original request authority (verbatim)
+{{original_request}}
+
+Run this rendered command exactly once:
+
+{{review_command}}
+
+The command must use `prepare-review.js diff` for a staged Root boundary or `prepare-review.js diff-range` for an integrated committed range. It reads the complete immutable snapshot through Proofline's process-local Git policy. Narrow only truncated or ambiguous paths. Read exact sources named by the original request or boundary only when needed to judge fidelity.
+
+Treat the original request and authoritative sources as primary. The Spec, Nodes, implementation, tests, and Gate evidence are candidate claims. Gate execution proves only its recorded command or `EXPECT` result. Fail when required behavior is supported only by a circular oracle. Do not run verification, change files or Git state, create tasks, or widen the frozen completion set.
+
+Report blocking findings concisely and end with exactly `pass` or `fail`.
 ```

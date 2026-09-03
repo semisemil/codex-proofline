@@ -1,91 +1,94 @@
 ---
 name: start-implementation
-description: "Explicit-only coordination of one ready Spec through recursive execution tasks, mechanical Gates, and fresh blind boundary review."
+description: "Explicit-only coordination of one ready Spec through isolated Worktrees, mechanical Gates, and fresh boundary review."
 ---
 
 # Proofline Start Implementation
 
-Implement one ready Spec through Root Slice Worktrees. The invoking task is the top coordinator; it owns no execution Node, implementation, Repair, or review.
+Implement one ready Spec through isolated Root Slice Worktrees. The invoking task is the top coordinator; it does not implement, Repair, or review.
 
 ## Prepare
 
-Resolve the current `ready` Spec, revision, and authorized scope. Build one bounded evidence manifest after discovery and retain successful evidence until a relevant mutation. Potentially large command output is capped at 4,000 tokens and narrowed on truncation; generated, minified, binary, and large diff evidence is inspected by exact search, stats, and small ranges. Apply [the work-link contract](../issue-ledger/references/work-link.md) only for a named issue target. After the tree is valid, run `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js capture --cwd <checkout> --spec <spec-directory> --node <spec-id>` once and retain its HEAD and destination fingerprint. Unaccepted overlap requires `need_confirm`.
+Resolve the ready Spec, revision, authorized scope, and original request. Reject a Plan or Spec that adds outcomes outside the request. Run the v3 tree inspector once and reuse its output until a control artifact changes.
 
-Run [the v3 tree inspector](../spec-slice/scripts/inspect-execution-tree.js) and reuse a complete valid tree. Use [the Gate runner](../spec-slice/scripts/run-gates.js) for every Gate `run` or `status` command. If no complete tree exists, apply [spec-slice](../spec-slice/SKILL.md) internally. Stop on invalid artifacts, v1/v2 artifacts (`explicit re-slice required`), changed revision, or missing prerequisites. Unless the user selected another route, use `gpt-5.6-luna` with `low` reasoning for holders and Slice coordinators, and `gpt-5.6-sol` with `medium` reasoning for implementation, Repair, and review. Read [model routing](assets/model-routing.md) only for a user-selected route or a listed risk escalation.
+Run:
 
-For an existing valid tree, the top coordinator reads the Spec and direct Root Slice documents once. Inspector output supplies descendant state; descendant coordinators read their own boundaries. Pass one plugin root and artifact links rather than copied contracts or repeated helper paths.
+`node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js capture --cwd <checkout> --spec <spec-directory> --node <spec-id>`
 
-The required transport is `create_thread` Worktree creation, same-directory `fork_thread`, sender-metadata callbacks, and task-local reviewer agents. Stop incomplete when any required primitive is unavailable; no coordinator substitutes itself for a missing holder, child task, or reviewer.
+Retain its HEAD, destination fingerprint, active Spec relative path, and control fingerprint locally. Unaccepted product overlap requires `need_confirm`. Invalid artifacts, changed revision, or missing prerequisites stop before task creation.
 
-## Fixed assignments
+Every child receives the Proofline baseline through `SessionStart` or `SubagentStart`. In hooks-disabled benchmark transport, inject that same baseline at child start. Do not copy the baseline into assignments.
 
-Read an assignment only when this task will render it, retain it, and use its code block as the complete prompt. Its fixed role marker arms the execution guard for that task. Assignment placeholders carry links or deltas; linked Spec, Node, Gate, environment, and inherited instructions are never copied into prompts.
+## Roles and task identity
 
-Created and forked tasks inherit system, developer, and project instructions. Prompts contain only the role contract and information absent from inherited context or linked artifacts.
+One task or agent has one immutable execution role for its lifetime. A new role requires a fresh task or a history-free agent. Never send a different `PROOFLINE_EXECUTION_ROLE` marker to an existing task.
 
-- Top coordinator: [Worktree holder](references/worktree-holder.md), then [Root-only implementation](references/root-only-implementation.md) for a root-only tree or [Slice coordinator](references/slice-coordinator.md) for a Root Slice
-- Slice coordinator: [implementation task](references/implementation-task.md); Root Slice or integration review also uses [Reviewer](references/reviewer.md)
-- SubSlice coordinator: reuse the Slice coordinator assignment with its own fixed boundary fields
+- Top coordinator: orchestration only; no execution role marker
+- Root-only or Root-Slice Leaf owner: `root-implementer`
+- Branch owner: `slice-coordinator`
+- Leaf agent: `implementer`
+- Reviewer agent: `reviewer`
 
-The top coordinator reads only the holder and selected boundary assignment. A Slice coordinator receives the assignment directory and loads implementation or review prompts only when needed.
+A same-directory fork is permitted only from one Branch coordinator to another Branch coordinator. Leaf implementers and Reviewers use `spawn_agent(fork_turns: "none")`. A Leaf assignment is implementation itself, not a coordinator that creates another session.
 
-## Worktree handoff
+## Worktree preparation
 
-For each selected runnable Root Slice, or once for a root-only tree:
+For each runnable direct Root Slice, or once for a root-only Spec, create a Worktree task at the captured HEAD with its final owner assignment:
 
-1. The top coordinator calls `create_thread` at the recorded Spec base with the Worktree-holder assignment and the holder route.
-2. On its ready callback, the top coordinator forks that holder with `fork_thread(threadId: <holder-task-id>, environment: { type: "same-directory" })`. Only this holder handoff supplies `threadId`.
-3. For a root-only tree, assign the forked task the Root-only implementation prompt and implementation route. Otherwise assign it the Root Slice coordinator prompt and coordinator route. A bare `fork_thread` receives the assignment and route on its first `send_message_to_thread` turn.
-4. The top coordinator ends every dispatch turn without `wait_threads`, `wait_agent`, polling, or progress reads.
+- root-only or direct Root Slice with no children: [direct review-boundary implementer](references/root-only-implementation.md)
+- direct Root Slice with children: [Branch coordinator](references/slice-coordinator.md)
 
-The holder owns no Node or product work. Its separate task is required because Codex cannot create the target Worktree and directly return a ready same-directory execution owner in one primitive.
+The owner first runs `prepare-worktree.js`. It validates the exact Worktree root and HEAD using process-local `safe.directory`, copies only the active Spec directory into the same repository-relative location, validates its revision and immutable definitions, and verifies Gate writes. All later execution uses that Worktree-local Spec and Gate path.
 
-## Recursive tasks
+Do not create a holder task, copy all of `.proofline`, add global Git configuration, retry an environment failure as Repair, or pass the original Spec path to descendants. `environment_blocked` is returned once before implementation, Repair, or review starts.
 
-A non-root-only Slice coordinator follows its fixed assignment and creates same-directory child tasks from its own task:
+## Recursive execution
 
-- Assigned Leaf boundary: fork one task with the implementation assignment.
-- Assigned Branch: fork direct Branch children with the Slice-coordinator assignment and direct Leaf children with the implementation assignment.
+Read an assignment only when rendering it and use its code block as the complete prompt.
 
-After dispatch, end the coordinator turn. A coordinator never waits for or polls a child task. Every child sends one terminal `send_message_to_thread` callback to its assigning task using sender metadata, then ends its turn. Briefs contain no callback `threadId` or `report_destination`.
+A Branch coordinator dispatches only direct children:
 
-Choose a safe runnable subset from the frozen tree and capacity. On callback, use one [coordinator-state helper](scripts/coordinator-state.js) invocation instead of reconstructing Git, Gate, and tree state with separate reads. After accepting a Root Slice callback, synchronize only its permitted Node `status` and Gate evidence before dispatching dependents.
+- Branch: same-role, same-directory fork with [Branch coordinator](references/slice-coordinator.md)
+- Leaf: one fresh history-free agent with [Leaf implementation](references/implementation-task.md)
 
-## Leaf implementation
+The Leaf agent implements and stages its Leaf directly, then returns its terminal result to the assigning coordinator. It sends no callback. The coordinator waits for it and runs one `coordinator-state.js close --mode leaf`.
 
-Fill the implementation assignment with the Leaf link, Gate link, plugin root, current constraint delta, and Worktree. The Leaf document owns scope, Spec links, and Context.
+A nested Branch coordinates its children, then callbacks only its Node ID and terminal state; the assigning coordinator runs one `close --mode subslice`. Root Slice owners callback only after review. Do not send Worktree paths, fingerprints, base SHAs, artifact links, Gate evidence, or helper output except that the terminal Root owner must send its reviewed commit and current Worktree root for final application.
 
-The implementation task works directly from the frozen Leaf contract, creates every required artifact, stages its final state, and callbacks only its Node ID and terminal state. Test changes must map directly to the Leaf or linked Spec evidence. `coordinator-state close` is the sole completion-validation entrypoint: implementation tasks do not run tests, builds, lints, type checks, end-to-end checks, or Gate commands before it. Coordinator state runs the fixed Gate set once for that staged fingerprint and supplies every other fact.
+Stage product and mapped test paths only through `prepare-review.js stage`; Proofline Git helpers supply exact process-local `safe.directory`. A Leaf may run one already-frozen Gate item through `run-gates.js feedback` for useful local feedback. Completion checks run only through `coordinator-state.js close`.
 
-A failed Gate or review returns only the evidenced failure to the deepest existing task that owns it. Resume that implementation task for a Leaf-owned Repair; a Branch coordinator routes a broader owned failure to its affected descendants. No owner means `explicit re-slice required`. The assigning coordinator ends its turn after sending the Repair.
+## Repair
 
-For root-only, the task forked from the holder implements the Spec directly, stages the final state, closes the root Gate, creates and waits for the fresh Reviewer, repairs its own blocking findings, and commits only through `coordinator-state review-pass`. It sends the top coordinator one terminal result. There is no separate Slice coordinator or implementation callback for this shape.
+Route each evidenced failure to its deepest existing owner. Resume a Leaf through `followup_task`; resume a Branch in that same Branch task. The owner and role do not change. Re-close only the affected Node, its dependents, and ancestors, and use a fresh Reviewer for every changed review snapshot.
 
-After a Repair, invalidate the repaired Node and subtree, reverse-transitive `blocked_by` dependents and their subtrees, every ancestor, and affected reviews. `run_after` changes order only. Re-close the affected set bottom-up. Stop when the same evidenced failure recurs after Repair or a fixed Node reaches its third failure.
+Stop on a repeated identical evidenced failure after Repair, a repair outside the frozen contract, missing ownership, or `environment_blocked`. Do not turn environment errors such as Gate `EPERM`/`EACCES`, dubious ownership, missing Worktree-local Spec, revision drift, or missing nested repository into implementation Repair.
 
-Any `ABANDON` leaves that path, its dependents, and ancestors incomplete.
+## Root review
 
-## Close and review a Slice
+After the Root Slice or root-only completion Gates pass, retain the review fingerprint locally. Render [Reviewer](references/reviewer.md) with only paths, change counts, boundary link, plugin root, original request, and the exact safe read command. The fresh Reviewer reads a Root boundary through `prepare-review.js diff`; it runs no verification and changes no state.
 
-On a completion callback, the coordinator-state `close` action verifies staged scope, runs the still-unmet items for that boundary, marks a completed Leaf or SubSlice, and returns the next action. The Root Slice closes bottom-up. Branch Gates decide combined behavior at the earliest completed boundary. Root-only uses its root Gate. Review begins only after every applicable completion check is met for the staged snapshot.
+On `pass`, `coordinator-state.js review-pass` verifies the retained fingerprint, marks the boundary complete, commits the reviewed product state, and returns the commit. A root-only Spec then callbacks. A direct Root Slice in a one-Root tree runs `coordinator-state.js finalize --mode single-root` with the captured base and retained Root review fingerprint; this runs the root Gate, proves the committed range is exactly the reviewed snapshot, and completes the Spec without another review. In a multi-Root tree, the Root owner callbacks after its own review. The callback contains only boundary ID, `state=reviewed`, commit, and current Worktree root.
 
-All Leaf changes in one Root Slice form one staged final state. `scripts/prepare-review.js snapshot` returns its paths, per-file change counts, and fingerprint; pass that compact manifest and the review boundary to the Reviewer without copying the Spec or diff. The Reviewer result is `pass | fail`; observations never affect it.
-
-- `pass`: coordinator-state `review-pass` verifies the fingerprint, marks the permitted Root Slice or root-only Spec completed, commits the reviewed staged state, and returns the verified commit, paths, Gates, and unlocked dependents in one invocation. Callback that compact result. For root-only or the only direct Root Slice, this review is also the final Spec review.
-- `fail`: keep the combined staged state, assign each blocking finding to the deepest existing owner, and end the coordinator turn. After callback and fresh Gates, snapshot and review the whole staged Slice again with a fresh Reviewer.
+On `fail`, Repair within the same owners, rerun affected Gates, and review the new whole Root snapshot with a fresh Reviewer.
 
 ## Integration
 
-Before a Root Slice with completed prerequisites starts, its coordinator integrates only the ordered reviewed prerequisite commits and records the resulting Slice base. Its review covers that base-to-staged product delta.
+For one direct Root Slice, finalization already reused its Root review. For multiple direct Root Slices, resume one reviewed Root owner in the same task and role as the integration owner. Send it only the reviewed commits and source Worktree roots required for integration. In dependency order:
 
-The top coordinator verifies each Root Slice callback mechanically with one `coordinator-state.js inspect` invocation containing the callback's `--commit` and `--fingerprint`, selects one compatible completed Root Slice Worktree as the integration Worktree, and cherry-picks only missing reviewed Slice commits in dependency order. It does not repeat semantic review or reopen the Spec after a passing boundary review. Stop on an unexpected commit, path, conflict, revision, or Worktree state.
+1. Verify every callback with `coordinator-state.js inspect --commit`.
+2. Merge completed Node status and Gate evidence with `sync-control-state.js`; immutable definitions must match.
+3. Apply missing reviewed commits with `integrate-reviewed.js`, which uses process-local Git trust and aborts cleanly on conflict.
+4. Run `coordinator-state.js finalize --mode multi-root`; it runs only the frozen root Gate and returns the exact integrated range snapshot.
+5. Give one fresh Reviewer the returned paths and a `prepare-review.js diff-range` command. On `pass`, run `coordinator-state.js finalize-review-pass` with the retained base, commit, and fingerprint.
 
-For root-only, reuse its root Gate and final review. For exactly one direct Root Slice, verify its reviewed commit, fingerprint, and met subtree Gates, then reuse its Spec-boundary review without another Gate or reviewer. For two or more direct Root Slices, run only the root checks that prove their integration, then create one integration review. A successful check is reused while the integrated fingerprint is unchanged.
-
-On final-review `fail`, assign the evidenced failure to the deepest existing owning task and repeat its affected Gates, Slice review, transport, integration checks, and fresh final review. No owner means `explicit re-slice required`.
+The integration owner keeps its existing role. Do not assign an integration-only role marker, rerun already-current descendant checks, or send the final review fingerprint through task callbacks. A changed commit, path, definition, revision, or Worktree state stops integration.
 
 ## Finish
 
-After final review `pass`, run only `node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js apply-reviewed --cwd <checkout> --source <reviewed-worktree> --spec <source-spec-directory> --node <spec-id> --base <captured-head> --commit <reviewed-commit> --fingerprint <reviewed-fingerprint> --destination-fingerprint <captured-fingerprint>`. It rechecks the destination, applies only the verified product range as uncommitted changes, and preserves non-overlapping existing changes. Preserve every successful Gate bound to the unchanged fingerprint. Run only still-unmet destination-specific root checks; descendant and already-met integration checks are not rerun. Failure preserves every workspace and reports incomplete. Never push; a final commit requires explicit authorization.
+After final review passes, run:
 
-Report fresh tree/task/Worktree state, changed paths, Gate totals, `ABANDON`, Slice and final judgments, reviewed transport SHAs, destination evidence, or the exact stop reason. Archive terminal execution tasks and remove Worktrees only when expected state makes non-forced removal safe; otherwise preserve each exact path.
+`node <plugin-root>/skills/start-implementation/scripts/coordinator-state.js apply-reviewed --cwd <checkout> --source <terminal-worktree> --spec <worktree-local-spec> --node <spec-id> --base <captured-head> --commit <reviewed-commit> --destination-fingerprint <captured-destination-fingerprint> --control-fingerprint <captured-control-fingerprint>`
+
+This revalidates both checkouts, the reviewed product range, the unchanged original Spec, and immutable Worktree definitions. It applies the reviewed product range as uncommitted changes and merges only monotonic Spec/Slice status plus Gate check state, evidence, and execution metadata. It never overwrites Spec requirements, Gate definitions, Slice structure, dependencies, or write scope. Any validation or write failure rolls back the application and leaves the original control artifacts unchanged.
+
+Never push. A final commit requires explicit authorization. Remove terminal Worktrees only when ordinary non-forced removal is safe; otherwise report the remaining path.

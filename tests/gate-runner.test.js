@@ -14,8 +14,54 @@ const {
   EVIDENCE_LIMIT,
   gateStatus,
   parseGateDocument,
+  runGateFiles,
   summarizeGateStatus,
 } = require(scriptPath);
+
+test('a Gate result whose record write fails is resumed without rerunning the command', (t) => {
+  const root = fixture(t);
+  const pluginData = path.join(root, 'plugin-data');
+  const counter = path.join(root, 'counter.txt');
+  const gatePath = path.join(root, 'gates.md');
+  fs.writeFileSync(gatePath, gateDocument([{
+    id: 'G1',
+    check: JSON.stringify([
+      process.execPath,
+      '-e',
+      `require('node:fs').appendFileSync(${JSON.stringify(counter)}, 'run\\n')`,
+    ]),
+  }]));
+
+  const previousPluginData = process.env.PLUGIN_DATA;
+  process.env.PLUGIN_DATA = pluginData;
+  const realWrite = fs.writeFileSync;
+  fs.writeFileSync = function blockedWrite(filePath, ...args) {
+    if (path.resolve(filePath) === path.resolve(gatePath)) {
+      const error = new Error('simulated EPERM');
+      error.code = 'EPERM';
+      throw error;
+    }
+    return realWrite.call(this, filePath, ...args);
+  };
+  try {
+    assert.throws(
+      () => runGateFiles([gatePath], { cwd: root }),
+      /result preserved for the unchanged workspace snapshot/,
+    );
+  } finally {
+    fs.writeFileSync = realWrite;
+  }
+
+  try {
+    const resumed = runGateFiles([gatePath], { cwd: root });
+    assert.equal(resumed.executions[0].resumed, true);
+    assert.equal(fs.readFileSync(counter, 'utf8'), 'run\n');
+    assert.match(fs.readFileSync(gatePath, 'utf8'), /- \[x\] G1/);
+  } finally {
+    if (previousPluginData === undefined) delete process.env.PLUGIN_DATA;
+    else process.env.PLUGIN_DATA = previousPluginData;
+  }
+});
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-gates-'));
@@ -200,6 +246,38 @@ test('REQUIRES rejects a missing staged artifact before running its CHECK', (t) 
   assert.equal(fs.readFileSync(marker, 'utf8'), 'ran');
 });
 
+test('REQUIRES accepts the exact committed review range supplied by finalization', (t) => {
+  const root = gitFixture(t);
+  const marker = path.join(root, '.gate-count');
+  const helper = helperCommand(
+    root,
+    'range-required',
+    `require("node:fs").writeFileSync(${JSON.stringify(marker)}, "ran");`,
+  );
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'required helper');
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const filePath = writeGates(control, gateDocument([{
+    id: 'G1',
+    check: [process.execPath, helper.path],
+    requires: ['product.txt'],
+  }]));
+
+  const missing = runGateFiles([filePath], { cwd: root, requiredPaths: ['other.txt'] });
+  assert.equal(missing.status.allMet, false);
+  assert.match(readGate(filePath, 'G1').evidence, /required review-range paths missing/);
+  assert.equal(fs.existsSync(marker), false);
+
+  const passed = runGateFiles([filePath], { cwd: root, requiredPaths: ['product.txt'] });
+  assert.equal(passed.status.allMet, true);
+  assert.equal(fs.readFileSync(marker, 'utf8'), 'ran');
+
+  const staleRange = runGateFiles([filePath], { cwd: root, requiredPaths: ['other.txt'] });
+  assert.equal(staleRange.status.allMet, false);
+  assert.match(readGate(filePath, 'G1').evidence, /required review-range paths missing/);
+});
+
 test('REQUIRES accepts only unique exact project-relative paths', (t) => {
   const root = fixture(t);
   for (const [name, required] of [
@@ -246,6 +324,33 @@ test('feedback records one fixed Gate item and run reuses it on the same staged 
 
   const completion = runCli(['run', '--cwd', root, filePath]);
   assert.equal(completion.status, 0, completion.stderr);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '1');
+});
+
+test('Gate evidence remains current when the reviewed index is committed unchanged', (t) => {
+  const root = gitFixture(t);
+  const control = path.join(root, '.proofline');
+  fs.mkdirSync(control);
+  const marker = path.join(root, '.gate-count');
+  const helper = helperCommand(root, 'commit-stable', [
+    'const fs = require("node:fs");',
+    `const marker = ${JSON.stringify(marker)};`,
+    'const count = fs.existsSync(marker) ? Number(fs.readFileSync(marker, "utf8")) : 0;',
+    'fs.writeFileSync(marker, String(count + 1));',
+  ].join('\n'));
+  git(root, 'add', '--', path.basename(helper.path));
+  git(root, 'commit', '-m', 'feedback helper');
+  fs.writeFileSync(path.join(root, 'product.txt'), 'after\n');
+  git(root, 'add', '--', 'product.txt');
+  const filePath = writeGates(control, gateDocument([{ id: 'G1', check: helper.command }]));
+
+  assert.equal(runCli([
+    'feedback', '--cwd', root, '--gate', filePath, '--id', 'G1',
+  ]).status, 0);
+  assert.equal(fs.readFileSync(marker, 'utf8'), '1');
+  git(root, 'commit', '-m', 'reviewed product');
+
+  assert.equal(runCli(['run', '--cwd', root, filePath]).status, 0);
   assert.equal(fs.readFileSync(marker, 'utf8'), '1');
 });
 

@@ -45,12 +45,15 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 ### Contract
 
 - **Sources:** When a ready Plan is supplied or linked, use it as the primary planning source; apply later confirmed user corrections and decisions, then current project evidence and authoritative domain or linked documents. Without a Plan, use the request and the same remaining sources
+- **Scope ceiling:** The requested outcome and explicit boundaries are the maximum product scope. Repository evidence and a Plan constrain delivery but do not authorize adjacent behavior, generic hardening, cleanup, migration, future extensibility, or new goals. Include supporting work only when omitting it would leave a requested result incomplete or break an existing contract on the changed path
+- **Source gaps:** A named algorithm, policy, standard, format, example, current implementation, or model familiarity does not supply omitted result-changing semantics. A gap is material only when plausible choices would materially change the requested capability, compatibility with an existing consumer or authority, safety, privacy, data retention, or meaningful scope and cost. A detail is not material merely because implementation must fix it or expose it in a file, schema, or API. For a non-material gap, select the narrowest repository-consistent default and keep it as an implementation decision rather than adding a user requirement or acceptance condition
 - **Standalone body:** Include linked information required for implementation or review
 - **Body:** Current contract only
 - **Acceptance:** Convert the current intent into observable, source-supported acceptance conditions and one minimum-sufficient completion set. Every required result has planned evidence capable of deciding it
 - **Verification:** Prove the changed outcome through the smallest realistic check on the real production path. One check may decide multiple acceptance conditions. Add another check only when the primary check cannot decide a distinct source-required result or a reproduced regression. Reuse existing checks when sufficient. When automation would be indirect or unrealistic, use review evidence or no mechanical check instead of inventing a test. Distinguish an explicit artifact obligation such as adding a test, migration, or generated contract from merely passing an existing command. Unchanged behavior and implementation details get no new test
+- **Independence:** A verifier, expected value, or report derived from the candidate implementation cannot independently decide that implementation's correctness
 - **Verification commitment:** Fix that minimum completion set before fan-out; it is the only completion suite. Implementation tasks create and stage required artifacts without pre-running completion checks. A successful check remains evidence for the same code snapshot; only a relevant mutation makes it stale
-- **Boundary:** Do not add product behavior or generic error, performance, or quality conditions absent from the sources
+- **Boundary:** Do not add product behavior or generic error, performance, or quality conditions absent from the sources; an implementation decision must stay inside the requested result and cannot enlarge acceptance
 
 ### Body style
 
@@ -68,7 +71,7 @@ Write Spec files and snapshots only through `node <plugin-root>/writers/document
 
 ## Lifecycle
 
-- **Ready:** Every material source intent is represented, every acceptance condition is source-supported, and each required result has a verification plan capable of producing observable evidence; `spec-slice` can map the contract to a root-only or recursive execution tree, and the implementer can proceed without inventing product behavior, scope, outcome ownership, prerequisite or ordering relationships, state or data rules, compatibility obligations, or proof of the required results
+- **Ready:** Every material source intent is represented, every acceptance condition is source-supported, and each required result has a verification plan capable of producing observable evidence; `spec-slice` can map the contract to a root-only or recursive execution tree, and the implementer can proceed without inventing a requested product result, scope, outcome ownership, material prerequisite or ordering relationship, source-constrained state or data semantics, compatibility obligation, or proof of the required results. Ordinary implementation choices may remain when the narrow-default rule decides them
 - **Draft:** A material decision or unsupported current-state claim could change the contract; expose the gap instead of filling it by inference
 - **Blocked:** An actual external prerequisite only; transient task, tool, reviewer, or runtime failures do not change status
 - **Create:** Revision `1`, with status determined by the ready rule
