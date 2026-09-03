@@ -178,10 +178,11 @@ test('actual dashboard assets are served with the real API fixture', async (t) =
   assert.equal(dashboard.status, 200);
   assert.equal(dashboard.body, readAsset('dashboard.html'));
   assert.match(dashboard.body, /src="\/core\.js"/);
+  assert.match(dashboard.body, /src="\/vendor\/mermaid\.min\.js"/);
   assert.match(dashboard.body, /src="\/app\.js"/);
   assert.match(dashboard.body, /href="\/styles\.css"/);
 
-  for (const asset of ['core.js', 'app.js', 'intro.js', 'styles.css']) {
+  for (const asset of ['core.js', 'app.js', 'intro.js', 'styles.css', 'vendor/mermaid.min.js']) {
     const response = await request(server, `/${asset}`);
     assert.equal(response.status, 200, asset);
     assert.equal(response.body, readAsset(asset));
@@ -717,6 +718,7 @@ test('safe Markdown escapes HTML and only creates hardened HTTP links', () => {
   assert.doesNotMatch(rendered, /href="javascript:/i);
   assert.doesNotMatch(rendered, /<img\s/i);
   assert.match(rendered, /<table>/);
+  assert.match(rendered, /<code>&lt;b&gt;<\/code>/);
   assert.match(rendered, /<pre><code class="language-html">&lt;iframe/);
 });
 
@@ -729,13 +731,21 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(html, /aria-label="등록 프로젝트"/);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /aria-controls="project-panel"/);
+  assert.match(html, /<aside class="project-panel[\s\S]*?<nav class="project-panel-navigation"[\s\S]*?id="architecture-link"/);
+  assert.doesNotMatch(html, /<div class="context-actions">\s*<a[^>]+id="architecture-link"/);
+  assert.match(html, /src="\/vendor\/mermaid\.min\.js"/);
+  assert.doesNotMatch(html, /id="rail-toggle"/);
   assert.ok((html.match(/data-tooltip=/g) || []).length >= 4);
 
   assert.match(css, /grid-template-columns:\s*210px minmax\(0, 1fr\)/);
   assert.match(css, /@media \(max-width: 899px\) and \(min-width: 681px\)/);
-  assert.match(css, /grid-template-columns:\s*64px minmax\(0, 1fr\)/);
-  assert.match(css, /\.project-rail-cue\s*\{[\s\S]*?display:\s*grid/);
-  assert.match(css, /\.rail-cue-secondary[\s\S]*?font-size:\s*0\.58rem/);
+  assert.match(css, /\.app-shell\.project-panel-collapsed\s*\{[\s\S]*?grid-template-columns:\s*0 minmax\(0, 1fr\)/);
+  assert.match(css, /\.project-panel-collapsed \.project-panel\s*\{[\s\S]*?display:\s*none/);
+  assert.match(css, /\.project-panel-link\s*\{[\s\S]*?width:\s*100%/);
+  assert.match(css, /\.document-layout\.is-list-collapsed\s*\{[\s\S]*?grid-template-columns:\s*48px minmax\(0, 1fr\)/);
+  assert.match(css, /\.markdown-body code\s*\{[\s\S]*?background:\s*var\(--markdown-code-bg\)/);
+  assert.match(css, /\.markdown-body h1,[\s\S]*?border-bottom:\s*2px solid var\(--markdown-heading-line\)/);
+  assert.match(css, /\.markdown-body \.mermaid\s*\{/);
   assert.match(css, /@media \(max-width: 680px\)[\s\S]*?\.project-panel\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?z-index:\s*60;/);
   assert.match(css, /\.drawer-open \.project-panel[\s\S]*?transform:\s*translateX\(0\)/);
   assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.issue-axes[\s\S]*?grid-template-columns:\s*repeat\(3,/);
@@ -758,6 +768,11 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(app, /event\.key === 'Tab'[\s\S]*?containDrawerFocus\(event\)/);
   assert.match(app, /event\.shiftKey \? last : first/);
   assert.match(app, /state\.drawerReturnFocus = document\.activeElement/);
+  assert.match(app, /setProjectPanelCollapsed\(!state\.projectPanelCollapsed\)/);
+  assert.match(app, /state\.workListCollapsed = !state\.workListCollapsed/);
+  assert.match(app, /state\.documentListCollapsed = !state\.documentListCollapsed/);
+  assert.match(app, /querySelectorAll\('pre > code\.language-mermaid'\)/);
+  assert.match(app, /mermaid\.run\(\{ nodes:/);
   assert.match(app, /firstProject \|\| elements\.projectSearch/);
   assert.match(app, /focusTarget\.focus\(\)/);
   assert.match(app, /event\.key === 'Escape'/);

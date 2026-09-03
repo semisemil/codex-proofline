@@ -8,6 +8,7 @@
   <title>Proofline Dashboard</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/core.js" defer></script>
+  <script src="/vendor/mermaid.min.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -19,11 +20,12 @@
           <p class="eyebrow">Proofline</p>
           <h1>Pulse</h1>
         </div>
-        <button class="icon-button rail-toggle" id="rail-toggle" type="button"
-          aria-label="프로젝트 레일 펼치기" aria-expanded="false" data-tooltip="프로젝트 레일 펼치기">›</button>
         <button class="icon-button drawer-close" id="drawer-close" type="button"
-          aria-label="프로젝트 drawer 닫기" data-tooltip="프로젝트 drawer 닫기">×</button>
+          aria-label="프로젝트 목록 닫기" data-tooltip="프로젝트 목록 닫기">×</button>
       </div>
+      <nav class="project-panel-navigation" aria-label="화면 전환">
+        <a class="surface-link project-panel-link" id="architecture-link" href="/architecture">아키텍처</a>
+      </nav>
       <label class="project-search">
         <span>프로젝트 찾기</span>
         <input id="project-search" type="search" autocomplete="off" placeholder="이름 또는 경로">
@@ -31,14 +33,14 @@
       <div class="project-list" id="project-list" role="listbox" aria-label="등록 프로젝트 목록"></div>
     </aside>
 
-    <button class="scrim" id="drawer-scrim" type="button" aria-label="프로젝트 drawer 닫기" tabindex="-1"></button>
+    <button class="scrim" id="drawer-scrim" type="button" aria-label="프로젝트 목록 닫기" tabindex="-1"></button>
 
     <div class="workspace">
       <header class="context-bar glass">
         <div class="context-main">
           <button class="icon-button menu-button" id="menu-button" type="button"
-            aria-label="프로젝트 drawer 열기" aria-expanded="false" aria-controls="project-panel"
-            data-tooltip="프로젝트 drawer 열기">☰</button>
+            aria-label="프로젝트 목록 접기" aria-expanded="true" aria-controls="project-panel"
+            data-tooltip="프로젝트 목록 접기">☰</button>
           <div class="current-context">
             <span>현재 프로젝트</span>
             <strong id="current-project">선택 안 됨</strong>
@@ -50,7 +52,6 @@
             placeholder="이슈, 플랜, 스펙 검색" disabled>
         </label>
         <div class="context-actions">
-          <a class="surface-link" id="architecture-link" href="/architecture">아키텍처</a>
           <button id="refresh-button" type="button" disabled>다시 읽기</button>
           <button class="icon-button" id="theme-button" type="button"
             aria-label="다크 테마로 전환" data-tooltip="다크 테마로 전환">◐</button>

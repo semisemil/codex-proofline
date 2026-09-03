@@ -24,6 +24,9 @@
   --danger: #9d352f;
   --warning: #986110;
   --focus: color-mix(in srgb, var(--accent) 78%, #ffffff);
+  --markdown-code-bg: rgba(74, 66, 60, 0.12);
+  --markdown-heading-bg: color-mix(in srgb, var(--accent) 9%, var(--surface-strong));
+  --markdown-heading-line: color-mix(in srgb, var(--accent) 62%, var(--line));
   --space: 4px;
   font-family: "Segoe UI Variable", "Noto Sans KR", "Malgun Gothic", sans-serif;
   background: var(--bg);
@@ -53,6 +56,9 @@
   --danger: #ff9e95;
   --warning: #f0bf68;
   --focus: color-mix(in srgb, var(--accent) 62%, #ffffff);
+  --markdown-code-bg: rgba(221, 216, 210, 0.13);
+  --markdown-heading-bg: color-mix(in srgb, var(--accent) 12%, var(--surface-strong));
+  --markdown-heading-line: color-mix(in srgb, var(--accent) 72%, var(--line));
 }
 
 * {
@@ -175,6 +181,15 @@ select {
   padding: calc(var(--space) * 4);
 }
 
+.app-shell.project-panel-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+  gap: 0;
+}
+
+.project-panel-collapsed .project-panel {
+  display: none;
+}
+
 .project-panel {
   position: sticky;
   top: 16px;
@@ -207,6 +222,16 @@ select {
   margin: 0;
   font-size: 1.35rem;
   letter-spacing: -0.03em;
+}
+
+.project-panel-navigation {
+  display: grid;
+  margin-top: calc(var(--space) * 4);
+}
+
+.project-panel-link {
+  width: 100%;
+  justify-content: start;
 }
 
 .eyebrow {
@@ -409,9 +434,7 @@ select {
   cursor: pointer;
 }
 
-.menu-button,
-.drawer-close,
-.rail-toggle {
+.drawer-close {
   display: none;
 }
 
@@ -559,6 +582,19 @@ select {
 
 .section-heading p {
   color: var(--muted);
+}
+
+.section-heading-text {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.list-toggle {
+  flex: 0 0 auto;
+  font-size: 1.15rem;
+  font-weight: 760;
 }
 
 .issue-list,
@@ -737,6 +773,28 @@ select {
   min-width: 0;
 }
 
+.document-layout.is-list-collapsed {
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.document-list-region.is-collapsed {
+  border-right: 1px solid var(--line);
+  padding-right: 8px;
+}
+
+.document-list-region.is-collapsed .section-heading {
+  justify-content: center;
+}
+
+.document-list-region.is-collapsed .section-heading-text {
+  display: none;
+}
+
+.document-layout.is-list-collapsed .document-detail {
+  max-width: none;
+}
+
 .document-option {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -841,6 +899,22 @@ select {
   line-height: 1.28;
 }
 
+.markdown-body h1,
+.markdown-body h2 {
+  border-bottom: 2px solid var(--markdown-heading-line);
+  padding-bottom: 0.38em;
+}
+
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  border-left: 3px solid var(--markdown-heading-line);
+  border-radius: 0 6px 6px 0;
+  background: var(--markdown-heading-bg);
+  padding: 0.35em 0.58em;
+}
+
 .markdown-body p,
 .markdown-body ul,
 .markdown-body ol {
@@ -854,7 +928,6 @@ select {
 }
 
 .markdown-body pre,
-.markdown-body code,
 .markdown-table-wrap {
   background: var(--surface-opaque);
 }
@@ -862,6 +935,7 @@ select {
 .markdown-body code {
   border: 1px solid var(--line);
   border-radius: 4px;
+  background: var(--markdown-code-bg);
   padding: 0.1em 0.32em;
   font-family: "Cascadia Code", Consolas, monospace;
 }
@@ -877,6 +951,21 @@ select {
   border: 0;
   padding: 0;
   background: transparent;
+}
+
+.markdown-body .mermaid {
+  overflow: auto;
+  margin: 24px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-opaque);
+  padding: 20px;
+  text-align: center;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .markdown-table-wrap {
@@ -988,18 +1077,6 @@ select {
 }
 
 @media (max-width: 899px) and (min-width: 681px) {
-  .app-shell {
-    grid-template-columns: 64px minmax(0, 1fr);
-  }
-
-  .app-shell.rail-expanded {
-    grid-template-columns: 210px minmax(0, 1fr);
-  }
-
-  .project-panel {
-    padding: 12px 8px;
-  }
-
   .context-bar {
     flex-wrap: wrap;
   }
@@ -1007,100 +1084,6 @@ select {
   .global-search {
     order: 3;
     flex-basis: 100%;
-  }
-
-  .project-panel h1,
-  .project-panel .eyebrow,
-  .project-search,
-  .project-option > :not(.project-rail-cue) {
-    display: none;
-  }
-
-  .project-panel-heading {
-    justify-content: center;
-  }
-
-  .rail-toggle {
-    display: inline-grid;
-  }
-
-  .project-list {
-    margin-top: 16px;
-  }
-
-  .project-option {
-    display: block;
-    min-height: 44px;
-    padding: 10px 4px;
-    text-align: center;
-  }
-
-  .project-rail-cue {
-    display: grid;
-    gap: 1px;
-    min-width: 0;
-    line-height: 1.05;
-    text-align: center;
-  }
-
-  .rail-cue-primary,
-  .rail-cue-secondary {
-    display: block;
-    max-width: 44px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .rail-cue-primary {
-    font-size: 0.82rem;
-    font-weight: 760;
-  }
-
-  .rail-cue-secondary {
-    color: var(--muted);
-    font-size: 0.58rem;
-  }
-
-  .rail-expanded .project-panel {
-    padding: 16px;
-  }
-
-  .rail-expanded .project-panel-heading {
-    justify-content: space-between;
-  }
-
-  .rail-expanded .project-panel h1,
-  .rail-expanded .project-panel .eyebrow,
-  .rail-expanded .project-search,
-  .rail-expanded .project-option > :not(.project-rail-cue) {
-    display: initial;
-  }
-
-  .rail-expanded .project-search,
-  .rail-expanded .project-option {
-    display: grid;
-  }
-
-  .rail-expanded .project-option {
-    text-align: left;
-  }
-
-  .rail-expanded .project-rail-cue {
-    display: none;
-  }
-
-  .rail-expanded .issue-toggle {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .rail-expanded .issue-axes {
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  .rail-expanded .document-layout {
-    grid-template-columns: 1fr;
   }
 
   .issue-toggle {
@@ -1116,13 +1099,17 @@ select {
   }
 
   .document-layout {
-    grid-template-columns: minmax(220px, 0.75fr) minmax(340px, 1.25fr);
+    grid-template-columns: 1fr;
+  }
+
+  .document-layout.is-list-collapsed {
+    grid-template-columns: 48px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 680px) {
   .app-shell,
-  .app-shell.rail-expanded {
+  .app-shell.project-panel-collapsed {
     display: block;
     padding: 12px;
   }
@@ -1246,6 +1233,17 @@ select {
 
   .document-layout {
     grid-template-columns: 1fr;
+  }
+
+  .document-layout.is-list-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .document-list-region.is-collapsed {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-right: 0;
+    padding-bottom: 8px;
   }
 
   .document-detail {

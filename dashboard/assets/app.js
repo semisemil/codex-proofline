@@ -25,6 +25,8 @@
     documentKind: 'all',
     documentStatus: 'all',
     documentSort: 'date-desc',
+    workListCollapsed: false,
+    documentListCollapsed: false,
     expandedIssues: new Set(),
     selectedDocument: null,
     documents: new Map(),
@@ -35,6 +37,7 @@
     health: null,
     expectedVersion: new URLSearchParams(globalThis.location.search).get('expected_version'),
     requestedProjectId: new URLSearchParams(globalThis.location.search).get('project'),
+    projectPanelCollapsed: false,
     drawerOpen: false,
     drawerReturnFocus: null,
     backgroundUrl: null,
@@ -59,7 +62,6 @@
     menu: byId('menu-button'),
     close: byId('drawer-close'),
     scrim: byId('drawer-scrim'),
-    rail: byId('rail-toggle'),
     theme: byId('theme-button'),
     backgroundMode: byId('background-mode'),
     background: byId('background-button'),
@@ -434,15 +436,32 @@
       sort: state.issueSort,
     });
     const heading = make('div', 'section-heading');
-    heading.append(make('h2', '', '작업'), make('p', '', `${issues.length}개 표시`));
+    const headingText = make('div', 'section-heading-text');
+    headingText.append(make('h2', '', '작업'), make('p', '', `${issues.length}개 표시`));
+    const listToggle = button(state.workListCollapsed ? '›' : '‹', 'icon-button list-toggle');
+    const toggleLabel = state.workListCollapsed ? '작업 목록 펼치기' : '작업 목록 접기';
+    listToggle.dataset.focusKey = 'work:list-toggle';
+    listToggle.dataset.tooltip = toggleLabel;
+    listToggle.setAttribute('aria-label', toggleLabel);
+    listToggle.setAttribute('aria-controls', 'work-list');
+    listToggle.setAttribute('aria-expanded', String(!state.workListCollapsed));
+    listToggle.addEventListener('click', () => {
+      state.workListCollapsed = !state.workListCollapsed;
+      renderView('work:list-toggle');
+    });
+    heading.append(headingText, listToggle);
     fragment.append(heading);
+    const listContent = make('div', 'collapsible-list-content');
+    listContent.id = 'work-list';
+    listContent.hidden = state.workListCollapsed;
     if (issues.length === 0) {
-      fragment.append(emptyState('표시할 작업 없음', '검색어 또는 유형·상태·위험도 필터를 바꿔 보세요.'));
+      listContent.append(emptyState('표시할 작업 없음', '검색어 또는 유형·상태·위험도 필터를 바꿔 보세요.'));
     } else {
       const list = make('div', 'issue-list');
       for (const issue of issues) list.append(renderIssue(issue));
-      fragment.append(list);
+      listContent.append(list);
     }
+    fragment.append(listContent);
     fragment.append(renderDiagnostics());
     return fragment;
   }
@@ -545,12 +564,27 @@
       status: state.documentStatus,
       sort: state.documentSort,
     });
-    const layout = make('div', 'document-layout');
-    const listRegion = make('section', 'document-list-region');
+    const layout = make('div', state.documentListCollapsed ? 'document-layout is-list-collapsed' : 'document-layout');
+    const listRegion = make('section', state.documentListCollapsed ? 'document-list-region is-collapsed' : 'document-list-region');
     const heading = make('div', 'section-heading');
-    heading.append(make('h2', '', '문서'), make('p', '', `${documents.length}개 표시`));
+    const headingText = make('div', 'section-heading-text');
+    headingText.append(make('h2', '', '문서'), make('p', '', `${documents.length}개 표시`));
+    const listToggle = button(state.documentListCollapsed ? '›' : '‹', 'icon-button list-toggle');
+    const toggleLabel = state.documentListCollapsed ? '문서 목록 펼치기' : '문서 목록 접기';
+    listToggle.dataset.focusKey = 'documents:list-toggle';
+    listToggle.dataset.tooltip = toggleLabel;
+    listToggle.setAttribute('aria-label', toggleLabel);
+    listToggle.setAttribute('aria-controls', 'document-list');
+    listToggle.setAttribute('aria-expanded', String(!state.documentListCollapsed));
+    listToggle.addEventListener('click', () => {
+      state.documentListCollapsed = !state.documentListCollapsed;
+      renderView('documents:list-toggle');
+    });
+    heading.append(headingText, listToggle);
     listRegion.append(heading);
     const list = make('div', 'document-list');
+    list.id = 'document-list';
+    list.hidden = state.documentListCollapsed;
     if (documents.length === 0) {
       list.append(emptyState('표시할 문서 없음', '검색어 또는 종류·상태 필터를 바꿔 보세요.'));
     } else {
@@ -619,6 +653,29 @@
     body.innerHTML = core.renderMarkdown(typeof detail.body === 'string' ? detail.body : '');
     region.append(header, metadata, body);
     return region;
+  }
+
+  async function renderMermaid(root = elements.viewPanel) {
+    const mermaid = globalThis.mermaid;
+    const codeBlocks = [...root.querySelectorAll('pre > code.language-mermaid')];
+    if (codeBlocks.length === 0 || !mermaid) return;
+    const replacements = codeBlocks.map((code) => {
+      const original = code.parentElement;
+      const diagram = make('div', 'mermaid');
+      diagram.textContent = code.textContent;
+      original.replaceWith(diagram);
+      return { diagram, original };
+    });
+    try {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+      await mermaid.run({ nodes: replacements.map(({ diagram }) => diagram) });
+    } catch {
+      for (const { diagram, original } of replacements) {
+        if (diagram.isConnected) diagram.replaceWith(original);
+      }
+      state.notice = '일부 Mermaid 다이어그램을 코드로 표시합니다.';
+      renderStatus();
+    }
   }
 
   async function openDocument(kind, id, options = {}) {
@@ -725,6 +782,7 @@
   function commitView(content, focusKey, fallbackFocusKey) {
     elements.viewPanel.append(content);
     core.restoreFocusByKey(elements.viewPanel, focusKey, fallbackFocusKey);
+    renderMermaid();
   }
 
   function renderView(
@@ -820,12 +878,26 @@
     }
   }
 
+  function setProjectPanelCollapsed(collapsed) {
+    state.projectPanelCollapsed = Boolean(collapsed);
+    elements.shell.classList.toggle('project-panel-collapsed', state.projectPanelCollapsed);
+    elements.panel.inert = state.projectPanelCollapsed;
+    if (state.projectPanelCollapsed) elements.panel.setAttribute('aria-hidden', 'true');
+    else elements.panel.removeAttribute('aria-hidden');
+    elements.menu.setAttribute('aria-expanded', String(!state.projectPanelCollapsed));
+    const label = state.projectPanelCollapsed ? '프로젝트 목록 펼치기' : '프로젝트 목록 접기';
+    elements.menu.setAttribute('aria-label', label);
+    elements.menu.dataset.tooltip = label;
+  }
+
   function openDrawer() {
     if (!isMobile()) return;
     state.drawerReturnFocus = document.activeElement;
     state.drawerOpen = true;
     document.body.classList.add('drawer-open');
     elements.menu.setAttribute('aria-expanded', 'true');
+    elements.menu.setAttribute('aria-label', '프로젝트 목록 닫기');
+    elements.menu.dataset.tooltip = '프로젝트 목록 닫기';
     elements.panel.setAttribute('aria-hidden', 'false');
     elements.panel.inert = false;
     setWorkspaceInert(true);
@@ -837,6 +909,8 @@
     state.drawerOpen = false;
     document.body.classList.remove('drawer-open');
     elements.menu.setAttribute('aria-expanded', 'false');
+    elements.menu.setAttribute('aria-label', '프로젝트 목록 열기');
+    elements.menu.dataset.tooltip = '프로젝트 목록 열기';
     setWorkspaceInert(false);
     if (isMobile()) {
       elements.panel.setAttribute('aria-hidden', 'true');
@@ -849,15 +923,19 @@
 
   function syncResponsiveState() {
     if (isMobile()) {
+      elements.shell.classList.remove('project-panel-collapsed');
       elements.panel.inert = !state.drawerOpen;
       elements.panel.setAttribute('aria-hidden', String(!state.drawerOpen));
+      elements.menu.setAttribute('aria-expanded', String(state.drawerOpen));
+      const label = state.drawerOpen ? '프로젝트 목록 닫기' : '프로젝트 목록 열기';
+      elements.menu.setAttribute('aria-label', label);
+      elements.menu.dataset.tooltip = label;
     } else {
       state.drawerOpen = false;
       document.body.classList.remove('drawer-open');
       elements.panel.inert = false;
-      elements.panel.removeAttribute('aria-hidden');
       setWorkspaceInert(false);
-      elements.menu.setAttribute('aria-expanded', 'false');
+      setProjectPanelCollapsed(state.projectPanelCollapsed);
     }
   }
 
@@ -954,17 +1032,12 @@
       renderView();
     });
     elements.refresh.addEventListener('click', () => loadIndex(true));
-    elements.menu.addEventListener('click', openDrawer);
+    elements.menu.addEventListener('click', () => {
+      if (isMobile()) openDrawer();
+      else setProjectPanelCollapsed(!state.projectPanelCollapsed);
+    });
     elements.close.addEventListener('click', () => closeDrawer(true));
     elements.scrim.addEventListener('click', () => closeDrawer(true));
-    elements.rail.addEventListener('click', () => {
-      const expanded = elements.shell.classList.toggle('rail-expanded');
-      elements.rail.setAttribute('aria-expanded', String(expanded));
-      const label = expanded ? '프로젝트 레일 접기' : '프로젝트 레일 펼치기';
-      elements.rail.setAttribute('aria-label', label);
-      elements.rail.dataset.tooltip = label;
-      elements.rail.textContent = expanded ? '‹' : '›';
-    });
     elements.tabs.addEventListener('click', (event) => {
       const tab = event.target.closest('[role="tab"]');
       if (tab) activateTab(tab.dataset.view);
