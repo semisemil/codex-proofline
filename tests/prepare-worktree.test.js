@@ -39,6 +39,16 @@ function writeSpec(root, id = 'SPEC-0001') {
   return spec;
 }
 
+test('control manifest rejects a control change during its validated snapshot', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-control-snapshot-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10 }));
+  const spec = writeSpec(root);
+  const gate = path.join(spec, 'gates', 'SPEC-0001.md');
+  assert.throws(() => controlManifest(spec, {
+    afterTree: () => fs.appendFileSync(gate, '\n'),
+  }), /Spec control state changed while capturing its manifest/);
+});
+
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-prepare-worktree-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true, maxRetries: 10 }));

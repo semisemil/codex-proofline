@@ -13,6 +13,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const script = path.resolve(
   __dirname, '..', 'skills', 'start-implementation', 'scripts', 'coordinator-state.js',
 );
+const { closeBatch, completeBoundariesAtomically } = require(script);
 
 function git(cwd, ...args) {
   const result = spawnSync('git', args, { cwd, encoding: null, windowsHide: true });
@@ -107,6 +108,54 @@ function runAction({ cwd, spec }, action, nodeId, ...extra) {
   return spawnSync(process.execPath, [
     script, action, '--cwd', cwd, '--spec', spec, '--node', nodeId, ...extra,
   ], { cwd, encoding: 'utf8', windowsHide: true });
+}
+
+function runBatch({ cwd, spec }, ...nodeIds) {
+  return spawnSync(process.execPath, [
+    script, 'close-batch', '--cwd', cwd, '--spec', spec, '--nodes', nodeIds.join(','),
+  ], { cwd, encoding: 'utf8', windowsHide: true });
+}
+
+function statusOf(filePath) {
+  return JSON.parse(
+    fs.readFileSync(filePath, 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
+  ).status;
+}
+
+function batchFixture(t, secondFails = false) {
+  const state = fixture(t);
+  for (const [id, scope] of [
+    ['SLICE-01.01', 'src/backend'],
+    ['SLICE-01.02', 'src/frontend'],
+  ]) {
+    const slicePath = path.join(state.spec, 'slices', `${id}.md`);
+    fs.writeFileSync(
+      slicePath,
+      fs.readFileSync(slicePath, 'utf8').replace(`"${scope}"`, `"${scope}/"`),
+    );
+  }
+  const success = JSON.stringify([process.execPath, '-e', 'process.exit(0)']);
+  const conditional = [
+    "const fs=require('node:fs');",
+    "if(fs.readFileSync('src/frontend/item.txt','utf8').includes('fixed')) process.exit(0);",
+    "process.stdout.write('DIAGNOSTIC-HEAD\\n'+'x'.repeat(5000)+'\\nDIAGNOSTIC-TAIL\\n');",
+    'process.exit(4);',
+  ].join('');
+  gate(state.spec, 'SLICE-01.01', false, success, ['src/backend/item.txt']);
+  gate(
+    state.spec,
+    'SLICE-01.02',
+    false,
+    JSON.stringify([process.execPath, '-e', conditional]),
+    ['src/frontend/item.txt'],
+  );
+  fs.writeFileSync(path.join(state.cwd, 'src', 'backend', 'item.txt'), 'backend fixed\n');
+  fs.writeFileSync(
+    path.join(state.cwd, 'src', 'frontend', 'item.txt'),
+    secondFails ? 'frontend pending\n' : 'frontend fixed\n',
+  );
+  git(state.cwd, 'add', '--', 'src/backend/item.txt', 'src/frontend/item.txt');
+  return state;
 }
 
 function rootOnlyFixture(t) {
@@ -346,6 +395,249 @@ test('close accepts CRLF line terminators in the staged product snapshot', (t) =
   assert.equal(JSON.parse(result.stdout).action, 'review');
 });
 
+test('close-batch completes one ready sibling Leaf cohort atomically', (t) => {
+  const state = batchFixture(t);
+  const ids = ['SLICE-01.01', 'SLICE-01.02'];
+  const result = runBatch(state, ...ids);
+  assert.equal(result.status, 0, result.stderr);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.action, 'continue');
+  assert.deepEqual(output.completed, ids);
+  assert.deepEqual([...new Set(output.gates.map((gateResult) => gateResult.node))], ids);
+  for (const id of ids) {
+    assert.equal(statusOf(path.join(state.spec, 'slices', `${id}.md`)), 'completed');
+  }
+});
+
+test('close-batch leaves every status pending on Gate failure and rechecks after Repair', (t) => {
+  const state = batchFixture(t, true);
+  const ids = ['SLICE-01.01', 'SLICE-01.02'];
+  const first = runBatch(state, ...ids);
+  assert.equal(first.status, 1, first.stderr);
+  const failed = JSON.parse(first.stdout);
+  assert.equal(failed.action, 'repair');
+  assert.deepEqual(failed.completed, []);
+  assert.deepEqual(failed.failures, [{ node: 'SLICE-01.02', reasons: ['gate-failed'] }]);
+  const diagnostic = failed.gates.find((item) => item.node === 'SLICE-01.02').diagnostic;
+  assert.ok(diagnostic.length <= 4096, diagnostic.length);
+  assert.match(diagnostic, /^DIAGNOSTIC-HEAD/);
+  assert.match(diagnostic, /output omitted/);
+  assert.match(diagnostic, /DIAGNOSTIC-TAIL$/);
+  for (const id of ids) {
+    assert.equal(statusOf(path.join(state.spec, 'slices', `${id}.md`)), 'pending');
+  }
+  const firstEvidence = normalizedText(path.join(state.spec, 'gates', 'SLICE-01.01.md'));
+
+  fs.writeFileSync(path.join(state.cwd, 'src', 'frontend', 'item.txt'), 'frontend fixed\n');
+  git(state.cwd, 'add', '--', 'src/frontend/item.txt');
+  const repaired = runBatch(state, ...ids);
+  assert.equal(repaired.status, 0, repaired.stderr);
+  for (const id of ids) {
+    assert.equal(statusOf(path.join(state.spec, 'slices', `${id}.md`)), 'completed');
+  }
+  assert.notEqual(
+    normalizedText(path.join(state.spec, 'gates', 'SLICE-01.01.md')),
+    firstEvidence,
+  );
+});
+
+test('close-batch rejects duplicate, non-Leaf, non-sibling, and non-ready input', (t) => {
+  const duplicate = batchFixture(t);
+  let result = runBatch(duplicate, 'SLICE-01.01', 'SLICE-01.01');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /must be distinct/);
+
+  const nonLeaf = batchFixture(t);
+  result = runBatch(nonLeaf, 'SLICE-01', 'SLICE-01.01');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /requires Leaf Nodes/);
+
+  const nonSibling = batchFixture(t);
+  fs.writeFileSync(
+    path.join(nonSibling.spec, 'SPEC.md'),
+    fs.readFileSync(path.join(nonSibling.spec, 'SPEC.md'), 'utf8')
+      .replace('- [SLICE-01](slices/SLICE-01.md)', [
+        '- [SLICE-01](slices/SLICE-01.md)',
+        '- [SLICE-02](slices/SLICE-02.md)',
+      ].join('\n')),
+  );
+  node(nonSibling.spec, 'SLICE-02', 'SPEC-0001', ['src/second']);
+  fs.mkdirSync(path.join(nonSibling.cwd, 'src', 'second'), { recursive: true });
+  fs.writeFileSync(path.join(nonSibling.cwd, 'src', 'second', 'item.txt'), 'second\n');
+  git(nonSibling.cwd, 'add', '--', 'src/second/item.txt');
+  result = runBatch(nonSibling, 'SLICE-01.01', 'SLICE-02');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /share one direct parent/);
+
+  const blocked = batchFixture(t);
+  const blockedPath = path.join(blocked.spec, 'slices', 'SLICE-01.02.md');
+  fs.writeFileSync(
+    blockedPath,
+    fs.readFileSync(blockedPath, 'utf8')
+      .replace('"blocked_by": []', '"blocked_by": [\n    "SLICE-01.01"\n  ]'),
+  );
+  result = runBatch(blocked, 'SLICE-01.01', 'SLICE-01.02');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /not ready: SLICE-01\.02/);
+});
+
+test('atomic Leaf status completion rolls back an earlier write when a later write fails', (t) => {
+  const state = batchFixture(t);
+  const ids = ['SLICE-01.01', 'SLICE-01.02'];
+  const originals = ids.map((id) => fs.readFileSync(
+    path.join(state.spec, 'slices', `${id}.md`), 'utf8',
+  ));
+  let writes = 0;
+  assert.throws(() => completeBoundariesAtomically(state.spec, ids, (...args) => {
+    writes += 1;
+    if (writes === 2) {
+      fs.writeFileSync(args[0], args[1].slice(0, 16), args[2]);
+      const error = new Error('forced status write failure');
+      error.code = 'EACCES';
+      throw error;
+    }
+    fs.writeFileSync(...args);
+  }), /forced status write failure/);
+  ids.forEach((id, index) => {
+    assert.equal(
+      fs.readFileSync(path.join(state.spec, 'slices', `${id}.md`), 'utf8'),
+      originals[index],
+    );
+  });
+});
+
+test('close-batch rejects a changed product snapshot before completing statuses', (t) => {
+  const state = batchFixture(t);
+  const ids = ['SLICE-01.01', 'SLICE-01.02'];
+  let fingerprintCalls = 0;
+  const result = closeBatch({
+    action: 'close-batch', cwd: state.cwd, spec: state.spec, nodes: ids,
+  }, {
+    productFingerprint: () => `sha256:${String(++fingerprintCalls).padStart(64, '0')}`,
+    runGateFiles: () => ({
+      executions: ids.map((id) => ({
+        filePath: path.join(state.spec, 'gates', `${id}.md`),
+        id: 'G1', passed: true, skipped: false,
+      })),
+      status: { allMet: true },
+    }),
+  });
+  assert.equal(result.action, 'environment_blocked');
+  assert.match(result.error, /product snapshot changed during close-batch/);
+  for (const id of ids) {
+    assert.equal(statusOf(path.join(state.spec, 'slices', `${id}.md`)), 'pending');
+  }
+});
+
+test('close-batch rolls statuses back when the product changes after status completion', (t) => {
+  const state = batchFixture(t);
+  const ids = ['SLICE-01.01', 'SLICE-01.02'];
+  const stable = `sha256:${'a'.repeat(64)}`;
+  const changed = `sha256:${'b'.repeat(64)}`;
+  const fingerprints = [stable, stable, stable, changed];
+  const result = closeBatch({
+    action: 'close-batch', cwd: state.cwd, spec: state.spec, nodes: ids,
+  }, {
+    productFingerprint: () => fingerprints.shift(),
+  });
+  assert.equal(result.action, 'environment_blocked');
+  assert.match(result.error, /product snapshot changed during close-batch/);
+  for (const id of ids) {
+    assert.equal(statusOf(path.join(state.spec, 'slices', `${id}.md`)), 'pending');
+  }
+});
+
+test('close-batch revalidates an overlapping completed Leaf and its completed Branch', (t) => {
+  const state = fixture(t);
+  fs.rmSync(path.join(state.spec, 'slices', 'SLICE-01.02.md'));
+  fs.rmSync(path.join(state.spec, 'gates', 'SLICE-01.02.md'));
+  const specPath = path.join(state.spec, 'SPEC.md');
+  fs.writeFileSync(
+    specPath,
+    fs.readFileSync(specPath, 'utf8').replace(
+      '- [SLICE-01](slices/SLICE-01.md)',
+      '- [SLICE-01](slices/SLICE-01.md)\n- [SLICE-02](slices/SLICE-02.md)',
+    ),
+  );
+  const firstBranch = path.join(state.spec, 'slices', 'SLICE-01.md');
+  const first = path.join(state.spec, 'slices', 'SLICE-01.01.md');
+  fs.writeFileSync(
+    first,
+    fs.readFileSync(first, 'utf8').replace('"src/backend"', '"src/shared/"'),
+  );
+  node(state.spec, 'SLICE-02', 'SPEC-0001', []);
+  const secondBranch = path.join(state.spec, 'slices', 'SLICE-02.md');
+  fs.writeFileSync(
+    secondBranch,
+    fs.readFileSync(secondBranch, 'utf8')
+      .replace('"run_after": []', '"run_after": [\n    "SLICE-01"\n  ]'),
+  );
+  node(state.spec, 'SLICE-02.01', 'SLICE-02', ['src/shared/']);
+  const second = path.join(state.spec, 'slices', 'SLICE-02.01.md');
+  fs.mkdirSync(path.join(state.cwd, 'src', 'shared'), { recursive: true });
+  const shared = path.join(state.cwd, 'src', 'shared', 'item.txt');
+  fs.writeFileSync(shared, 'first valid\n');
+  const predecessorCheck = JSON.stringify([
+    process.execPath, '-e',
+    "const fs=require('node:fs');process.exit(fs.readFileSync('src/shared/item.txt','utf8').includes('invalid')?4:0)",
+  ]);
+  const pass = JSON.stringify([process.execPath, '-e', 'process.exit(0)']);
+  gate(state.spec, 'SLICE-01.01', false, pass);
+  gate(state.spec, 'SLICE-01', false, predecessorCheck, ['src/shared/item.txt']);
+  gate(state.spec, 'SLICE-02.01', false, pass);
+  git(state.cwd, 'add', '--', 'src/shared/item.txt');
+
+  let result = runBatch(state, 'SLICE-01.01');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(statusOf(first), 'completed');
+  result = runAction(state, 'close', 'SLICE-01', '--mode', 'subslice');
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(statusOf(firstBranch), 'completed');
+
+  fs.writeFileSync(shared, 'invalid successor\n');
+  git(state.cwd, 'add', '--', 'src/shared/item.txt');
+  result = runBatch(state, 'SLICE-02.01');
+  assert.equal(result.status, 1, result.stderr);
+  let output = JSON.parse(result.stdout);
+  assert.deepEqual(output.revalidated, ['SLICE-01.01', 'SLICE-01']);
+  assert.deepEqual(output.failures, [{ node: 'SLICE-01', reasons: ['gate-failed'] }]);
+  assert.equal(statusOf(first), 'completed');
+  assert.equal(statusOf(firstBranch), 'completed');
+  assert.equal(statusOf(second), 'pending');
+
+  fs.writeFileSync(shared, 'valid successor\n');
+  git(state.cwd, 'add', '--', 'src/shared/item.txt');
+  result = runBatch(state, 'SLICE-02.01');
+  assert.equal(result.status, 0, result.stderr);
+  output = JSON.parse(result.stdout);
+  assert.deepEqual(output.revalidated, ['SLICE-01.01', 'SLICE-01']);
+  assert.equal(statusOf(second), 'completed');
+});
+
+test('close-batch rejects non-ready and abandoned execution trees', (t) => {
+  const notReady = rootOnlyFixture(t);
+  const closed = runAction(notReady, 'close', 'SPEC-0001', '--mode', 'root-only');
+  assert.equal(closed.status, 0, closed.stderr);
+  const specPath = path.join(notReady.spec, 'SPEC.md');
+  fs.writeFileSync(
+    specPath,
+    fs.readFileSync(specPath, 'utf8').replace('"status": "ready"', '"status": "completed"'),
+  );
+  let result = runBatch(notReady, 'SLICE-01');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /requires Spec status ready/);
+
+  const abandoned = batchFixture(t);
+  const gateFile = path.join(abandoned.spec, 'gates', 'SLICE-01.01.md');
+  fs.writeFileSync(
+    gateFile,
+    `${fs.readFileSync(gateFile, 'utf8')}ABANDON: G1 stopped\n`,
+  );
+  result = runBatch(abandoned, 'SLICE-01.01', 'SLICE-01.02');
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /ABANDON stopped execution/);
+});
+
 test('relative Spec paths resolve from --cwd instead of the process directory', (t) => {
   const state = rootOnlyFixture(t);
   const relativeSpec = path.relative(state.cwd, state.spec);
@@ -362,7 +654,7 @@ test('relative Spec paths resolve from --cwd instead of the process directory', 
   assert.equal(JSON.parse(result.stdout).action, 'review');
 });
 
-test('review-pass completes, commits, and returns transport without a fingerprint', (t) => {
+test('review-pass commits a reviewed root-only range without completing the Spec', (t) => {
   const state = rootOnlyFixture(t);
   const closed = runAction(state, 'close', 'SPEC-0001', '--mode', 'root-only');
   assert.equal(closed.status, 0, closed.stderr);
@@ -378,17 +670,17 @@ test('review-pass completes, commits, and returns transport without a fingerprin
   assert.equal(passed.status, 0, passed.stderr);
   const output = JSON.parse(passed.stdout);
   assert.equal(output.action, 'callback');
+  assert.equal(output.state, 'reviewed');
   assert.equal(output.fingerprint, undefined);
   assert.deepEqual(output.paths, ['product.txt']);
   assert.match(output.commit, /^[0-9a-f]{40}$/);
-  assert.equal(output.state, undefined);
   assert.deepEqual(output.gates, { checked: 1, unmet: [] });
   assert.equal(JSON.parse(
     fs.readFileSync(path.join(state.spec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
-  ).status, 'completed');
+  ).status, 'ready');
 });
 
-test('single Root Slice finalization reuses its exact review and completes the root Gate', (t) => {
+test('single Root Slice finalization reuses its exact review without completing the Spec', (t) => {
   const state = finalizationFixture(t, 1);
   const result = runAction(
     state,
@@ -402,15 +694,15 @@ test('single Root Slice finalization reuses its exact review and completes the r
   assert.equal(result.status, 0, result.stderr);
   const output = JSON.parse(result.stdout);
   assert.equal(output.action, 'callback');
-  assert.equal(output.status, 'completed');
+  assert.equal(output.state, 'reviewed');
   assert.equal(output.commit, state.commit);
   assert.equal(JSON.parse(
     fs.readFileSync(path.join(state.spec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
-  ).status, 'completed');
+  ).status, 'ready');
   assert.match(fs.readFileSync(path.join(state.spec, 'gates', 'SPEC-0001.md'), 'utf8'), /- \[x\] G1/);
 });
 
-test('multiple Root Slices receive one range review before the Spec completes', (t) => {
+test('multiple Root Slices receive one range review and remain ready until apply', (t) => {
   const state = finalizationFixture(t, 2);
   const prepared = runAction(
     state, 'finalize', 'SPEC-0001', '--mode', 'multi-root', '--base', state.base,
@@ -433,10 +725,10 @@ test('multiple Root Slices receive one range review before the Spec completes', 
     '--fingerprint', review.review_snapshot.fingerprint,
   );
   assert.equal(passed.status, 0, passed.stderr);
-  assert.equal(JSON.parse(passed.stdout).status, 'completed');
+  assert.equal(JSON.parse(passed.stdout).state, 'reviewed');
   assert.equal(JSON.parse(
     fs.readFileSync(path.join(state.spec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
-  ).status, 'completed');
+  ).status, 'ready');
 });
 
 test('integrated review pass rejects a changed commit without completing the Spec', (t) => {
@@ -463,13 +755,113 @@ test('integrated review pass rejects a changed commit without completing the Spe
   ).status, 'ready');
 });
 
+test('capture describes a direct Branch owner from the same validated tree', (t) => {
+  const state = fixture(t);
+  const captured = runAction(state, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 0, captured.stderr);
+  const output = JSON.parse(captured.stdout);
+  assert.equal(output.action, 'dispatch');
+  assert.equal(output.dispatch.root_only, false);
+  assert.equal(output.dispatch.direct_root_count, 1);
+  assert.deepEqual(output.dispatch.targets, [{
+    id: 'SLICE-01',
+    owner: 'slice-coordinator',
+    status: 'pending',
+    boundary: '.proofline/specs/SPEC-0001/slices/SLICE-01.md',
+    gate: '.proofline/specs/SPEC-0001/gates/SLICE-01.md',
+    mode: 'root-slice',
+    finalization: 'single-root',
+    runnable: true,
+    review_ready: false,
+  }]);
+});
+
+test('capture fails fast for non-runnable lifecycle and recovery states', (t) => {
+  const draft = rootOnlyFixture(t);
+  const draftSpec = path.join(draft.spec, 'SPEC.md');
+  fs.writeFileSync(
+    draftSpec,
+    fs.readFileSync(draftSpec, 'utf8').replace('"status": "ready"', '"status": "draft"'),
+  );
+  let captured = runAction(draft, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 2);
+  assert.match(captured.stderr, /status must be ready or completed/);
+
+  const abandoned = rootOnlyFixture(t);
+  fs.appendFileSync(path.join(abandoned.spec, 'gates', 'SPEC-0001.md'), 'ABANDON: G1 unavailable\n');
+  captured = runAction(abandoned, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 1, captured.stderr);
+  let output = JSON.parse(captured.stdout);
+  assert.equal(output.action, 'stopped');
+  assert.match(output.reason, /ABANDON/);
+
+  const reviewReady = rootOnlyFixture(t);
+  git(reviewReady.cwd, 'restore', '--staged', '--worktree', '--', 'product.txt');
+  const reviewGate = path.join(reviewReady.spec, 'gates', 'SPEC-0001.md');
+  fs.writeFileSync(
+    reviewGate,
+    fs.readFileSync(reviewGate, 'utf8')
+      .replace('- [ ] G1', '- [x] G1')
+      .replace('EVIDENCE: pending', 'EVIDENCE: verified by fixture'),
+  );
+  captured = runAction(reviewReady, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 1, captured.stderr);
+  output = JSON.parse(captured.stdout);
+  assert.equal(output.action, 'review_recovery_required');
+  assert.equal(output.dispatch, null);
+
+  const completed = rootOnlyFixture(t);
+  const completedGate = path.join(completed.spec, 'gates', 'SPEC-0001.md');
+  fs.writeFileSync(
+    completedGate,
+    fs.readFileSync(completedGate, 'utf8')
+      .replace('- [ ] G1', '- [x] G1')
+      .replace('EVIDENCE: pending', 'EVIDENCE: verified by fixture'),
+  );
+  const completedSpec = path.join(completed.spec, 'SPEC.md');
+  fs.writeFileSync(
+    completedSpec,
+    fs.readFileSync(completedSpec, 'utf8').replace('"status": "ready"', '"status": "completed"'),
+  );
+  captured = runAction(completed, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 1, captured.stderr);
+  output = JSON.parse(captured.stdout);
+  assert.equal(output.action, 'terminal');
+  assert.equal(output.dispatch, null);
+
+  const finalization = finalizationFixture(t, 2);
+  captured = runAction(finalization, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 1, captured.stderr);
+  output = JSON.parse(captured.stdout);
+  assert.equal(output.action, 'finalization_recovery_required');
+  assert.equal(output.dispatch, null);
+});
+
 test('capture and apply-reviewed transport one reviewed range as uncommitted changes', (t) => {
   const state = reviewedApplicationFixture(t);
+  assert.equal(JSON.parse(
+    fs.readFileSync(path.join(state.sourceSpec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
+  ).status, 'ready');
+  assert.equal(fs.existsSync(path.join(state.sourceSpec, 'reviewer.md')), false);
   const captured = runAction(state, 'capture', 'SPEC-0001');
   assert.equal(captured.status, 0, captured.stderr);
   const destination = JSON.parse(captured.stdout);
   assert.equal(destination.action, 'dispatch');
   assert.deepEqual(destination.overlap, []);
+  assert.equal(destination.dispatch.control_fingerprint, destination.control_fingerprint);
+  assert.equal(destination.dispatch.root_only, true);
+  assert.equal(destination.dispatch.direct_root_count, 0);
+  assert.deepEqual(destination.dispatch.targets, [{
+    id: 'SPEC-0001',
+    owner: 'root-implementer',
+    status: 'ready',
+    boundary: '.proofline/specs/SPEC-0001/SPEC.md',
+    gate: '.proofline/specs/SPEC-0001/gates/SPEC-0001.md',
+    mode: 'root-only',
+    finalization: 'root-only',
+    runnable: true,
+    review_ready: false,
+  }]);
 
   const applied = runAction(
     { ...state, spec: state.sourceSpec },
@@ -497,6 +889,39 @@ test('capture and apply-reviewed transport one reviewed range as uncommitted cha
     fs.readFileSync(path.join(state.spec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
   ).status, 'completed');
   assert.match(fs.readFileSync(path.join(state.spec, 'gates', 'SPEC-0001.md'), 'utf8'), /- \[x\] G1/);
+  assert.equal(JSON.parse(
+    fs.readFileSync(path.join(state.sourceSpec, 'SPEC.md'), 'utf8').match(/^---\n([\s\S]*?)\n---/)[1],
+  ).status, 'ready');
+});
+
+test('apply-reviewed rejects incomplete source control without mutating the destination', (t) => {
+  const state = reviewedApplicationFixture(t);
+  const captured = runAction(state, 'capture', 'SPEC-0001');
+  assert.equal(captured.status, 0, captured.stderr);
+  const destination = JSON.parse(captured.stdout);
+  const sourceGate = path.join(state.sourceSpec, 'gates', 'SPEC-0001.md');
+  fs.writeFileSync(
+    sourceGate,
+    fs.readFileSync(sourceGate, 'utf8').replace('- [x] G1', '- [ ] G1'),
+  );
+
+  const applied = runAction(
+    { ...state, spec: state.sourceSpec },
+    'apply-reviewed',
+    'SPEC-0001',
+    '--source', state.source,
+    '--base', state.base,
+    '--commit', state.commit,
+    '--destination-fingerprint', destination.destination_fingerprint,
+    '--control-fingerprint', destination.control_fingerprint,
+  );
+  assert.equal(applied.status, 2);
+  assert.match(applied.stderr, /reviewed source control state is incomplete: root Gate is unmet/);
+  assert.equal(fs.readFileSync(path.join(state.cwd, 'product.txt'), 'utf8'), 'before\n');
+  assert.doesNotMatch(
+    fs.readFileSync(path.join(state.spec, 'gates', 'SPEC-0001.md'), 'utf8'),
+    /- \[x\] G1/,
+  );
 });
 
 test('apply-reviewed accepts a reviewed CRLF product range without disabling whitespace checks', (t) => {
@@ -527,6 +952,7 @@ test('apply-reviewed preserves an accepted non-overlapping destination change', 
   assert.equal(captured.status, 1, captured.stderr);
   const destination = JSON.parse(captured.stdout);
   assert.equal(destination.action, 'need_confirm');
+  assert.equal(destination.dispatch, null);
   assert.deepEqual(destination.overlap, ['local.txt', 'unrelated.txt']);
 
   const applied = runAction(

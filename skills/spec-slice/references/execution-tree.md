@@ -73,7 +73,7 @@ A direct Slice owns its complete subtree outcome whether it is a Leaf or a Branc
 
 ## Runnable candidates
 
-The inspector exposes all mechanically safe runnable work: every runnable Leaf in `dispatch_candidates` and every runnable direct Slice in `runnable_slices`. These are candidate sets, not a dispatch schedule, quota, or concurrency cap.
+The inspector exposes all mechanically safe runnable work: every runnable Leaf in `dispatch_candidates` and every runnable direct Slice in `runnable_slices`. These are candidate sets, not a one-agent-per-Leaf schedule, quota, or concurrency cap. An implementation coordinator partitions one ready direct-sibling Leaf cohort into the fewest reliable work packets, then closes the complete cohort on one stable product snapshot.
 
 ## Effective execution scope
 

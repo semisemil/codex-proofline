@@ -46,6 +46,28 @@ test('preparation remains an artifact-only role and cannot become an implementer
     tool_input: { patch: '*** Begin Patch\n*** Update File: .proofline/specs/SPEC-0001/SPEC.md\n*** End Patch' },
   })), true);
   assert.equal(denied(run(state, 'pre-tool', {
+    tool_name: 'apply_patch',
+    tool_input: {
+      patch: [
+        '*** Begin Patch',
+        '*** Add File: .proofline/specs/SPEC-0001/gates/SPEC-0001.md',
+        '*** Add File: .proofline/specs/SPEC-0001/slices/SLICE-01.md',
+        '*** End Patch',
+      ].join('\n'),
+    },
+  })), false);
+  assert.equal(denied(run(state, 'pre-tool', {
+    tool_name: 'apply_patch',
+    tool_input: {
+      patch: [
+        '*** Begin Patch',
+        '*** Add File: .proofline/specs/SPEC-0001/gates/SPEC-0001.md',
+        '*** Update File: src/product.js',
+        '*** End Patch',
+      ].join('\n'),
+    },
+  })), true);
+  assert.equal(denied(run(state, 'pre-tool', {
     tool_name: 'Bash',
     tool_input: { command: 'node plugin/writers/document-writer.js spec create --project . --id SPEC-0001 --content-file input.md' },
   })), false);
@@ -74,6 +96,10 @@ test('implementer cannot create tasks or bypass the Gate runner with direct comp
   assert.equal(denied(run(state, 'pre-tool', {
     tool_name: 'Bash',
     tool_input: { command: 'node plugin/skills/start-implementation/scripts/coordinator-state.js close --cwd . --spec spec --node SLICE-01 --mode leaf' },
+  })), true);
+  assert.equal(denied(run(state, 'pre-tool', {
+    tool_name: 'Bash',
+    tool_input: { command: 'node plugin/skills/start-implementation/scripts/coordinator-state.js close-batch --cwd . --spec spec --nodes SLICE-01.01,SLICE-01.02' },
   })), true);
   assert.equal(denied(run(state, 'pre-tool', {
     tool_name: 'Bash',
@@ -111,6 +137,10 @@ test('slice coordinator cannot edit product files or run direct completion comma
   })), false);
   assert.equal(denied(run(state, 'pre-tool', {
     tool_name: 'Bash',
+    tool_input: { command: 'node plugin/skills/start-implementation/scripts/coordinator-state.js close-batch --cwd . --spec .proofline/specs/SPEC-0001 --nodes SLICE-01.01,SLICE-01.02' },
+  })), false);
+  assert.equal(denied(run(state, 'pre-tool', {
+    tool_name: 'Bash',
     tool_input: { command: 'node plugin/skills/start-implementation/scripts/coordinator-state.js finalize --cwd . --spec .proofline/specs/SPEC-0001 --node SPEC-0001 --mode single-root --base abcdef1 --fingerprint sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
   })), false);
   assert.equal(denied(run(state, 'pre-tool', {
@@ -145,7 +175,11 @@ test('root-only implementer may implement and wait for review but cannot create 
   assert.equal(denied(run(state, 'pre-tool', {
     tool_name: 'Bash',
     tool_input: { command: 'node plugin/skills/spec-slice/scripts/run-gates.js feedback --cwd . --gate .proofline/specs/SPEC-0001/gates/SPEC-0001.md --id G1' },
-  })), false);
+  })), true);
+  assert.equal(denied(run(state, 'pre-tool', {
+    tool_name: 'Bash',
+    tool_input: { command: 'node plugin/skills/start-implementation/scripts/coordinator-state.js close-batch --cwd . --spec .proofline/specs/SPEC-0001 --nodes SLICE-01.01,SLICE-01.02' },
+  })), true);
   assert.equal(denied(run(state, 'pre-tool', {
     tool_name: 'Bash',
     tool_input: { command: "node 'C:\\skill-token-benchmark\\coordinator-state.js' inspect --cwd . --spec spec --node SPEC-0001" },

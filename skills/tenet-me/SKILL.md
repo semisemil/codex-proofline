@@ -16,6 +16,7 @@ Build one internal directed graph containing every current intended result at it
 - Treat model familiarity, examples, current implementation, and an unversioned algorithm or policy name as non-authoritative for omitted result-changing semantics
 - Treat an oracle or expected result derived from the candidate implementation as circular rather than a verification path
 - Treat the requested outcome and explicit boundaries as the scope ceiling; repository facts may constrain delivery but cannot create another intended result
+- Treat every explicit identifier, output field name, path, command, quantity, and example as a source edge; omission, translation, or renaming breaks that edge
 
 For every required result:
 

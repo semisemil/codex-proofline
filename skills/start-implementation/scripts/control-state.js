@@ -112,28 +112,51 @@ function immutableFile(relative, content, absolute) {
   return content;
 }
 
-function controlManifest(specDirectory) {
-  const root = path.resolve(specDirectory);
-  inspectExecutionTree(root);
+function readControlFiles(root) {
   const files = listFiles(root);
+  return {
+    files,
+    contents: new Map(files.map((relative) => [
+      relative,
+      fs.readFileSync(path.join(root, ...relative.split('/'))),
+    ])),
+  };
+}
+
+function sameControlFiles(left, right) {
+  return JSON.stringify(left.files) === JSON.stringify(right.files)
+    && left.files.every((relative) => left.contents.get(relative).equals(
+      right.contents.get(relative),
+    ));
+}
+
+function controlManifest(specDirectory, options = {}) {
+  const root = path.resolve(specDirectory);
+  const before = readControlFiles(root);
+  const tree = inspectExecutionTree(root);
+  if (options.afterTree) options.afterTree(root);
+  const captured = readControlFiles(root);
+  if (!sameControlFiles(before, captured)) {
+    fail('Spec control state changed while capturing its manifest');
+  }
   const fullParts = [];
   const immutableParts = [];
-  for (const relative of files) {
+  for (const relative of captured.files) {
     const absolute = path.join(root, ...relative.split('/'));
-    const content = fs.readFileSync(absolute);
+    const content = captured.contents.get(relative);
     fullParts.push([`path:${relative}`, relative], [`content:${relative}`, content]);
     immutableParts.push(
       [`path:${relative}`, relative],
       [`content:${relative}`, immutableFile(relative, content, absolute)],
     );
   }
-  const tree = inspectExecutionTree(root);
   return {
     spec_id: tree.spec_id,
     revision: tree.spec_revision,
-    files,
+    files: captured.files,
     full_fingerprint: hashParts(fullParts),
     immutable_fingerprint: hashParts(immutableParts),
+    tree,
   };
 }
 
@@ -228,7 +251,12 @@ function gateStateContent(destinationContent, sourceContent, destinationPath, so
   return rendered;
 }
 
-function planControlMerge(sourceSpec, destinationSpec, expectedDestinationFingerprint) {
+function planControlMerge(
+  sourceSpec,
+  destinationSpec,
+  expectedDestinationFingerprint,
+  options = {},
+) {
   const sourceRoot = path.resolve(sourceSpec);
   const destinationRoot = path.resolve(destinationSpec);
   const source = controlManifest(sourceRoot);
@@ -254,9 +282,12 @@ function planControlMerge(sourceSpec, destinationSpec, expectedDestinationFinger
     if (/^gates\//.test(relative)) {
       after = gateStateContent(before, sourceContent, destinationPath, sourcePath);
     } else {
+      const sourceStatus = options.completeSpec && relative === 'SPEC.md'
+        ? 'completed'
+        : parseFrontmatter(sourceContent, sourcePath).metadata.status;
       after = replaceFrontmatterStatus(
         before,
-        parseFrontmatter(sourceContent, sourcePath).metadata.status,
+        sourceStatus,
         destinationPath,
       );
     }

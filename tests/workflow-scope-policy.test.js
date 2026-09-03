@@ -11,6 +11,8 @@ const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8'
 test('Plan and Spec treat the request as a scope ceiling', () => {
   const plan = read('skills', 'development-plan', 'SKILL.md');
   const spec = read('skills', 'implementation-spec', 'SKILL.md');
+  const slice = read('skills', 'spec-slice', 'SKILL.md');
+  const tenet = read('skills', 'tenet-me', 'SKILL.md');
 
   assert.match(plan, /requested outcome and every explicit boundary as the Plan's scope ceiling/);
   assert.match(plan, /Repository evidence constrains delivery; it does not add adjacent features/);
@@ -18,6 +20,12 @@ test('Plan and Spec treat the request as a scope ceiling', () => {
   assert.match(spec, /requested outcome and explicit boundaries are the maximum product scope/);
   assert.match(spec, /do not authorize adjacent behavior/);
   assert.match(spec, /implementation decision must stay inside the requested result/);
+  for (const source of [plan, spec]) {
+    assert.match(source, /identifiers, output field names, paths, commands, quantities, and examples/);
+    assert.match(source, /do not generalize, translate, or rename/);
+  }
+  assert.match(slice, /without renaming its identifiers, output fields, paths, commands, or quantities/);
+  assert.match(tenet, /omission, translation, or renaming breaks that edge/);
 });
 
 test('ordinary implementation details do not become blockers or acceptance scope', () => {

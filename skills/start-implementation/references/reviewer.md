@@ -15,7 +15,9 @@ Plugin root: {{plugin_root}}
 Review source: {{review_source}}
 
 Original request authority (verbatim)
+<BEGIN_ORIGINAL_REQUEST>
 {{original_request}}
+<END_ORIGINAL_REQUEST>
 
 Run this rendered command exactly once:
 
@@ -25,5 +27,5 @@ The command must use `prepare-review.js diff` for a staged Root boundary or `pre
 
 Treat the original request and authoritative sources as primary. The Spec, Nodes, implementation, tests, and Gate evidence are candidate claims. Gate execution proves only its recorded command or `EXPECT` result. Fail when required behavior is supported only by a circular oracle. Do not run verification, change files or Git state, create tasks, or widen the frozen completion set.
 
-Report blocking findings concisely and end with exactly `pass` or `fail`.
+Return blocking findings concisely in the final agent result and end with exactly `pass` or `fail`. `wait_agent` delivers this result to the assigning coordinator; it is not a user-facing report or task callback.
 ```

@@ -148,6 +148,31 @@ function isEdit(tool) {
   return /(?:^|__|\.)(?:apply_patch|edit|write)$/.test(tool);
 }
 
+function editPaths(event) {
+  const input = toolInput(event);
+  const values = [input.path, input.file_path, input.filePath];
+  if (Array.isArray(input.files)) {
+    for (const file of input.files) {
+      if (file && typeof file === 'object') values.push(file.path, file.file_path, file.filePath);
+    }
+  }
+  const patch = String(input.patch || '');
+  for (const match of patch.matchAll(/^\*\*\* (?:Add|Update|Delete) File:\s*(.+)$/gmu)) {
+    values.push(match[1]);
+  }
+  for (const match of patch.matchAll(/^\*\*\* Move to:\s*(.+)$/gmu)) values.push(match[1]);
+  return values
+    .filter((value) => typeof value === 'string' && value.length > 0)
+    .map((value) => value.replaceAll('\\', '/').replace(/^\.\//, ''));
+}
+
+function isPreparationExecutionArtifactEdit(event) {
+  const paths = editPaths(event);
+  return paths.length > 0 && paths.every((filePath) => (
+    /^\.proofline\/specs\/[^/]+\/(?:gates|slices)\/[^/]+\.md$/u.test(filePath)
+  ));
+}
+
 function isCommand(tool) {
   return tool === 'bash' || /(?:^|__|\.)exec_command$/.test(tool);
 }
@@ -173,6 +198,10 @@ function usesGateRun(command) {
 
 function usesCoordinatorMutation(command) {
   return /coordinator-state\.js[^\r\n]*\b(?:close|review-pass|finalize|finalize-review-pass|apply-reviewed)\b/i.test(command);
+}
+
+function usesCloseBatch(command) {
+  return /coordinator-state\.js[^\r\n]*\bclose-batch\b/i.test(command);
 }
 
 function usesOtherControlMutation(command) {
@@ -269,8 +298,8 @@ function preTool(event) {
       || isMessaging(tool)) {
       return deny('Preparation owns artifacts only and cannot coordinate other tasks.');
     }
-    if (isEdit(tool)) {
-      return deny('Preparation writes Proofline documents only through their documented writer.');
+    if (isEdit(tool) && !isPreparationExecutionArtifactEdit(event)) {
+      return deny('Preparation writes Plan and Spec documents through their writer and may edit only Gate or Slice documents directly.');
     }
     if (isCommand(tool)) {
       const command = commandText(event);
@@ -317,8 +346,14 @@ function preTool(event) {
     if (isCommand(tool)) {
       const command = commandText(event);
       if (usesRawGit(command)) return deny('Use Proofline Git helpers so trust stays exact and process-local.');
+      if (usesCloseBatch(command)) {
+        return deny('A Branch coordinator owns Leaf cohort completion.');
+      }
       if (usesGateRun(command)) {
         return deny('Use coordinator-state.js close so the root Gate and review snapshot advance together.');
+      }
+      if (usesFeedback(command)) {
+        return deny('Run coordinator-state.js close and repair from its transient diagnostics.');
       }
       if (isRootInventory(command)) return deny('Use a path-scoped inspection instead of repository-wide inventory.');
       if (/\bgit\s+(?:commit|cherry-pick|merge|reset|restore|checkout)\b/i.test(command)) {

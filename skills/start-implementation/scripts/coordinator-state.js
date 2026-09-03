@@ -36,6 +36,8 @@ const USAGE = [
   '    [--fingerprint <sha256:...>] [--commit <sha>]',
   '  coordinator-state.js close --cwd <worktree> --spec <spec-directory> --node <id>',
   '    --mode <leaf|subslice|root-slice|root-only>',
+  '  coordinator-state.js close-batch --cwd <worktree> --spec <spec-directory>',
+  '    --nodes <leaf-id,leaf-id,...>',
   '  coordinator-state.js review-pass --cwd <worktree> --spec <spec-directory> --node <id>',
   '    --mode <root-slice|root-only> --fingerprint <sha256:...> --message <text>',
   '  coordinator-state.js finalize --cwd <worktree> --spec <spec-directory> --node <spec-id>',
@@ -58,7 +60,7 @@ function parseArgs(argv) {
   const values = [...argv];
   const action = values[0] && !values[0].startsWith('--') ? values.shift() : 'inspect';
   if (![
-    'capture', 'inspect', 'close', 'review-pass', 'finalize', 'finalize-review-pass',
+    'capture', 'inspect', 'close', 'close-batch', 'review-pass', 'finalize', 'finalize-review-pass',
     'apply-reviewed',
   ].includes(action)) {
     fail(USAGE);
@@ -66,7 +68,7 @@ function parseArgs(argv) {
   const result = {
     action, cwd: null, spec: null, node: null, fingerprint: null, commit: null,
     mode: null, message: null, source: null, base: null, destinationFingerprint: null,
-    controlFingerprint: null,
+    controlFingerprint: null, nodes: null,
   };
   for (let index = 0; index < values.length; index += 2) {
     const name = values[index];
@@ -87,9 +89,14 @@ function parseArgs(argv) {
     else if (name === '--control-fingerprint' && result.controlFingerprint === null) {
       result.controlFingerprint = value;
     }
+    else if (name === '--nodes' && result.nodes === null) result.nodes = value.split(',');
     else fail(USAGE);
   }
-  if (!result.cwd || !result.spec || !result.node) fail(USAGE);
+  if (!result.cwd || !result.spec) fail(USAGE);
+  if (action === 'close-batch') {
+    if (result.node !== null || !result.nodes || result.nodes.length === 0
+      || result.nodes.some((node) => !node || node !== node.trim())) fail(USAGE);
+  } else if (!result.node || result.nodes !== null) fail(USAGE);
   if (result.fingerprint && !/^sha256:[0-9a-f]{64}$/.test(result.fingerprint)) {
     fail('invalid --fingerprint');
   }
@@ -105,6 +112,7 @@ function parseArgs(argv) {
   if (action === 'close' && !['leaf', 'subslice', 'root-slice', 'root-only'].includes(result.mode)) {
     fail(USAGE);
   }
+  if (action === 'close-batch' && result.mode !== null) fail(USAGE);
   if (action === 'review-pass') {
     if (!['root-slice', 'root-only'].includes(result.mode) || !result.fingerprint
       || !result.message || /[\0\r\n]/.test(result.message)) fail(USAGE);
@@ -383,12 +391,28 @@ function gatePath(specDirectory, nodeId) {
   return path.join(path.resolve(specDirectory), 'gates', `${nodeId}.md`);
 }
 
+function transientDiagnostic(value, limit = 4096) {
+  const normalized = String(value || '')
+    .replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, '')
+    .trim();
+  if (!normalized) return null;
+  if (normalized.length <= limit) return normalized;
+  const marker = '\n... output omitted ...\n';
+  const available = limit - marker.length;
+  const head = Math.ceil(available / 2);
+  return normalized.slice(0, head) + marker + normalized.slice(-(available - head));
+}
+
 function compactExecutions(executions) {
   return executions.map((item) => {
     const result = { id: item.id, passed: item.passed, skipped: item.skipped };
     if (!item.passed || item.skipped) {
       if (item.reason) result.reason = item.reason;
       if (item.evidence) result.evidence = item.evidence;
+    }
+    if (!item.passed) {
+      const diagnostic = transientDiagnostic(item.output);
+      if (diagnostic) result.diagnostic = diagnostic;
     }
     return result;
   });
@@ -402,14 +426,86 @@ function compactReview(evidence) {
   };
 }
 
+function captureDispatchDescriptor(tree, specRelative, controlFingerprint) {
+  const directRoots = tree.nodes.filter((node) => node.parent_id === tree.spec_id);
+  const rootOnly = directRoots.length === 0;
+  const runnable = new Set([...tree.runnable_slices, ...tree.runnable_leaves]);
+  const reviewReady = new Set(tree.review_ready);
+  const target = (node) => ({
+    id: node ? node.id : tree.spec_id,
+    owner: node && !node.is_leaf ? 'slice-coordinator' : 'root-implementer',
+    status: node ? node.status : tree.spec_status,
+    boundary: path.posix.join(
+      specRelative,
+      node ? 'slices' : '',
+      node ? `${node.id}.md` : 'SPEC.md',
+    ),
+    gate: path.posix.join(specRelative, 'gates', `${node ? node.id : tree.spec_id}.md`),
+    mode: rootOnly ? 'root-only' : 'root-slice',
+    finalization: rootOnly
+      ? 'root-only'
+      : directRoots.length === 1 ? 'single-root' : 'multi-root',
+    runnable: node
+      ? runnable.has(node.id)
+      : tree.spec_status === 'ready' && !tree.root_gate_all_met,
+    review_ready: node ? reviewReady.has(node.id) : tree.root_gate_all_met,
+  });
+  return {
+    control_fingerprint: controlFingerprint,
+    spec_id: tree.spec_id,
+    spec_revision: tree.spec_revision,
+    root_only: rootOnly,
+    direct_root_count: directRoots.length,
+    targets: rootOnly ? [target(null)] : directRoots.map(target),
+  };
+}
+
+function captureAction(tree, descriptor, overlap) {
+  if (tree.spec_status !== 'ready') {
+    const terminal = ['completed', 'cancelled', 'superseded'].includes(tree.spec_status);
+    return {
+      action: terminal ? 'terminal' : 'not_ready',
+      reason: `${tree.spec_id} status is ${tree.spec_status}, expected ready`,
+    };
+  }
+  if (tree.execution_stopped) {
+    return { action: 'stopped', reason: 'ABANDON stopped execution' };
+  }
+  if (overlap.length > 0) {
+    return { action: 'need_confirm', reason: 'destination changes overlap executable scope' };
+  }
+  if (descriptor.targets.some((target) => target.runnable)) {
+    return { action: 'dispatch', reason: null };
+  }
+  const readyForReview = descriptor.targets
+    .filter((target) => target.review_ready)
+    .map((target) => target.id);
+  if (readyForReview.length > 0) {
+    return {
+      action: 'review_recovery_required',
+      reason: `review-ready state requires its existing reviewed Worktree owner: ${readyForReview.join(', ')}`,
+    };
+  }
+  const completed = descriptor.targets
+    .filter((target) => target.status === 'completed')
+    .map((target) => target.id);
+  if (completed.length === descriptor.targets.length && completed.length > 0) {
+    return {
+      action: 'finalization_recovery_required',
+      reason: 'completed Root state requires its existing integration owner',
+    };
+  }
+  return { action: 'blocked', reason: 'ready Spec has no runnable Root target' };
+}
+
 function captureDestination(options) {
   options = resolveOptions(options);
   const actualRoot = path.resolve(String(git(options.cwd, ['rev-parse', '--show-toplevel'])).trim());
   if (actualRoot.toLowerCase() !== options.cwd.toLowerCase()) fail('--cwd must be the checkout root');
-  const tree = inspectExecutionTree(options.spec);
+  const control = controlManifest(options.spec);
+  const tree = control.tree;
   if (options.node !== tree.spec_id) fail('capture requires the root Spec ID');
   const specRelative = specRelativePath(options.cwd, options.spec);
-  const control = controlManifest(options.spec);
   const controlPrefix = relativeControlPrefix(options.cwd, options.spec);
   const productPaths = withoutControl(dirtyPaths(options.cwd), controlPrefix);
   const rootOnly = tree.nodes.length === 0;
@@ -417,19 +513,23 @@ function captureDestination(options) {
   const overlap = rootOnly
     ? productPaths
     : productPaths.filter((filePath) => inScopes(filePath, scopes));
+  const descriptor = captureDispatchDescriptor(tree, specRelative, control.full_fingerprint);
+  const next = captureAction(tree, descriptor, overlap);
   return {
-    ok: overlap.length === 0,
-    action: overlap.length === 0 ? 'dispatch' : 'need_confirm',
+    ok: next.action === 'dispatch',
+    action: next.action,
+    reason: next.reason,
     head: String(git(options.cwd, ['rev-parse', 'HEAD'])).trim(),
     destination_fingerprint: dirtyFingerprint(options.cwd, [controlPrefix]),
     control_fingerprint: control.full_fingerprint,
     spec: specRelative,
+    dispatch: next.action === 'dispatch' ? descriptor : null,
     dirty_paths: productPaths,
     overlap,
   };
 }
 
-function replaceStatus(filePath, expected, next) {
+function statusReplacement(filePath, expected, next) {
   const original = fs.readFileSync(filePath, 'utf8');
   const eol = original.includes('\r\n') ? '\r\n' : '\n';
   const match = original.match(/^(\uFEFF?---\r?\n)([\s\S]*?)(\r?\n---(?:\r?\n|$))/);
@@ -446,8 +546,13 @@ function replaceStatus(filePath, expected, next) {
   metadata.status = next;
   const rendered = match[1] + JSON.stringify(metadata, null, 2).replaceAll('\n', eol)
     + match[3] + original.slice(match[0].length);
-  fs.writeFileSync(filePath, rendered, 'utf8');
-  return () => fs.writeFileSync(filePath, original, 'utf8');
+  return { filePath, original, rendered };
+}
+
+function replaceStatus(filePath, expected, next) {
+  const replacement = statusReplacement(filePath, expected, next);
+  fs.writeFileSync(filePath, replacement.rendered, 'utf8');
+  return () => fs.writeFileSync(filePath, replacement.original, 'utf8');
 }
 
 function completeBoundary(options) {
@@ -456,6 +561,244 @@ function completeBoundary(options) {
     ? path.join(specDirectory, 'SPEC.md')
     : path.join(specDirectory, 'slices', `${options.node}.md`);
   return replaceStatus(filePath, options.mode === 'root-only' ? 'ready' : 'pending', 'completed');
+}
+
+function restoreBoundaryReplacements(replacements) {
+  let rollbackError = null;
+  for (const replacement of [...replacements].reverse()) {
+    try {
+      fs.writeFileSync(replacement.filePath, replacement.original, 'utf8');
+    } catch (current) {
+      rollbackError ||= current;
+    }
+  }
+  if (rollbackError) fail(`cannot roll back Leaf batch status: ${rollbackError.message}`);
+}
+
+function completeBoundariesAtomically(specDirectory, nodeIds, writeFile = fs.writeFileSync) {
+  const replacements = nodeIds.map((nodeId) => statusReplacement(
+    path.join(path.resolve(specDirectory), 'slices', `${nodeId}.md`),
+    'pending',
+    'completed',
+  ));
+  const attempted = [];
+  try {
+    for (const replacement of replacements) {
+      attempted.push(replacement);
+      writeFile(replacement.filePath, replacement.rendered, 'utf8');
+    }
+    inspectExecutionTree(specDirectory);
+  } catch (error) {
+    try {
+      restoreBoundaryReplacements(attempted);
+    } catch (rollbackError) {
+      fail(`${error.message}; ${rollbackError.message}`);
+    }
+    throw error;
+  }
+  return () => restoreBoundaryReplacements(replacements);
+}
+
+function leafReady(tree, node, byId) {
+  let current = node;
+  while (current) {
+    if (current.status !== 'pending') return false;
+    const dependencies = [...current.blocked_by, ...current.run_after];
+    if (dependencies.some((id) => byId.get(id)?.status !== 'completed')) return false;
+    current = current.parent_id === tree.spec_id ? null : byId.get(current.parent_id);
+  }
+  return true;
+}
+
+function scopesOverlap(first, second) {
+  const left = first.endsWith('/') ? first.slice(0, -1) : first;
+  const right = second.endsWith('/') ? second.slice(0, -1) : second;
+  return left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
+}
+
+function overlappingCompletedBoundaries(tree, nodes) {
+  const requestedScopes = nodes.flatMap((node) => node.write_scope);
+  const byId = new Map(tree.nodes.map((node) => [node.id, node]));
+  const leaves = tree.nodes
+    .filter((node) => node.is_leaf && node.status === 'completed')
+    .filter((node) => node.write_scope.some((scope) =>
+      requestedScopes.some((requestedScope) => scopesOverlap(scope, requestedScope))))
+    .sort((first, second) => first.id.localeCompare(second.id));
+  const result = [];
+  const seen = new Set();
+  for (const leaf of leaves) {
+    let current = leaf;
+    while (current && current.status === 'completed') {
+      if (!seen.has(current.id)) {
+        seen.add(current.id);
+        result.push(current.id);
+      }
+      current = current.parent_id === tree.spec_id ? null : byId.get(current.parent_id);
+    }
+  }
+  return result;
+}
+
+function batchExecutions(executions) {
+  return compactExecutions(executions).map((execution, index) => ({
+    node: path.basename(executions[index].filePath, '.md'),
+    ...execution,
+  }));
+}
+
+function productSnapshotFingerprint(options) {
+  const controlPrefix = relativeControlPrefix(options.cwd, options.spec);
+  return dirtyFingerprint(options.cwd, [controlPrefix]);
+}
+
+function snapshotChanged(expected, actual) {
+  return {
+    ok: false,
+    action: 'environment_blocked',
+    completed: [],
+    error: `product snapshot changed during close-batch: expected ${expected}, actual ${actual}`,
+  };
+}
+
+function captureGateDocuments(specDirectory, nodeIds) {
+  return nodeIds.map((nodeId) => {
+    const filePath = gatePath(specDirectory, nodeId);
+    return { filePath, contents: fs.readFileSync(filePath, 'utf8') };
+  });
+}
+
+function restoreGateDocuments(documents) {
+  for (const document of documents) {
+    fs.writeFileSync(document.filePath, document.contents, 'utf8');
+  }
+}
+
+function closeBatch(options, runtime = {}) {
+  options = resolveOptions(options);
+  const tree = inspectExecutionTree(options.spec);
+  if (tree.spec_status !== 'ready') {
+    fail(`close-batch requires Spec status ready, found ${tree.spec_status}`);
+  }
+  if (tree.execution_stopped) {
+    fail(`close-batch cannot run after ABANDON stopped execution: ${tree.abandoned_ids.join(', ')}`);
+  }
+  const ids = [...options.nodes];
+  if (new Set(ids).size !== ids.length) fail('close-batch Leaf IDs must be distinct');
+
+  const byId = new Map(tree.nodes.map((node) => [node.id, node]));
+  const nodes = ids.map((id) => {
+    const node = byId.get(id);
+    if (!node) fail(`unknown node: ${id}`);
+    if (!node.is_leaf) fail(`close-batch requires Leaf Nodes: ${id}`);
+    return node;
+  });
+  const parentId = nodes[0].parent_id;
+  if (nodes.some((node) => node.parent_id !== parentId)) {
+    fail('close-batch Leaf Nodes must share one direct parent');
+  }
+
+  const ready = tree.nodes
+    .filter((node) => node.parent_id === parentId && node.is_leaf)
+    .filter((node) => leafReady(tree, node, byId))
+    .map((node) => node.id)
+    .sort();
+  const requested = [...ids].sort();
+  const missing = ready.filter((id) => !requested.includes(id));
+  const unavailable = requested.filter((id) => !ready.includes(id));
+  if (missing.length > 0 || unavailable.length > 0) {
+    const details = [];
+    if (missing.length > 0) details.push(`missing ready siblings: ${missing.join(', ')}`);
+    if (unavailable.length > 0) details.push(`not ready: ${unavailable.join(', ')}`);
+    fail(`close-batch requires the complete ready Leaf cohort under ${parentId}: ${details.join('; ')}`);
+  }
+
+  const blocking = [];
+  for (const id of requested) {
+    const state = inspectState({ ...options, node: id });
+    const errors = state.errors.filter((error) => error !== 'gate-unmet');
+    if (errors.length > 0) blocking.push({ node: id, state, errors });
+  }
+  if (blocking.length > 0) {
+    return {
+      ok: false,
+      action: 'repair',
+      completed: [],
+      failures: blocking.map((item) => ({ node: item.node, reasons: item.errors })),
+    };
+  }
+
+  const fingerprint = runtime.productFingerprint || productSnapshotFingerprint;
+  const expectedSnapshot = fingerprint(options);
+  const revalidated = overlappingCompletedBoundaries(tree, nodes);
+  const gateNodes = [...new Set([...revalidated, ...requested])];
+  const revalidatedDocuments = captureGateDocuments(options.spec, revalidated);
+  let gate;
+  try {
+    const gateRunner = runtime.runGateFiles || runGateFiles;
+    gate = gateRunner(gateNodes.map((id) => gatePath(options.spec, id)), {
+      cwd: options.cwd,
+    });
+  } catch (error) {
+    if (error instanceof GateParseError || error instanceof GateUsageError) {
+      restoreGateDocuments(revalidatedDocuments);
+      return { ok: false, action: 'environment_blocked', completed: [], error: error.message };
+    }
+    throw error;
+  }
+  const afterGates = fingerprint(options);
+  if (afterGates !== expectedSnapshot) {
+    restoreGateDocuments(revalidatedDocuments);
+    return snapshotChanged(expectedSnapshot, afterGates);
+  }
+  const gates = batchExecutions(gate.executions);
+  if (!gate.status.allMet) {
+    const failedNodes = [...new Set(
+      gates.filter((item) => !item.passed).map((item) => item.node),
+    )];
+    restoreGateDocuments(revalidatedDocuments);
+    return {
+      ok: false,
+      action: 'repair',
+      completed: [],
+      failures: failedNodes.map((node) => ({ node, reasons: ['gate-failed'] })),
+      gates,
+      revalidated,
+    };
+  }
+
+  const beforeStatus = fingerprint(options);
+  if (beforeStatus !== expectedSnapshot) {
+    restoreGateDocuments(revalidatedDocuments);
+    return snapshotChanged(expectedSnapshot, beforeStatus);
+  }
+  let restoreStatuses;
+  try {
+    restoreStatuses = completeBoundariesAtomically(options.spec, requested);
+  } catch (error) {
+    if (error && ['EACCES', 'EPERM'].includes(error.code)) {
+      return { ok: false, action: 'environment_blocked', completed: [], error: error.message };
+    }
+    throw error;
+  }
+  const afterStatus = fingerprint(options);
+  if (afterStatus !== expectedSnapshot) {
+    restoreStatuses();
+    restoreGateDocuments(revalidatedDocuments);
+    return snapshotChanged(expectedSnapshot, afterStatus);
+  }
+  const after = inspectExecutionTree(options.spec);
+  return {
+    ok: true,
+    action: 'continue',
+    completed: requested,
+    gates,
+    revalidated,
+    next: {
+      leaves: after.runnable_leaves,
+      branches: after.completable_branches,
+      review: after.review_ready,
+    },
+  };
 }
 
 function closeBoundary(options) {
@@ -519,11 +862,11 @@ function reviewPass(options) {
   const before = inspectState(options);
   if (!before.ok) return { ok: false, action: 'repair', state: before, errors: before.errors };
   const reviewed = verify(path.resolve(options.cwd), options.fingerprint);
-  const restore = completeBoundary(options);
+  const restore = options.mode === 'root-only' ? null : completeBoundary(options);
   try {
     git(path.resolve(options.cwd), ['commit', '-m', options.message, '--']);
   } catch (error) {
-    restore();
+    if (restore) restore();
     throw error;
   }
   const commit = String(git(path.resolve(options.cwd), ['rev-parse', 'HEAD'])).trim();
@@ -531,6 +874,7 @@ function reviewPass(options) {
   return {
     ok: state.ok,
     action: 'callback',
+    state: 'reviewed',
     node: state.node,
     commit,
     paths: reviewed.paths,
@@ -557,8 +901,8 @@ function finalizationContext(options) {
   } else if (directRoots.length < 2) {
     fail(`finalize-review-pass requires at least two direct Root Slices, found ${directRoots.length}`);
   }
-  if (!['ready', 'completed'].includes(tree.spec_status)) {
-    fail(`${tree.spec_id} status is ${tree.spec_status}, expected ready or completed`);
+  if (tree.spec_status !== 'ready') {
+    fail(`${tree.spec_id} status is ${tree.spec_status}, expected ready until final apply`);
   }
   const controlPrefix = relativeControlPrefix(cwd, options.spec);
   return {
@@ -594,18 +938,6 @@ function finalRange(context, base, expectedCommit = null) {
   const scopes = leafScopes(context.tree.nodes);
   const outside = evidence.paths.filter((filePath) => !inScopes(filePath, scopes));
   return { evidence, outside };
-}
-
-function markSpecCompleted(options) {
-  const tree = inspectExecutionTree(options.spec);
-  if (tree.spec_status === 'completed') return;
-  const restore = replaceStatus(path.join(options.spec, 'SPEC.md'), 'ready', 'completed');
-  try {
-    inspectExecutionTree(options.spec);
-  } catch (error) {
-    restore();
-    throw error;
-  }
 }
 
 function finalizeSpec(options) {
@@ -685,12 +1017,11 @@ function finalizeSpec(options) {
     };
   }
 
-  markSpecCompleted(options);
   return {
     ok: true,
     action: 'callback',
+    state: 'reviewed',
     node: context.tree.spec_id,
-    status: 'completed',
     commit: range.evidence.head,
     gates: compactExecutions(gate.executions),
   };
@@ -724,12 +1055,11 @@ function finalizeReviewPass(options) {
   }
   const reviewed = verifyRange(context.cwd, options.base, options.fingerprint);
   if (reviewed.head !== range.evidence.head) fail('reviewed range HEAD changed');
-  markSpecCompleted(options);
   return {
     ok: true,
     action: 'callback',
+    state: 'reviewed',
     node: context.tree.spec_id,
-    status: 'completed',
     commit: reviewed.head,
   };
 }
@@ -787,22 +1117,32 @@ function applyReviewed(options) {
     fail(`destination state changed: expected ${options.destinationFingerprint}, actual ${currentDestinationFingerprint}`);
   }
 
-  const controlPlan = planControlMerge(
-    options.spec,
-    destinationSpec,
-    options.controlFingerprint,
-  );
-
   const controlPrefix = relativeControlPrefix(options.source, options.spec);
   const paths = withoutControl(rangePaths(options.source, base, sourceCommit), controlPrefix);
   if (paths.length === 0) fail('reviewed range has no product paths');
   const tree = inspectExecutionTree(options.spec);
   if (options.node !== tree.spec_id) fail('apply-reviewed requires the root Spec ID');
+  if (tree.spec_status !== 'ready') {
+    fail(`reviewed source ${tree.spec_id} status is ${tree.spec_status}, expected ready`);
+  }
   if (tree.nodes.length > 0) {
     const scopes = leafScopes(tree.nodes);
     const outside = paths.filter((filePath) => !inScopes(filePath, scopes));
     if (outside.length > 0) fail(`reviewed paths outside root scope: ${outside.join(', ')}`);
   }
+  const incomplete = incompleteExecution(tree);
+  if (!tree.root_gate_all_met || incomplete.length > 0) {
+    const details = [];
+    if (!tree.root_gate_all_met) details.push('root Gate is unmet');
+    if (incomplete.length > 0) details.push(`incomplete Nodes: ${incomplete.join(', ')}`);
+    fail(`reviewed source control state is incomplete: ${details.join('; ')}`);
+  }
+  const controlPlan = planControlMerge(
+    options.spec,
+    destinationSpec,
+    options.controlFingerprint,
+    { completeSpec: true },
+  );
   const sourceRange = rangeFingerprint(options.source, base, sourceCommit, paths);
   if (options.fingerprint && sourceRange.fingerprint !== options.fingerprint) {
     fail(`reviewed range fingerprint changed: expected ${options.fingerprint}, actual ${sourceRange.fingerprint}`);
@@ -814,6 +1154,7 @@ function applyReviewed(options) {
 
   let phase = 'baseline';
   let restoreControl = null;
+  let finalDestinationFingerprint = null;
   try {
     gitInput(options.cwd, ['apply', '--check', '--index', '--binary', '--whitespace=nowarn', '-'], sourceRange.diff);
     gitInput(options.cwd, ['apply', '--index', '--binary', '--whitespace=nowarn', '-'], sourceRange.diff);
@@ -834,6 +1175,8 @@ function applyReviewed(options) {
     }
     restoreControl = commitControlMerge(controlPlan);
     phase = 'control';
+    inspectExecutionTree(destinationSpec);
+    finalDestinationFingerprint = dirtyFingerprint(options.cwd, [destinationControlPrefix]);
   } catch (error) {
     if (restoreControl) restoreControl();
     if (phase === 'staged') {
@@ -854,7 +1197,7 @@ function applyReviewed(options) {
     commit: sourceCommit,
     fingerprint: reviewedFingerprint,
     paths,
-    destination_fingerprint: dirtyFingerprint(options.cwd, [destinationControlPrefix]),
+    destination_fingerprint: finalDestinationFingerprint,
   };
 }
 
@@ -865,6 +1208,8 @@ function main(argv = process.argv.slice(2)) {
       ? captureDestination(options)
       : options.action === 'close'
         ? closeBoundary(options)
+        : options.action === 'close-batch'
+          ? closeBatch(options)
         : options.action === 'review-pass'
           ? reviewPass(options)
           : options.action === 'finalize'
@@ -893,8 +1238,10 @@ if (require.main === module) process.exitCode = main();
 module.exports = {
   applyReviewed,
   captureDestination,
+  closeBatch,
   CoordinatorStateError,
   closeBoundary,
+  completeBoundariesAtomically,
   finalizeReviewPass,
   finalizeSpec,
   inspectState,
