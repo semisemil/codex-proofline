@@ -4,4 +4,4 @@ Use line breaks with noun phrases, state names, and short clauses for ordinary a
 
 Use small independent numbered steps only for multi-step work with a real execution order
 
-Limit a list to five items
+Prefer lists of at most five items when choosing the response structure; preserve all required items and any source structure the task requires.

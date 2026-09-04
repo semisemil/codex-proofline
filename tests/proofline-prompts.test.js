@@ -47,7 +47,7 @@ test('mode prompts are private frontmatter-free components with distinct contrac
   assert.match(focus, /target language's conventional syntax/);
   assert.match(focus, /numbered steps only for multi-step work with a real execution order/);
   assert.doesNotMatch(focus, /Show brief progress state only when needed/);
-  assert.match(focus, /Limit a list to five items/);
+  assert.match(focus, /Prefer lists of at most five items when choosing the response structure; preserve all required items and any source structure the task requires\./);
   assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
 
   assert.match(caveman, /Use ultra-compressed responses/);
