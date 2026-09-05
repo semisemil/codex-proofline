@@ -66,31 +66,21 @@
     const needle = normalize(query);
     return [...(projects || [])]
       .filter((project) => !needle || normalize(`${project.name} ${project.root}`).includes(needle))
-      .sort((left, right) => compareText(left.name, right.name) || compareText(left.root, right.root));
+      .sort((left, right) => Number(right.availability === 'available') - Number(left.availability === 'available')
+        || Number((right.counts?.active || 0) > 0) - Number((left.counts?.active || 0) > 0)
+        || (Date.parse(right.latest_issue?.created_at) || 0) - (Date.parse(left.latest_issue?.created_at) || 0)
+        || compareText(left.name, right.name) || compareText(left.root, right.root) || compareText(left.id, right.id));
   }
 
   function projectRailCue(project, projects) {
-    const peers = (projects || []).filter((candidate) => normalize(candidate.name) === normalize(project.name));
-    const primary = Array.from(String(project.name || '?')).slice(0, 2).join('') || '?';
-    const availability = project.availability === 'available' ? '가능' : '불가';
-    if (peers.length < 2) return { primary, secondary: availability };
-    const normalizeRootSegment = (segment) => String(segment || '').normalize('NFKC').trim();
-    const splitRoot = (root) => String(root || '')
-      .split(/[\\/]+/)
-      .map(normalizeRootSegment)
-      .filter(Boolean);
-    const peerSegments = peers.map((candidate) => splitRoot(candidate.root));
-    const projectSegments = splitRoot(project.root);
-    const width = Math.max(...peerSegments.map((segments) => segments.length));
-    let hint = '';
-    for (let index = 0; index < width; index += 1) {
-      const values = new Set(peerSegments.map((segments) => segments[index] || ''));
-      if (values.size > 1) {
-        hint = projectSegments[index] || project.root;
-        break;
-      }
-    }
-    return { primary, secondary: `${hint || availability} · ${availability}` };
+    const peers = (projects || []).filter((candidate) => normalize(candidate.name) === normalize(project.name))
+      .sort((left, right) => compareText(left.root, right.root)
+        || String(left.root).localeCompare(String(right.root), 'en', { sensitivity: 'variant' })
+        || compareText(left.id, right.id));
+    const initials = Array.from(String(project.name || '?')).slice(0, 2).join('');
+    if (peers.length < 2) return { primary: initials, secondary: '' };
+    const position = peers.findIndex((candidate) => project.id ? candidate.id === project.id : candidate.root === project.root);
+    return { primary: Array.from(initials)[0] + String(position + 1), secondary: '' };
   }
 
   function projectSelectionFocusKey(projectId, viewportWidth) {
@@ -221,6 +211,13 @@
       result = compareText(left.updated_at, right.updated_at);
     } else if (field === 'risk') {
       result = (RISK_ORDER[left.risk] ?? 99) - (RISK_ORDER[right.risk] ?? 99);
+    } else if (field === 'title') {
+      result = compareText(left.title, right.title);
+    } else if (field === 'type') {
+      result = compareText(ISSUE_TYPES[left.type] || left.type, ISSUE_TYPES[right.type] || right.type);
+    } else if (field === 'status') {
+      const order = ['doing', 'open', 'blocked', 'resolved', 'cancelled', 'superseded'];
+      result = order.indexOf(left.status) - order.indexOf(right.status);
     } else {
       result = compareText(left.id, right.id);
     }

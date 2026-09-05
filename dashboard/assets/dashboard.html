@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <meta name="color-scheme" content="light dark">
-  <title>Proofline Dashboard</title>
+  <title>작업 현황 · Proofline Pulse</title>
+  <script src="/motion.js"></script>
+  <link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
   <script src="/core.js" defer></script>
   <script src="/vendor/mermaid.min.js" defer></script>
@@ -14,82 +16,56 @@
 <body>
   <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
   <div class="app-shell" id="app-shell">
-    <aside class="project-panel glass" id="project-panel" aria-label="등록 프로젝트">
+    <aside class="project-panel" id="project-panel" aria-label="등록 프로젝트">
       <div class="project-panel-heading">
-        <div>
-          <p class="eyebrow">Proofline</p>
-          <h1>Pulse</h1>
-        </div>
-        <button class="icon-button drawer-close" id="drawer-close" type="button"
-          aria-label="프로젝트 목록 닫기" data-tooltip="프로젝트 목록 닫기">×</button>
+        <a class="product-brand" href="/" aria-label="Proofline Pulse 홈"><img src="/mark.svg" width="30" height="30" alt=""><span class="brand-name">Proofline <span class="brand-pulse">Pulse</span></span></a>
+        <button class="icon-button drawer-close" id="drawer-close" type="button" aria-label="프로젝트 목록 닫기" data-tooltip="프로젝트 목록 닫기">×</button>
       </div>
       <nav class="project-panel-navigation" aria-label="화면 전환">
-        <a class="surface-link project-panel-link" id="architecture-link" href="/architecture">아키텍처</a>
+        <a class="surface-link project-panel-link" href="/dashboard" aria-current="page" aria-label="대시보드" title="대시보드"><span class="nav-symbol icon-work" aria-hidden="true"></span><span class="nav-label">대시보드</span></a>
+        <a class="surface-link project-panel-link" id="architecture-link" href="/architecture" aria-label="아키텍처" title="아키텍처"><span class="nav-symbol icon-architecture" aria-hidden="true"></span><span class="nav-label">아키텍처</span></a>
       </nav>
-      <label class="project-search">
-        <span>프로젝트 찾기</span>
-        <input id="project-search" type="search" autocomplete="off" placeholder="이름 또는 경로">
-      </label>
-      <div class="project-list" id="project-list" role="listbox" aria-label="등록 프로젝트 목록"></div>
-    </aside>
-
-    <button class="scrim" id="drawer-scrim" type="button" aria-label="프로젝트 목록 닫기" tabindex="-1"></button>
-
-    <div class="workspace">
-      <header class="context-bar glass">
-        <div class="context-main">
-          <button class="icon-button menu-button" id="menu-button" type="button"
-            aria-label="프로젝트 목록 접기" aria-expanded="true" aria-controls="project-panel"
-            data-tooltip="프로젝트 목록 접기">☰</button>
-          <div class="current-context">
-            <span>현재 프로젝트</span>
-            <strong id="current-project">선택 안 됨</strong>
-          </div>
+      <div class="sidebar-section-heading"><span title="활성 작업 우선 · 최근 작업 등록순">프로젝트 <span class="project-order-hint">활성·최신순</span></span><span id="project-count" class="sidebar-count">0</span></div>
+      <label class="project-search search-field"><span class="visually-hidden">프로젝트 찾기</span><input id="project-search" type="search" autocomplete="off" placeholder="프로젝트 찾기"></label>
+      <div class="project-list" id="project-list" role="listbox" aria-label="등록 프로젝트 목록" aria-description="활성 작업이 있는 프로젝트 우선, 최근 작업 등록순"></div>
+      <details class="appearance-settings">
+        <summary aria-label="화면 설정" title="화면 설정"><span class="nav-symbol icon-settings" aria-hidden="true"></span><span class="nav-label">화면 설정</span><span class="settings-chevron" aria-hidden="true">⌃</span></summary>
+        <div class="appearance-options">
+          <label class="background-mode-control"><span>배경</span><select id="background-mode" aria-label="배경 종류"><option value="color">단색 배경</option><option value="image">이미지 배경</option></select></label>
+          <div class="appearance-row"><span>배경 이미지</span><button class="icon-button" id="background-button" type="button" aria-label="배경 이미지 선택" data-tooltip="배경 이미지 선택"><span class="nav-symbol icon-image" aria-hidden="true"></span></button></div>
+          <input id="background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" tabindex="-1" aria-hidden="true" hidden>
+          <label class="accent-control" data-tooltip="강조색 선택"><span>강조색</span><input id="accent-color" type="color" value="#3459e6" aria-label="강조색 선택"></label>
         </div>
-        <label class="global-search">
-          <span class="visually-hidden">선택 프로젝트 통합 검색</span>
-          <input id="global-search" type="search" autocomplete="off"
-            placeholder="이슈, 플랜, 스펙 검색" disabled>
-        </label>
+      </details>
+      <button class="sidebar-toggle" id="panel-toggle" type="button" aria-label="프로젝트 목록 접기" aria-expanded="true" aria-controls="project-panel"><span class="nav-symbol icon-panel" aria-hidden="true"></span><span class="nav-label">메뉴 접기</span></button>
+    </aside>
+    <button class="scrim" id="drawer-scrim" type="button" aria-label="프로젝트 목록 닫기" tabindex="-1"></button>
+    <div class="workspace">
+      <header class="context-bar">
+        <div class="context-main">
+          <button class="icon-button menu-button" id="menu-button" type="button" aria-label="프로젝트 목록 접기" aria-expanded="true" aria-controls="project-panel" data-tooltip="프로젝트 목록 접기"><span class="nav-symbol icon-panel" aria-hidden="true"></span></button>
+          <div class="current-context"><span>프로젝트</span><span class="context-divider" aria-hidden="true">/</span><strong id="current-project">선택 안 됨</strong></div>
+        </div>
         <div class="context-actions">
-          <button id="refresh-button" type="button" disabled>다시 읽기</button>
-          <button class="icon-button" id="theme-button" type="button"
-            aria-label="다크 테마로 전환" data-tooltip="다크 테마로 전환">◐</button>
-          <label class="background-mode-control">
-            <span class="visually-hidden">배경 종류</span>
-            <select id="background-mode" aria-label="배경 종류">
-              <option value="color">단색 배경</option>
-              <option value="image">이미지 배경</option>
-            </select>
-          </label>
-          <button class="icon-button" id="background-button" type="button"
-            aria-label="배경 이미지 선택" data-tooltip="배경 이미지 선택">▧</button>
-          <input id="background-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"
-            tabindex="-1" aria-hidden="true" hidden>
-          <label class="accent-control" data-tooltip="강조색 선택">
-            <span class="visually-hidden">강조색</span>
-            <input id="accent-color" type="color" value="#a55c3b" aria-label="강조색 선택">
-          </label>
+          <button id="refresh-button" type="button" disabled><span class="nav-symbol icon-refresh" aria-hidden="true"></span>다시 읽기</button>
+          <button class="icon-button" id="theme-button" type="button" aria-label="다크 테마로 전환" data-tooltip="다크 테마로 전환"><span class="nav-symbol icon-theme" aria-hidden="true"></span></button>
         </div>
       </header>
-
-      <div class="status-stack" id="status-stack" aria-live="polite" aria-atomic="true"></div>
-
-      <nav class="view-tabs" aria-label="대시보드 보기">
-        <div role="tablist" aria-label="대시보드 보기" id="view-tabs">
-          <button id="tab-work" role="tab" aria-selected="true" aria-controls="view-panel" tabindex="0" data-view="work">작업</button>
-          <button id="tab-documents" role="tab" aria-selected="false" aria-controls="view-panel" tabindex="-1" data-view="documents">문서</button>
-          <button id="tab-flow" role="tab" aria-selected="false" aria-controls="view-panel" tabindex="-1" data-view="flow">흐름 점검</button>
-        </div>
-      </nav>
-
-      <main class="main-panel glass" id="main-content" tabindex="-1">
-        <div id="view-panel" role="tabpanel" aria-labelledby="tab-work"></div>
-      </main>
+      <div class="workspace-content">
+        <div class="status-stack" id="status-stack" aria-live="polite" aria-atomic="true"></div>
+        <div class="workspace-heading"><div><h1 id="view-title">작업 현황</h1></div><p class="workspace-path" id="current-project-path"></p></div>
+        <nav class="view-tabs" aria-label="대시보드 보기">
+          <div role="tablist" aria-label="대시보드 보기" id="view-tabs">
+            <button id="tab-work" role="tab" aria-selected="true" aria-controls="view-panel" tabindex="0" data-view="work"><span class="nav-symbol icon-work" aria-hidden="true"></span>작업</button>
+            <button id="tab-documents" role="tab" aria-selected="false" aria-controls="view-panel" tabindex="-1" data-view="documents"><span class="nav-symbol icon-document" aria-hidden="true"></span>문서</button>
+            <button id="tab-flow" role="tab" aria-selected="false" aria-controls="view-panel" tabindex="-1" data-view="flow"><span class="nav-symbol icon-flow" aria-hidden="true"></span>흐름 점검</button>
+          </div>
+          <label class="global-search search-field"><span class="visually-hidden">선택 프로젝트 통합 검색</span><input id="global-search" type="search" autocomplete="off" placeholder="검색" disabled></label>
+        </nav>
+        <main class="main-panel" id="main-content" tabindex="-1"><div id="view-panel" role="tabpanel" aria-labelledby="tab-work"></div></main>
+      </div>
     </div>
   </div>
-  <template id="loading-template">
-    <div class="empty-state" role="status"><h2>불러오는 중</h2><p>등록 프로젝트와 작업 기록을 확인합니다.</p></div>
-  </template>
+  <template id="loading-template"><div class="empty-state" role="status"><h2>불러오는 중</h2></div></template>
 </body>
 </html>

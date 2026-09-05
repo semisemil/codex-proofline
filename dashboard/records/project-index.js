@@ -612,6 +612,7 @@ function unavailableSummary(project) {
     counts: { active: null, blocked: null },
     diagnostic_count: 0,
     last_modified: null,
+    latest_issue: null,
   };
 }
 
@@ -653,6 +654,10 @@ function scanProject(project, options = {}) {
     .filter(Boolean)
     .sort()
     .at(-1) || null;
+  const latestIssue = [...linkState.issues]
+    .filter((issue) => Number.isFinite(Date.parse(issue.metadata?.created_at)))
+    .sort((left, right) => Date.parse(right.metadata.created_at) - Date.parse(left.metadata.created_at)
+      || right.id.localeCompare(left.id, 'en', { numeric: true }))[0];
   const summary = {
     id: project.id,
     name: projectName(project.root),
@@ -664,6 +669,11 @@ function scanProject(project, options = {}) {
     },
     diagnostic_count: diagnostics.length,
     last_modified: latestModified,
+    latest_issue: latestIssue ? {
+      id: latestIssue.id,
+      title: latestIssue.title,
+      created_at: latestIssue.metadata.created_at,
+    } : null,
   };
   return {
     availability: 'available',

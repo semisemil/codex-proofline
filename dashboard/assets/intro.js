@@ -9,6 +9,10 @@
   let projectId = null;
   try {
     projectId = localStorage.getItem('proofline.dashboard.project');
+    const theme = localStorage.getItem('proofline.dashboard.theme');
+    const accent = localStorage.getItem('proofline.dashboard.accent');
+    if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    if (/^#[0-9a-f]{6}$/i.test(accent || '')) document.documentElement.style.setProperty('--accent', accent);
   } catch {
     // Both destinations remain usable without stored selection.
   }

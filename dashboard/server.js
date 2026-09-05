@@ -29,6 +29,7 @@ const STATIC_CONTENT_TYPES = Object.freeze({
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
+  '.woff2': 'font/woff2',
 });
 const DEFAULT_ASSET_ROOT = path.join(__dirname, 'assets');
 

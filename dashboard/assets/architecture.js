@@ -2,6 +2,7 @@
 
 (function startArchitecture() {
   const core = globalThis.ProoflineDashboardCore;
+  const motion = globalThis.ProoflineMotion;
   if (!core) return;
 
   const STORAGE_PROJECT = 'proofline.dashboard.project';
@@ -84,7 +85,9 @@
       } catch {
         // A non-JSON failure still receives the generic message below.
       }
-      throw new Error(detail?.error?.message || '아키텍처 문서를 읽을 수 없습니다.');
+      const error = new Error(detail?.error?.message || '아키텍처 문서를 읽을 수 없습니다.');
+      error.code = detail?.error?.code;
+      throw error;
     }
     return response.json();
   }
@@ -111,6 +114,12 @@
   }
 
   function renderProjects() {
+    const current = state.projects.find((project) => project.id === state.projectId);
+    const shortcut = document.getElementById('architecture-project-shortcut');
+    shortcut.textContent = Array.from(current?.name || 'P').slice(0, 2).join('');
+    shortcut.title = current ? `${current.name}\n${current.root}\n프로젝트 선택` : '프로젝트 선택';
+    shortcut.setAttribute('aria-label', current ? `${current.name}, 프로젝트 선택` : '프로젝트 선택');
+    shortcut.dataset.activity = current?.counts?.active > 0 ? 'active' : 'idle';
     elements.project.replaceChildren();
     if (state.projects.length === 0) {
       const option = make('option', '', '등록 프로젝트 없음');
@@ -133,7 +142,7 @@
   function renderDocumentNavigation() {
     elements.documents.replaceChildren();
     if (state.documents.length === 0) {
-      elements.documents.append(make('p', 'architecture-navigation-empty', '관리 중인 아키텍처 문서가 없습니다.'));
+      elements.documents.append(make('p', 'architecture-navigation-empty', '문서 없음'));
       return;
     }
     const list = make('ol', 'architecture-document-list');
@@ -144,10 +153,13 @@
       const params = new URLSearchParams({ project: state.projectId, document: id });
       link.href = `/architecture?${params}`;
       link.dataset.documentId = id;
+      link.dataset.railLabel = String(list.children.length + 1).padStart(2, '0');
+      link.title = `${item.title || DOCUMENT_KIND_LABELS[item.kind] || id}\n${core.architectureDocumentPath(item)}`;
+      link.setAttribute('aria-label', item.title || DOCUMENT_KIND_LABELS[item.kind] || id);
       link.setAttribute('aria-current', id === state.documentId ? 'page' : 'false');
       link.append(
         make('strong', '', item.title || DOCUMENT_KIND_LABELS[item.kind] || id),
-        make('span', '', [item.kind || core.architectureDocumentPath(item), item.status].filter(Boolean).join(' · ')),
+        make('span', '', [DOCUMENT_KIND_LABELS[item.kind] || core.architectureDocumentPath(item), core.STATUSES[item.status] || item.status].filter(Boolean).join(' · ')),
       );
       row.append(link);
       list.append(row);
@@ -158,7 +170,8 @@
   function emptyDetail(title, message) {
     elements.detail.replaceChildren();
     const empty = make('div', 'empty-state');
-    empty.append(make('h2', '', title), make('p', '', message));
+    empty.append(make('h2', '', title));
+    if (message) empty.append(make('p', '', message));
     elements.detail.append(empty);
   }
 
@@ -204,7 +217,7 @@
     const relativePath = detail.relative_path || detail.path || core.architectureDocumentPath(item);
     const header = make('header', 'architecture-document-header');
     header.append(
-      make('p', 'document-kind', item.kind || 'architecture'),
+      make('p', 'document-kind', DOCUMENT_KIND_LABELS[item.kind] || '아키텍처'),
       make('h2', '', detail.title || item.title || DOCUMENT_KIND_LABELS[item.kind] || state.documentId),
       make('p', 'document-path', relativePath),
     );
@@ -239,10 +252,10 @@
 
   async function loadDocument(documentId, options = {}) {
     if (!documentId || !state.projectId) return;
+    const transition = options.silent ? null : motion.begin(elements.detail);
     state.documentId = documentId;
     renderDocumentNavigation();
     updateLocation();
-    if (!options.silent) emptyDetail('문서를 불러오는 중', '등록된 Markdown 파일을 읽습니다.');
     const request = documentGate.begin(state.projectId, documentId);
     try {
       const detail = await api(`/api/v1/projects/${encodeURIComponent(state.projectId)}/architecture/documents/${encodeURIComponent(documentId)}`);
@@ -253,14 +266,17 @@
     } catch (error) {
       const disposition = documentGate.disposition(request, state.projectId, state.documentId);
       if (!disposition.render) return;
-      setStatus(error.message, true);
+      setStatus('');
       emptyDetail('문서를 읽을 수 없음', error.message);
+    } finally {
+      motion.finish(transition);
     }
   }
 
   async function loadArchitecture(projectId, requestedDocumentId = null) {
     const project = state.projects.find((item) => item.id === projectId && item.availability === 'available');
     if (!project) return;
+    const transition = motion.begin(elements.detail);
     state.projectId = project.id;
     state.index = null;
     state.documents = [];
@@ -270,8 +286,7 @@
     renderProjects();
     renderDocumentNavigation();
     updateLocation();
-    setStatus('아키텍처 문서를 읽는 중입니다.');
-    emptyDetail('아키텍처를 불러오는 중', `${project.name}의 관리 문서를 확인합니다.`);
+    setStatus('');
     const request = indexGate.begin(project.id);
     try {
       const index = await api(`/api/v1/projects/${encodeURIComponent(project.id)}/architecture/index`);
@@ -282,15 +297,17 @@
       renderDocumentNavigation();
       updateLocation();
       if (!state.documentId) {
-        setStatus('이 프로젝트는 아키텍처 메모리를 아직 초기화하지 않았습니다.');
-        emptyDetail('아키텍처 문서 없음', 'architecture-memory-init으로 프로젝트를 초기화하면 여기에 표시됩니다.');
+        emptyDetail('아키텍처 문서 없음');
         return;
       }
       await loadDocument(state.documentId, { silent: true });
     } catch (error) {
       if (!indexGate.isCurrent(request, state.projectId)) return;
-      setStatus(error.message, true);
-      emptyDetail('아키텍처를 읽을 수 없음', error.message);
+      setStatus('');
+      if (error.code === 'architecture-not-found') emptyDetail('아키텍처 문서 없음');
+      else emptyDetail('아키텍처를 읽을 수 없음', error.message);
+    } finally {
+      motion.finish(transition);
     }
   }
 
@@ -302,19 +319,37 @@
       state.projectId = core.initialProjectId(state.projects, requestedProjectId);
       renderProjects();
       if (!state.projectId || selectedProject()?.availability !== 'available') {
-        setStatus('사용 가능한 등록 프로젝트가 없습니다.');
-        emptyDetail('프로젝트 없음', 'Proofline 문서를 생성해 프로젝트를 등록하세요.');
+        setStatus('');
+        emptyDetail('사용 가능한 프로젝트 없음');
         return;
       }
       await loadArchitecture(state.projectId, query.get('document'));
     } catch (error) {
       state.projects = [];
       renderProjects();
-      setStatus(error.message, true);
+      setStatus('');
       emptyDetail('프로젝트를 읽을 수 없음', error.message);
     }
   }
 
+  const navigationToggle = document.getElementById('architecture-panel-toggle');
+  function collapseNavigation(collapsed, remember = true) {
+    if (remember) motion.sidebar(collapsed);
+    document.querySelector('.architecture-layout').classList.toggle('navigation-collapsed', collapsed);
+    navigationToggle.setAttribute('aria-expanded', String(!collapsed));
+    navigationToggle.setAttribute('aria-label', collapsed ? '탐색 메뉴 펼치기' : '탐색 메뉴 접기');
+    navigationToggle.title = navigationToggle.getAttribute('aria-label');
+    navigationToggle.querySelector('.nav-label').textContent = collapsed ? '메뉴 펼치기' : '메뉴 접기';
+  }
+  navigationToggle.addEventListener('click', () => collapseNavigation(navigationToggle.getAttribute('aria-expanded') === 'true'));
+  document.getElementById('architecture-project-shortcut').addEventListener('click', () => {
+    collapseNavigation(false);
+    elements.project.focus();
+  });
+  globalThis.addEventListener('resize', () => {
+    collapseNavigation(!globalThis.matchMedia('(max-width: 760px)').matches
+      && document.documentElement.dataset.sidebar === 'collapsed', false);
+  });
   elements.project.addEventListener('change', () => loadArchitecture(elements.project.value));
   elements.refresh.addEventListener('click', () => loadArchitecture(state.projectId, state.documentId));
   elements.documents.addEventListener('click', (event) => {
@@ -343,5 +378,7 @@
   });
 
   applySavedAppearance();
+  collapseNavigation(!globalThis.matchMedia('(max-width: 760px)').matches
+    && document.documentElement.dataset.sidebar === 'collapsed', false);
   loadProjects();
 }());

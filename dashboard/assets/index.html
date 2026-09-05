@@ -3,9 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <meta name="color-scheme" content="light dark">
-  <title>Proofline</title>
+  <title>Proofline Pulse</title>
+  <script src="/motion.js"></script>
+  <link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
   <script src="/intro.js" defer></script>
 </head>
@@ -13,22 +15,15 @@
   <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
   <main class="intro-shell" id="main-content" tabindex="-1">
     <header class="intro-heading">
-      <p class="eyebrow">Proofline</p>
-      <h1>프로젝트를 보는 두 가지 방법</h1>
-      <p>작업 흐름과 아키텍처 맥락을 같은 서버에서 읽습니다.</p>
+      <img src="/mark.svg" width="44" height="44" alt="">
+      <h1>Proofline <span class="brand-pulse">Pulse</span></h1>
     </header>
-    <nav class="surface-choice" aria-label="Proofline 보기 선택">
-      <a class="surface-card glass" id="intro-dashboard-link" href="/dashboard">
-        <span class="surface-card-kicker">작업</span>
-        <strong>Dashboard</strong>
-        <span>이슈, 플랜, 스펙과 흐름 상태를 확인합니다.</span>
-      </a>
-      <a class="surface-card glass" id="intro-architecture-link" href="/architecture">
-        <span class="surface-card-kicker">맥락</span>
-        <strong>Architecture</strong>
-        <span>C4, 현재 맥락과 ADR을 읽습니다.</span>
-      </a>
-    </nav>
+    <div class="intro-destinations">
+      <nav class="surface-choice" aria-label="Proofline Pulse 보기 선택">
+        <a class="surface-card" id="intro-dashboard-link" href="/dashboard"><span class="nav-symbol icon-work" aria-hidden="true"></span><span class="surface-card-copy"><strong>대시보드</strong><span>작업 현황과 프로젝트 문서</span></span><span class="surface-card-arrow" aria-hidden="true">→</span></a>
+        <a class="surface-card" id="intro-architecture-link" href="/architecture"><span class="nav-symbol icon-architecture" aria-hidden="true"></span><span class="surface-card-copy"><strong>아키텍처</strong><span>시스템 구조와 설계 결정</span></span><span class="surface-card-arrow" aria-hidden="true">→</span></a>
+      </nav>
+    </div>
   </main>
 </body>
 </html>

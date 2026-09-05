@@ -9,6 +9,7 @@ const test = require('node:test');
 const {
   ProjectIndexService,
   buildProjectIndex,
+  buildProjectSummary,
 } = require('../dashboard/records/project-index.js');
 
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111';
@@ -99,6 +100,23 @@ function writeSpec(root, id, slug, values = {}) {
 function project(root) {
   return { id: PROJECT_ID, root, registered_at: '2026-08-17T00:00:00.000Z' };
 }
+
+test('summary and index expose the newest issue by creation time, independently of later updates', (t) => {
+  const root = makeRoot(t);
+  const older = issue({ updated_at: '2026-09-05T00:00:00.000Z' });
+  const newer = issue({ created_at: '2026-09-01T00:00:00.000Z', updated_at: '2026-09-01T00:00:00.000Z' });
+  newer.identity = { ...newer.identity, id: 'PL-0002', title: '새로 등록된 작업' };
+  writeIssue(root, older);
+  writeIssue(root, newer);
+  const expected = { id: 'PL-0002', title: '새로 등록된 작업', created_at: newer.created_at };
+  assert.deepEqual(buildProjectSummary(project(root)).latest_issue, expected);
+  assert.deepEqual(buildProjectIndex(project(root)).publicIndex.project.latest_issue, expected);
+  older.created_at = newer.created_at;
+  writeIssue(root, older);
+  assert.deepEqual(buildProjectSummary(project(root)).latest_issue, expected);
+  assert.equal(buildProjectSummary(project(makeRoot(t))).latest_issue, null);
+  assert.equal(buildProjectSummary(project(path.join(root, 'missing'))).latest_issue, null);
+});
 
 test('project index returns canonical records, reciprocal links, and multiple flow signals', (t) => {
   const root = makeRoot(t);

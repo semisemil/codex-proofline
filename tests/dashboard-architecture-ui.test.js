@@ -109,7 +109,7 @@ test('Markdown keeps default link hardening and permits resolver-approved Archit
 
 test('Architecture layout has desktop navigation and a compact single-column fallback', () => {
   const css = readAsset('styles.css');
-  assert.match(css, /\.architecture-layout\s*\{[\s\S]*?grid-template-columns:\s*minmax\(220px, 300px\) minmax\(0, 1fr\)/);
+  assert.match(css, /\.architecture-layout\s*\{[\s\S]*?grid-template-columns:\s*248px minmax\(0, 1fr\)/);
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.architecture-layout\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
   assert.match(css, /\.architecture-markdown \.mermaid\s*\{/);
 });

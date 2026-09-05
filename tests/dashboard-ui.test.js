@@ -182,11 +182,16 @@ test('actual dashboard assets are served with the real API fixture', async (t) =
   assert.match(dashboard.body, /src="\/app\.js"/);
   assert.match(dashboard.body, /href="\/styles\.css"/);
 
-  for (const asset of ['core.js', 'app.js', 'intro.js', 'styles.css', 'vendor/mermaid.min.js']) {
+  for (const asset of ['core.js', 'motion.js', 'app.js', 'intro.js', 'styles.css', 'vendor/mermaid.min.js']) {
     const response = await request(server, `/${asset}`);
     assert.equal(response.status, 200, asset);
     assert.equal(response.body, readAsset(asset));
   }
+  const font = await request(server, '/fonts/PretendardVariable.woff2');
+  assert.equal(font.status, 200);
+  assert.equal(font.headers['content-type'], 'font/woff2');
+  assert.equal(font.body.slice(0, 4), 'wOF2');
+  assert.equal(Number(font.headers['content-length']), fs.statSync(path.join(ASSET_ROOT, 'fonts/PretendardVariable.woff2')).size);
 
   const listed = JSON.parse((await request(server, '/api/v1/projects')).body);
   assert.deepEqual(listed.projects, projects);
@@ -214,7 +219,7 @@ test('project choice, search, independent issue axes, documents, and flow orderi
   );
   assert.equal(core.initialProjectId(projects, UNAVAILABLE_ID), AVAILABLE_ID);
   assert.deepEqual(core.projectOptions(projects, 'gone').map((item) => item.id), [UNAVAILABLE_ID]);
-  assert.deepEqual(core.projectOptions(projects).map((item) => item.root), ['C:\\gone\\same', 'C:\\work\\same']);
+  assert.deepEqual(core.projectOptions(projects).map((item) => item.root), ['C:\\work\\same', 'C:\\gone\\same']);
 
   assert.deepEqual(core.selectIssues(indexFixture, {
     quick: 'active', type: 'task', status: 'doing', risk: 'high', search: 'Pulse 화면 계약', sort: 'risk-asc',
@@ -532,8 +537,8 @@ test('index completion reloads the document selected during refresh after cleari
 });
 
 test('collapsed rail cues distinguish same-name projects before selection', () => {
-  assert.deepEqual(core.projectRailCue(projects[0], projects), { primary: '같은', secondary: 'gone · 불가' });
-  assert.deepEqual(core.projectRailCue(projects[1], projects), { primary: '같은', secondary: 'work · 가능' });
+  assert.deepEqual(core.projectRailCue(projects[0], projects), { primary: '같1', secondary: '' });
+  assert.deepEqual(core.projectRailCue(projects[1], projects), { primary: '같2', secondary: '' });
 
   const posixCasePeers = [
     { name: 'same', root: '/Users/A/same', availability: 'available' },
@@ -541,16 +546,20 @@ test('collapsed rail cues distinguish same-name projects before selection', () =
   ];
   const upperCue = core.projectRailCue(posixCasePeers[0], posixCasePeers);
   const lowerCue = core.projectRailCue(posixCasePeers[1], posixCasePeers);
-  assert.deepEqual(upperCue, { primary: 'sa', secondary: 'A · 가능' });
-  assert.deepEqual(lowerCue, { primary: 'sa', secondary: 'a · 가능' });
+  assert.match(upperCue.primary, /^s[12]$/);
+  assert.match(lowerCue.primary, /^s[12]$/);
+  assert.equal(upperCue.secondary, '');
+  assert.equal(lowerCue.secondary, '');
   assert.notDeepEqual(upperCue, lowerCue);
 
   const drivePeers = [
     { name: 'same', root: 'C:\\same', availability: 'available' },
     { name: 'same', root: 'D:\\same', availability: 'available' },
   ];
-  assert.deepEqual(core.projectRailCue(drivePeers[0], drivePeers), { primary: 'sa', secondary: 'C: · 가능' });
-  assert.deepEqual(core.projectRailCue(drivePeers[1], drivePeers), { primary: 'sa', secondary: 'D: · 가능' });
+  assert.deepEqual(core.projectRailCue(drivePeers[0], drivePeers), { primary: 's1', secondary: '' });
+  assert.deepEqual(core.projectRailCue(drivePeers[1], drivePeers), { primary: 's2', secondary: '' });
+  assert.deepEqual(core.projectRailCue(drivePeers[0], [...drivePeers].reverse()), { primary: 's1', secondary: '' });
+  assert.deepEqual(core.projectRailCue({ name: 'solo', availability: 'unavailable' }, []), { primary: 'so', secondary: '' });
 });
 
 test('focus restoration transitions preserve controls at 768 and keep 390 drawer return focus', () => {
@@ -583,7 +592,7 @@ test('focus restoration transitions preserve controls at 768 and keep 390 drawer
     'work:type',
     'work:status',
     'work:risk',
-    'work:sort',
+    'work:sort:id', 'work:sort:title', 'work:sort:type', 'work:sort:status', 'work:sort:risk', 'work:sort:date',
     'documents:kind',
     'documents:status',
     'documents:sort',
@@ -655,7 +664,7 @@ test('background mode and image replacement are separate keyboard controls', () 
   const html = readAsset('dashboard.html');
   const app = readAsset('app.js');
   const fileInput = html.match(/<input id="background-file"[\s\S]*?>/)?.[0] || '';
-  const visibleButton = html.match(/<button class="icon-button" id="background-button"[\s\S]*?<\/button>/)?.[0] || '';
+  const visibleButton = html.match(/<button class="icon-button" id="background-button"[^>]*>/)?.[0] || '';
   const modeSelect = html.match(/<select id="background-mode"[\s\S]*?<\/select>/)?.[0] || '';
   assert.match(fileInput, /tabindex="-1"/);
   assert.match(fileInput, /aria-hidden="true"/);
@@ -685,7 +694,7 @@ test('dashboard user-facing artifact names are Korean and registration guidance 
   const app = readAsset('app.js');
   const visibleSource = `${html}\n${app}`;
 
-  assert.match(html, /placeholder="이슈, 플랜, 스펙 검색"/);
+  assert.match(html, /id="global-search"[^>]*placeholder="검색"/);
   assert.match(app, /이슈, 플랜 또는 스펙 추가 시 프로젝트가 등록됩니다\./);
   assert.doesNotMatch(html, /프로젝트 원본은 이 화면에서 변경하지 않습니다\./);
   assert.doesNotMatch(visibleSource, /['">](?:Issue|Plan|Spec)(?:\s|<|없음|과|또는|→)/);
@@ -722,6 +731,41 @@ test('safe Markdown escapes HTML and only creates hardened HTTP links', () => {
   assert.match(rendered, /<pre><code class="language-html">&lt;iframe/);
 });
 
+test('projects prioritize availability, active work, and the most recently created issue', () => {
+  const available = { availability: 'available', root: 'C:/work', counts: { active: 0 } };
+  const entries = [
+    { ...available, id: 'idle-new', name: 'A', latest_issue: { created_at: '2026-09-05T00:00:00Z' } },
+    { ...available, id: 'active-old', name: 'B', counts: { active: 5 }, latest_issue: { created_at: '2026-08-01T00:00:00Z' } },
+    { ...available, id: 'active-new', name: 'C', counts: { active: 1 }, latest_issue: { created_at: '2026-09-04T00:00:00Z' } },
+    { ...available, id: 'empty', name: 'D' },
+    { ...available, id: 'gone', name: 'E', availability: 'unavailable', counts: { active: null } },
+  ];
+  assert.deepEqual(core.projectOptions(entries).map((item) => item.id), ['active-new', 'active-old', 'idle-new', 'empty', 'gone']);
+  assert.equal(core.initialProjectId(entries, null), 'active-new');
+  assert.equal(core.initialProjectId(entries, 'idle-new'), 'idle-new');
+  assert.deepEqual(entries.map((item) => item.id), ['idle-new', 'active-old', 'active-new', 'empty', 'gone']);
+  assert.deepEqual(core.projectOptions(entries, 'B').map((item) => item.id), ['active-old']);
+});
+
+test('work columns sort independently in both directions with a stable ID tie break', () => {
+  const fixture = { issues: [
+    { id: 'PL-0003', title: '다', type: 'documentation', status: 'blocked', risk: 'critical', updated_at: '2026-09-03T00:00:00Z' },
+    { id: 'PL-0001', title: '가', type: 'task', status: 'doing', risk: 'low', updated_at: '2026-09-02T00:00:00Z' },
+    { id: 'PL-0002', title: '나', type: 'bug', status: 'open', risk: 'high', updated_at: '2026-09-01T00:00:00Z' },
+  ] };
+  const expected = { id: [1, 2, 3], title: [1, 2, 3], type: [1, 3, 2], status: [1, 2, 3], risk: [3, 2, 1], date: [2, 1, 3] };
+  for (const [field, order] of Object.entries(expected)) {
+    for (const direction of ['asc', 'desc']) {
+      const ids = direction === 'asc' ? order : [...order].reverse();
+      assert.deepEqual(core.selectIssues(fixture, { quick: 'all', sort: `${field}-${direction}` }).map((item) => item.id),
+        ids.map((id) => `PL-000${id}`), `${field}-${direction}`);
+    }
+  }
+  assert.deepEqual(core.selectIssues(fixture, { quick: 'active', sort: 'title-desc' }).map((item) => item.id), ['PL-0002', 'PL-0001']);
+  const tied = { issues: fixture.issues.map((item) => ({ ...item, title: '같음' })) };
+  assert.deepEqual(core.selectIssues(tied, { quick: 'all', sort: 'title-desc' }).map((item) => item.id), ['PL-0001', 'PL-0002', 'PL-0003']);
+});
+
 test('actual markup and styles expose responsive, keyboard, tooltip, and state contracts', () => {
   const html = readAsset('dashboard.html');
   const css = readAsset('styles.css');
@@ -737,20 +781,19 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.doesNotMatch(html, /id="rail-toggle"/);
   assert.ok((html.match(/data-tooltip=/g) || []).length >= 4);
 
-  assert.match(css, /grid-template-columns:\s*210px minmax\(0, 1fr\)/);
+  assert.match(css, /grid-template-columns:\s*248px minmax\(0, 1fr\)/);
   assert.match(css, /@media \(max-width: 899px\) and \(min-width: 681px\)/);
-  assert.match(css, /\.app-shell\.project-panel-collapsed\s*\{[\s\S]*?grid-template-columns:\s*0 minmax\(0, 1fr\)/);
-  assert.match(css, /\.project-panel-collapsed \.project-panel\s*\{[\s\S]*?display:\s*none/);
+  assert.match(css, /\.app-shell\.project-panel-collapsed\s*\{[\s\S]*?grid-template-columns:\s*76px minmax\(0, 1fr\)/);
   assert.match(css, /\.project-panel-link\s*\{[\s\S]*?width:\s*100%/);
   assert.match(css, /\.document-layout\.is-list-collapsed\s*\{[\s\S]*?grid-template-columns:\s*48px minmax\(0, 1fr\)/);
   assert.match(css, /\.markdown-body code\s*\{[\s\S]*?background:\s*var\(--markdown-code-bg\)/);
-  assert.match(css, /\.markdown-body h1,[\s\S]*?border-bottom:\s*2px solid var\(--markdown-heading-line\)/);
+  assert.match(css, /\.markdown-body h1,[\s\S]*?border-bottom:\s*1px solid var\(--markdown-heading-line\)/);
   assert.match(css, /\.markdown-body \.mermaid\s*\{/);
   assert.match(css, /@media \(max-width: 680px\)[\s\S]*?\.project-panel\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?z-index:\s*60;/);
   assert.match(css, /\.drawer-open \.project-panel[\s\S]*?transform:\s*translateX\(0\)/);
-  assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.issue-axes[\s\S]*?grid-template-columns:\s*repeat\(3,/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /backdrop-filter:\s*blur\(24px\) saturate\(1\.6\)/);
+  assert.doesNotMatch(css, /backdrop-filter:/);
+  assert.match(html, /<details class="appearance-settings">[\s\S]*?<summary[^>]*>/);
 
   assert.match(app, /new URLSearchParams\(globalThis\.location\.search\)\.get\('expected_version'\)/);
   assert.match(app, /new URLSearchParams\(globalThis\.location\.search\)\.get\('project'\)/);
@@ -779,9 +822,12 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(app, /ArrowLeft/);
   assert.match(app, /indexedDB\.open\('proofline-dashboard'/);
   assert.match(app, /setInterval\([\s\S]*?30000/);
-  assert.match(app, /visibilitychange[\s\S]*?visibilityState === 'visible'[\s\S]*?loadIndex\(false\)/);
+  assert.match(app, /visibilitychange[\s\S]*?visibilityState === 'visible'[\s\S]*?loadIndex\(false, true\)/);
   assert.equal((app.match(/\.innerHTML\s*=/g) || []).length, 1);
   assert.match(app, /body\.innerHTML = core\.renderMarkdown/);
+  assert.match(app, /cell\.setAttribute\('aria-sort'/);
+  assert.match(app, /make\('table', 'issue-table'\)/);
+  assert.doesNotMatch(app, /selectControl\('정렬 기준', state\.issueSort/);
   assert.match(app, /core\.signalLabels\(issue\.flow_signal_ids\)/);
   assert.doesNotMatch(app, /\['complete', '완료'\]/);
   assert.match(app, /\['completed', '완료'\]/);
@@ -793,7 +839,7 @@ test('actual markup and styles expose responsive, keyboard, tooltip, and state c
   assert.match(app, /option\.dataset\.focusKey = core\.documentOptionFocusKey/);
   assert.equal((app.match(/renderView\(focusKey, 'documents:kind'\)/g) || []).length, 2);
   for (const focusKey of [
-    'work:type', 'work:status', 'work:risk', 'work:sort',
+    'work:type', 'work:status', 'work:risk',
     'documents:kind', 'documents:status', 'documents:sort',
   ]) {
     assert.match(app, new RegExp(`['\"]${focusKey}['\"]`), focusKey);
