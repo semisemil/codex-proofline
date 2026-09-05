@@ -23,15 +23,15 @@ test('the common skill contains only the preserved baseline contract', () => {
   assert.match(body, /## Review and evidence/);
   assert.match(body, /## UI text and information design/);
   assert.match(body, /## Code/);
-  assert.doesNotMatch(body, /Normal response mode|Focus response mode|Caveman response mode|\$proofline|defaultMode|session_id/);
+  assert.doesNotMatch(body, /Normal response mode|Focus response mode|Core response mode|\$proofline|defaultMode|session_id/);
 });
 
 test('mode prompts are private frontmatter-free components with distinct contracts', () => {
   const normal = read('skills', 'proofline', 'normal.md');
   const focus = read('skills', 'proofline', 'focus.md');
-  const caveman = read('skills', 'proofline', 'caveman.md');
+  const core = read('skills', 'proofline', 'core.md');
 
-  for (const prompt of [normal, focus, caveman]) {
+  for (const prompt of [normal, focus, core]) {
     assert.doesNotMatch(prompt, /^---/);
     assert.doesNotMatch(prompt, /^#|defaultMode|session_id|\$proofline/);
     assert.doesNotMatch(prompt, /Replace any previous Proofline response-mode instructions|Do not replace the current Proofline response-mode instructions|The Proofline response mode is unchanged|Both modes remain unchanged|Respond with only|Continue the remaining/);
@@ -39,7 +39,7 @@ test('mode prompts are private frontmatter-free components with distinct contrac
   assert.equal(normal.trim(), "Use the target language's conventional syntax");
   assert.doesNotMatch(normal, /normal conversational response style/);
   assert.match(normal, /target language's conventional syntax/);
-  assert.doesNotMatch(normal, /Replace and ignore previous Proofline focus or caveman/);
+  assert.doesNotMatch(normal, /Replace and ignore previous Proofline focus or core/);
   assert.doesNotMatch(normal, /shared Proofline baseline/);
   assert.doesNotMatch(normal, /next action|numbered steps|ultra-compressed/);
 
@@ -50,15 +50,15 @@ test('mode prompts are private frontmatter-free components with distinct contrac
   assert.match(focus, /Prefer lists of at most five items when choosing the response structure; preserve all required items and any source structure the task requires\./);
   assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
 
-  assert.match(caveman, /Use ultra-compressed responses/);
-  assert.doesNotMatch(caveman, /conventional syntax/);
-  assert.doesNotMatch(caveman, /with the conclusion first/);
-  assert.match(caveman, /technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
-  assert.doesNotMatch(caveman, /technical terms/);
-  assert.match(caveman, /Do not invent abbreviations, causal arrows, decorative tables, or emoji/);
-  assert.match(caveman, /complete sentences when fragments would obscure safety, irreversible consequences, execution order, or requested clarification/);
-  assert.match(caveman, /Resume ultra-compressed expression after the clarity exception/);
-  assert.doesNotMatch(caveman, /Keep the user's primary language|mention yourself|preview tool calls|asks to explain again or repeats/);
+  assert.match(core, /Use ultra-compressed responses/);
+  assert.doesNotMatch(core, /conventional syntax/);
+  assert.doesNotMatch(core, /with the conclusion first/);
+  assert.match(core, /technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
+  assert.doesNotMatch(core, /technical terms/);
+  assert.match(core, /Do not invent abbreviations, causal arrows, decorative tables, or emoji/);
+  assert.match(core, /complete sentences when fragments would obscure safety, irreversible consequences, execution order, or requested clarification/);
+  assert.match(core, /Resume ultra-compressed expression after the clarity exception/);
+  assert.doesNotMatch(core, /Keep the user's primary language|mention yourself|preview tool calls|asks to explain again or repeats/);
 });
 
 test('hook registration keeps lifecycle boundaries and removes legacy owners', () => {

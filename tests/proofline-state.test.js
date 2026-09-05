@@ -100,12 +100,12 @@ test('new sessions initialize from the default and remain isolated', (t) => {
     defaultMode: 'focus',
     persistent: true,
   });
-  assert.equal(setCurrentMode('session-a', 'caveman', options).ok, true);
-  assert.equal(getCurrentMode('session-a', options).mode, 'caveman');
+  assert.equal(setCurrentMode('session-a', 'core', options).ok, true);
+  assert.equal(getCurrentMode('session-a', options).mode, 'core');
   assert.equal(getCurrentMode('session-b', options).mode, 'focus');
 
   assert.deepEqual(JSON.parse(fs.readFileSync(getSessionPath('session-a', options), 'utf8')), {
-    mode: 'caveman',
+    mode: 'core',
   });
   assert.deepEqual(JSON.parse(fs.readFileSync(getSessionPath('session-b', options), 'utf8')), {
     mode: 'focus',
@@ -161,11 +161,11 @@ test('missing, corrupt, unreadable, and unsupported state safely falls back and 
 
 test('invalid or unstorable session IDs use the default without creating state', (t) => {
   const { options } = fixture(t);
-  assert.equal(setDefaultMode('caveman', options).ok, true);
+  assert.equal(setDefaultMode('core', options).ok, true);
   for (const sessionId of ['', 'a'.repeat(176)]) {
     assert.deepEqual(getCurrentMode(sessionId, options), {
-      mode: 'caveman',
-      defaultMode: 'caveman',
+      mode: 'core',
+      defaultMode: 'core',
       persistent: false,
     });
     assert.deepEqual(setCurrentMode(sessionId, 'focus', options), {

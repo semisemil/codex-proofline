@@ -57,7 +57,7 @@ function assertModeAtResponseSlot(prompt, pattern) {
   const clarityIndex = prompt.indexOf('Clarity:');
   assert.ok(wordingIndex >= 0 && wordingIndex < modeIndex);
   assert.ok(modeIndex < clarityIndex);
-  assert.doesNotMatch(prompt, /proofline-response-mode|^# (?:Normal|Focus|Caveman) response mode|shared Proofline baseline/m);
+  assert.doesNotMatch(prompt, /proofline-response-mode|^# (?:Normal|Focus|Core) response mode|shared Proofline baseline/m);
 }
 
 test('startup inserts normal at the response slot', (t) => {
@@ -71,7 +71,7 @@ test('startup inserts normal at the response slot', (t) => {
   assert.match(result.stdout, /target language's conventional syntax/);
   assertModeAtResponseSlot(result.stdout, /target language's conventional syntax/);
   assert.doesNotMatch(result.stdout, /normal conversational response style/);
-  assert.doesNotMatch(result.stdout, /Replace and ignore previous Proofline focus or caveman/);
+  assert.doesNotMatch(result.stdout, /Replace and ignore previous Proofline focus or core/);
   assert.doesNotMatch(result.stdout, /^---|\$proofline|defaultMode|session_id/);
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), 'utf8')),
@@ -96,7 +96,7 @@ test('startup, clear, and compact preserve the stored mode for one session', (t)
 
 test('new session IDs initialize from the latest default without changing existing sessions', (t) => {
   const { env } = fixture(t);
-  writeJson(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), { mode: 'caveman' });
+  writeJson(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), { mode: 'core' });
   writeJson(path.join(env.APPDATA, 'proofline', 'config.json'), { defaultMode: 'focus' });
 
   const existing = runLoader(env, 'session-a', 'startup');
@@ -109,7 +109,7 @@ test('new session IDs initialize from the latest default without changing existi
   assert.match(fresh.stdout, /target language's conventional syntax/);
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), 'utf8')),
-    { mode: 'caveman' },
+    { mode: 'core' },
   );
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-b.json'), 'utf8')),

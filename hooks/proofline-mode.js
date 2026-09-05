@@ -10,7 +10,7 @@ const {
 } = require('./proofline-state');
 const { composeProoflinePrompt } = require('./proofline-prompt');
 
-const USAGE = '$proofline [normal|focus|caveman|default [normal|focus|caveman]]';
+const USAGE = '$proofline [normal|focus|core|default [normal|focus|core]]';
 
 function parseCommand(prompt) {
   if (typeof prompt !== 'string') {

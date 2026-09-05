@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const SUPPORTED_MODES = Object.freeze(['normal', 'focus', 'caveman']);
+const SUPPORTED_MODES = Object.freeze(['normal', 'focus', 'core']);
 const MODE_SET = new Set(SUPPORTED_MODES);
 const SAFE_SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const WINDOWS_RESERVED_NAME = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
@@ -196,7 +196,9 @@ function readModeFile(filePath, fallbackMode, details, options = {}) {
   try {
     const parsed = JSON.parse(fsModule.readFileSync(filePath, 'utf8'));
     const key = details.kind === 'default' ? 'defaultMode' : 'mode';
-    const mode = normalizeMode(parsed && parsed[key]);
+    const storedMode = parsed && parsed[key];
+    // Preserve saved response preferences from before the core rename.
+    const mode = normalizeMode(storedMode === 'caveman' ? 'core' : storedMode);
     if (!mode) {
       throw new Error(`Unsupported Proofline ${details.kind} mode.`);
     }
