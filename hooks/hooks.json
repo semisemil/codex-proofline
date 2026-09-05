@@ -104,7 +104,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "^(Bash|exec_command|functions\\.exec_command|apply_patch|Edit|Write|update_plan|functions\\.update_plan|create_thread|fork_thread|spawn_agent|followup_task|send_message_to_thread|wait_agent|wait_threads|mcp__codex_app__(create_thread|fork_thread|send_message_to_thread|wait_threads))$",
+        "matcher": "^(?:(?:functions\\.)?(?:Bash|exec_command|apply_patch|Edit|Write|update_plan)|(?:(?:functions\\.)?collaboration\\.)?(?:spawn_agent|followup_task|send_message|wait_agent|interrupt_agent)|(?:mcp__codex_app__)?(?:create_thread|fork_thread|send_message_to_thread|wait_threads))$",
         "hooks": [
           {
             "type": "command",

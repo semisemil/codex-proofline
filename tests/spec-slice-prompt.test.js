@@ -4,69 +4,34 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const root = path.resolve(__dirname, '..');
+const read = (file) => fs.readFileSync(path.join(root, 'skills/spec-slice', file), 'utf8');
+const skill = read('SKILL.md');
+const contract = read('references/parallel-plan.md');
 
-const repoRoot = path.resolve(__dirname, '..');
-const contract = fs.readFileSync(
-  path.join(repoRoot, 'skills', 'spec-slice', 'references', 'execution-tree.md'),
-  'utf8',
-);
-
-test('Spec Slice uses the fewest reliable execution Nodes', () => {
-  assert.match(
-    contract,
-    /Use the fewest Nodes that keep implementation, repair ownership, and proof reliable/,
-  );
-  assert.match(contract, /Root-only is valid when one task can deliver the whole outcome/);
-  assert.match(contract, /enough to pay its task, callback, and Gate cost/);
-  assert.match(contract, /stop at the first reliable one-pass boundary/);
+test('Spec Slice is optional and requires a concrete independent parallel benefit', () => {
+  assert.match(skill, /ready Spec can proceed directly to implementation/);
+  assert.match(contract, /independent work can proceed alongside the main implementer's own task/);
+  assert.match(contract, /coherent Spec result with clear change boundaries and available interfaces/);
+  assert.match(contract, /neither file count nor a target agent count establishes independence/);
+  assert.match(contract, /main session should implement directly and create no plan/);
 });
 
-test('Spec Slice keeps outcome decomposition distinct from mechanical splitting', () => {
-  assert.match(contract, /An independent sub-goal is a meaningful outcome/);
-  assert.match(contract, /not a file, layer, technology, component, test category/);
-  assert.match(contract, /group dependent sub-goals that must compose into one end-to-end result under one direct Slice/);
-  assert.match(contract, /apply the absent-sibling test/);
-  assert.match(contract, /if every sibling implementation is omitted/);
-  assert.match(contract, /interface, schema, generated artifact, or implementation contract created by the blocker/);
+test('flat assignments preserve authoritative scope and do not invent another execution tree', () => {
+  assert.match(skill, /one `PARALLEL.md` in the same directory as `SPEC.md`/);
+  assert.match(skill, /including the main implementer's work/);
+  assert.match(skill, /Keep assignments flat and write ownership non-conflicting/);
+  assert.match(contract, /not another source of product requirements/);
+  assert.match(contract, /no recursive Nodes, parent\/child execution states, or per-task Gate files/);
+  assert.match(contract, /subject to the Spec and user-required verification/);
+  assert.doesNotMatch(skill + contract, /inspect-execution-tree\.js|run-gates\.js|create-gates\.js|coordinator-state|schema_version/);
 });
 
-test('Spec Slice assigns executable proof without duplicating checks across the tree', () => {
-  assert.match(contract, /Map the Spec's fixed completion set once/);
-  assert.match(contract, /JSON array containing one executable and its arguments/);
-  assert.match(contract, /without equivalent combinations or unchanged behavior/);
-  assert.match(contract, /lowest boundary whose completed subtree contains every prerequisite/);
-  assert.match(contract, /one direct Slice owns every prerequisite/);
-  assert.match(contract, /Combine compatible conditions/);
-  assert.match(contract, /do not substitute for a behavior-running check when one exists/);
-  assert.match(contract, /Generated-artifact drift is checked only when contractual/);
-  assert.match(contract, /An ancestor never repeats a descendant `CHECK`/);
-  assert.match(contract, /Reuse it through staging, review, commit, and unchanged transport/);
-  assert.match(contract, /Review cannot add tests beyond the fixed completion set/);
-  assert.match(contract, /complete Gate set is exactly the Spec's fixed completion set/);
-  assert.match(contract, /CHECK: NONE/);
-  assert.match(contract, /JSON-array checks reject shell strings, chaining, pipes, redirection, and command substitution/);
-  assert.match(contract, /Do not invent a test, build, lint, or type check/);
-  assert.doesNotMatch(contract, /Scale: quick|verification units|CLASS: none/);
-});
-
-test('Spec Slice permits only contract-fixed file requirements with one Gate owner', () => {
-  assert.match(contract, /appears literally in the Spec body or its fixed verification command/);
-  assert.match(contract, /Assign each path to one Gate only/);
-  assert.match(contract, /Directories, discovered repository boundaries, inferred output files, and duplicate ownership are invalid/);
-  assert.match(contract, /does not fix its exact file path, omit `REQUIRES`/);
-});
-
-test('Spec Slice leaves completion validation to coordinator close', () => {
-  assert.match(contract, /`coordinator-state close` runs every still-unmet item/);
-  assert.match(contract, /run-gates\.js feedback/);
-  assert.match(contract, /may neither select a new command nor establish completion/);
-  assert.match(contract, /success is reused only while product state is unchanged/);
-});
-
-test('EXPECT is an output decision rather than an exit-zero annotation', () => {
-  assert.match(contract, /`EXPECT` replaces exit code as the sole success criterion/);
-  assert.match(contract, /a match passes even when the command exits nonzero/);
-  assert.match(contract, /Omit it when exit 0 is required/);
-  assert.match(contract, /never encode prose such as `exits 0 with \.\.\.`/);
-  assert.match(contract, /compare output generated by the candidate implementation with itself/);
+test('planning exposes dependent work and stops before execution', () => {
+  assert.match(contract, /concurrent write scopes do not overlap/);
+  assert.match(contract, /requires another's unfinished design or changes/);
+  assert.match(contract, /handles that dependency sequentially or revises the split before dispatch/);
+  assert.match(skill, /Planning ends before implementation, project verification, review, or agent dispatch/);
+  assert.match(skill, /Preserve existing documents and records/);
+  assert.match(skill, /resuming or converting a legacy execution is outside/);
 });

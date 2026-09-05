@@ -1,0 +1,7 @@
+interface:
+  display_name: "Proofline Implement"
+  short_description: "Implement a ready Spec and verify it independently"
+  default_prompt: "Use $implement to implement this ready Spec by ID, verify the result, and obtain fresh independent review in this session."
+
+policy:
+  allow_implicit_invocation: false

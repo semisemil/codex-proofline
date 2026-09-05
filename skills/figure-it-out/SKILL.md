@@ -3,10 +3,10 @@ name: figure-it-out
 description: Think through a project change and carry it through the full Proofline development workflow.
 ---
 
-Run from the earliest incomplete applicable stage.
+Run from the earliest incomplete applicable stage. This invoking session owns preparation and hands the ready Spec to a new implementation session.
 
-Keep this invoking task as the thin top coordinator. Before Preparation, load only [the Preparation-task assignment](references/preparation-task.md); do not load `start-implementation` yet. Render it with the complete current request copied verbatim into its delimited authority block; never summarize, translate, rename, or omit an identifier, path, command, number, example, or required output. Add one resolved Proofline skill root, create one fresh preparation agent with `spawn_agent(task_name: "preparation", fork_turns: "none")`, and wait only for it. Retain only returned artifact links, revision, readiness, scope verification, and a material user-decision blocker.
+If preparation remains, load [the Preparation assignment](references/preparation-task.md). Render the complete current request copied verbatim into its delimited authority block; never summarize, translate, rename, or omit an identifier, path, command, number, example, or required output. Add the resolved Proofline skill root and create one fresh Preparation agent with `spawn_agent(task_name: "preparation", fork_turns: "none")`. Preserve the invoking session's actual model and reasoning through explicit fields or documented history-free inheritance; model routing does not apply. If the runtime cannot establish those settings, report that limitation instead of guessing. Wait for its result and retain artifact links, revision, readiness, scope verification, and any material user-decision blocker.
 
-After Preparation completes, load [$start-implementation](../start-implementation/SKILL.md) once and run it from the returned ready Spec and valid execution-tree links. This invoking task is its top coordinator; do not create another coordinator boundary or reread unchanged preparation evidence.
+From the returned or already ready Spec, load [$start-implementation](../start-implementation/SKILL.md) once to select settings and create the new implementation session in the current project folder. After creation, report the new task and end this workflow without waiting for implementation results. The new session owns implementation, optional parallel work, verification, and completion.
 
-This invocation owns the full chain. Resolve facts from evidence. Ask only for unresolved material decisions, then resume. Stage contracts own boundaries and stop conditions.
+Resolve facts from evidence. Ask only for unresolved material decisions, then resume. Stage contracts own boundaries and stop conditions.

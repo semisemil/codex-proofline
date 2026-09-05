@@ -68,16 +68,18 @@ test('Spec selects realistic outcome-level evidence without boundary test prolif
   assert.match(skill, /review evidence or no mechanical check instead of inventing a test/);
   assert.match(skill, /explicit artifact obligation such as adding a test, migration, or generated contract/);
   assert.match(skill, /Unchanged behavior and implementation details get no new test/);
-  assert.match(skill, /Fix that minimum completion set before fan-out/);
-  assert.match(skill, /it is the only completion suite/);
+  assert.match(skill, /Preserve the completion conditions and user-required verification/);
+  assert.match(skill, /Implementers may add and run checks needed by the actual change/);
   assert.match(
     skill,
-    /Implementation tasks create and stage required artifacts without pre-running completion checks/,
+    /without fixing every command in advance/,
   );
   assert.doesNotMatch(skill, /one representative success path/);
   assert.doesNotMatch(skill, /authorization, input, state, or concurrency boundary/);
   assert.doesNotMatch(skill, /verification units|targeted, broad, and deep checks/);
-  assert.match(skill, /only a relevant mutation makes it stale/);
+  assert.match(skill, /reuse success while relevant state is unchanged and rerun affected checks after changes/);
+  assert.match(skill, /Required conditions must have current evidence before completion/);
+  assert.doesNotMatch(skill, /only completion suite|without pre-running completion checks/);
 });
 
 test('Spec keeps only document-specific body style rules', () => {

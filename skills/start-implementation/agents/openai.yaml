@@ -1,7 +1,7 @@
 interface:
   display_name: "Proofline Start Implementation"
-  short_description: "Coordinate task-backed Spec execution and review"
-  default_prompt: "Use $start-implementation to recursively execute the specified ready Spec through its validated tree, user-visible Slice tasks, mechanical Gates, and fresh boundary reviews."
+  short_description: "Start a new implementation session for a ready Spec"
+  default_prompt: "Use $start-implementation to select model and reasoning and launch this ready Spec in a new session in the current project folder."
 
 policy:
   allow_implicit_invocation: false

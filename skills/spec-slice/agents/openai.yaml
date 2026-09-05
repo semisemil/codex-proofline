@@ -1,7 +1,7 @@
 interface:
   display_name: "Proofline Spec Slice"
-  short_description: "Plan and validate a ready Spec execution tree"
-  default_prompt: "Explicitly use $spec-slice for planning only: build and validate this ready Spec's v3 execution tree and Gates without implementing it."
+  short_description: "Plan independent parallel work for a ready Spec"
+  default_prompt: "Explicitly use $spec-slice to identify useful independent work for this ready Spec and record one PARALLEL.md without implementing or dispatching it."
 
 policy:
   allow_implicit_invocation: false

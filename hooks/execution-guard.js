@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROLES = new Set([
-  'preparation', 'slice-coordinator', 'implementer', 'root-implementer', 'reviewer',
+  'preparation', 'parallel-implementer', 'reviewer',
 ]);
 
 function readEvent() {
@@ -121,7 +121,8 @@ function normalizedTool(event) {
 
 function toolInput(event) {
   const value = event.tool_input || event.toolInput || {};
-  return value && typeof value === 'object' ? value : {};
+  if (typeof value === 'string') return { patch: value };
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
 function isTaskCreation(tool) {
@@ -138,6 +139,10 @@ function isMessaging(tool) {
 
 function isWait(tool) {
   return /(?:^|__|\.)(?:wait_agent|wait_threads)$/.test(tool);
+}
+
+function isInterrupt(tool) {
+  return /(?:^|__|\.)interrupt_agent$/.test(tool);
 }
 
 function isPlan(tool) {
@@ -163,67 +168,28 @@ function editPaths(event) {
   for (const match of patch.matchAll(/^\*\*\* Move to:\s*(.+)$/gmu)) values.push(match[1]);
   return values
     .filter((value) => typeof value === 'string' && value.length > 0)
-    .map((value) => value.replaceAll('\\', '/').replace(/^\.\//, ''));
+    .map((value) => path.relative(event.cwd || '.', path.resolve(event.cwd || '.', value))
+      .replaceAll('\\', '/'));
 }
 
-function isPreparationExecutionArtifactEdit(event) {
+function isPreparationArtifactEdit(event) {
   const paths = editPaths(event);
   return paths.length > 0 && paths.every((filePath) => (
-    /^\.proofline\/specs\/[^/]+\/(?:gates|slices)\/[^/]+\.md$/u.test(filePath)
+    /^\.proofline\/specs\/[^/]+\/PARALLEL\.md$/u.test(filePath)
   ));
 }
 
+function isExecutionControlEdit(event) {
+  return editPaths(event).some((filePath) => /^\.proofline\/specs\//u.test(filePath));
+}
+
 function isCommand(tool) {
-  return tool === 'bash' || /(?:^|__|\.)exec_command$/.test(tool);
+  return /(?:^|__|\.)(?:bash|exec_command)$/.test(tool);
 }
 
 function commandText(event) {
   const input = toolInput(event);
   return String(input.command || input.cmd || '');
-}
-
-function requestedExecutionRole(event) {
-  const input = toolInput(event);
-  const prompt = String(input.message || input.prompt || '');
-  return prompt.match(/^PROOFLINE_EXECUTION_ROLE:\s*([a-z-]+)(?:\r?\n|$)/u)?.[1] ?? null;
-}
-
-function usesFeedback(command) {
-  return /run-gates\.js[^\r\n]*\bfeedback\b/i.test(command);
-}
-
-function usesGateRun(command) {
-  return /run-gates\.js[^\r\n]*\brun\b/i.test(command);
-}
-
-function usesCoordinatorMutation(command) {
-  return /coordinator-state\.js[^\r\n]*\b(?:close|review-pass|finalize|finalize-review-pass|apply-reviewed)\b/i.test(command);
-}
-
-function usesCloseBatch(command) {
-  return /coordinator-state\.js[^\r\n]*\bclose-batch\b/i.test(command);
-}
-
-function usesOtherControlMutation(command) {
-  return /(?:prepare-worktree|sync-control-state|integrate-reviewed)\.js\b/i.test(command);
-}
-
-function usesPrepareReviewMutation(command) {
-  return /prepare-review\.js[^\r\n]*\b(?:stage|unstage)\b/i.test(command);
-}
-
-function usesPrepareReviewRead(command) {
-  return /prepare-review\.js[^\r\n]*\bdiff\b/i.test(command);
-}
-
-function usesRawGit(command) {
-  return commandSegments(command).some((segment) => {
-    const words = commandWords(segment);
-    return words.some((word, index) => {
-      const value = path.basename(word).toLowerCase().replace(/\.exe$/, '');
-      return value === 'git' && (index === 0 || words[index - 1] === '&');
-    });
-  });
 }
 
 function commandSegments(command) {
@@ -283,146 +249,126 @@ function isCompletionCommand(command) {
   return false;
 }
 
-function isRootInventory(command) {
-  return /(?:^|[;&|]\s*)rg\s+--files(?:\s+(?:\.|\.\\|\.\/))?(?:\s*[;&|]|\s*$)/i.test(command)
-    || /get-childitem\s+(?:-force\s+)?(?:\.\s+)?-recurse\b/i.test(command);
+function executableName(value) {
+  return String(value || '').split(/[\\/]/).pop().toLowerCase().replace(/\.(?:exe|cmd)$/, '');
+}
+
+const STATE_READS = new Set(['status', 'diff', 'review-input']);
+
+function stateAction(words) {
+  return executableName(words[0]) === 'node' && executableName(words[1]) === 'implementation-state.js'
+    ? words[2] || '' : null;
+}
+
+function usesStateMutation(command, allowed = STATE_READS) {
+  return commandSegments(command).some((segment) => {
+    const action = stateAction(commandWords(segment));
+    return action !== null && !allowed.has(action);
+  });
+}
+
+function readOnlyGit(words) {
+  let index = 1;
+  while (index < words.length && words[index].startsWith('-')) {
+    if (['-C', '-c', '--git-dir', '--work-tree'].includes(words[index])) index += 2;
+    else if (/^(?:--no-pager|--no-optional-locks|--git-dir=|--work-tree=)/.test(words[index])) index += 1;
+    else return false;
+  }
+  const action = words[index];
+  if (!['diff', 'show', 'status', 'log', 'ls-files', 'ls-tree', 'rev-parse', 'cat-file', 'diff-tree', 'diff-files', 'diff-index'].includes(action)) return false;
+  const arguments_ = words.slice(index + 1);
+  return !arguments_.some((word) => /^(?:--output(?:=|$)|--ext-diff$|--textconv$)/.test(word));
+}
+
+// This hook enforces recognized workflow operations. It is not a shell sandbox;
+// filesystem permissions and the reviewer's read-only assignment remain authoritative.
+function isReadOnlyCommand(command) {
+  if (!command.trim()) return false;
+  let quote = null;
+  for (let index = 0; index < command.length; index += 1) {
+    const character = command[index];
+    if (quote) {
+      if (character === quote) {
+        if (quote === "'" && command[index + 1] === "'") index += 1;
+        else quote = null;
+      }
+      if (quote === '"' && (character === '$' || character.charCodeAt(0) === 96)) return false;
+    } else if (character === "'" || character === '"') quote = character;
+    else if ('><{}$'.includes(character) || character.charCodeAt(0) === 96) return false;
+  }
+  if (quote) return false;
+  const reads = new Set([
+    'rg', 'cat', 'head', 'tail', 'ls', 'pwd', 'wc',
+    'get-content', 'get-childitem', 'get-item', 'get-location', 'test-path', 'resolve-path',
+    'select-object', 'select-string', 'measure-object', 'format-list', 'format-table',
+  ]);
+  return commandSegments(command).every((segment) => {
+    const words = commandWords(segment);
+    const executable = executableName(words[0]);
+    if (executable === 'git') return readOnlyGit(words);
+    if (executable === 'node') {
+      return executableName(words[1]) === 'implementation-state.js' && STATE_READS.has(words[2]);
+    }
+    if (!reads.has(executable)) return false;
+    if (executable === 'rg' && words.some((word) => /^--pre(?:=|$)/.test(word))) return false;
+    return true;
+  });
 }
 
 function preTool(event) {
   const role = readRole(event);
   if (!role) return emit();
   const tool = normalizedTool(event);
+  const coordinates = isTaskCreation(tool) || isWait(tool) || isFollowup(tool) || isInterrupt(tool) || isMessaging(tool);
 
   if (role === 'preparation') {
-    if (isTaskCreation(tool) || isWait(tool) || isPlan(tool) || isFollowup(tool)
-      || isMessaging(tool)) {
-      return deny('Preparation owns artifacts only and cannot coordinate other tasks.');
+    if (coordinates || isPlan(tool)) {
+      return deny('Preparation produces the requested planning documents and returns them to the main implementer.');
     }
-    if (isEdit(tool) && !isPreparationExecutionArtifactEdit(event)) {
-      return deny('Preparation writes Plan and Spec documents through their writer and may edit only Gate or Slice documents directly.');
+    if (isEdit(tool) && !isPreparationArtifactEdit(event)) {
+      return deny('Preparation writes Plan and Spec through their document writer; only optional PARALLEL.md is edited directly.');
     }
     if (isCommand(tool)) {
       const command = commandText(event);
-      if (usesGateRun(command) || usesCoordinatorMutation(command)
-        || usesOtherControlMutation(command) || usesPrepareReviewMutation(command)
-        || isCompletionCommand(command)) {
-        return deny('Preparation cannot perform implementation, completion, review, or transport actions.');
+      if (usesStateMutation(command) || isCompletionCommand(command)) {
+        return deny('Preparation returns the prepared Spec; the main implementer owns implementation and verification.');
       }
     }
     return emit();
   }
 
-  if (role === 'implementer') {
-    if (isTaskCreation(tool) || isWait(tool) || isPlan(tool) || isFollowup(tool)
-      || isMessaging(tool)) {
-      return deny('Leaf implementers cannot create, resume, wait for, message, or plan other tasks.');
+  if (role === 'parallel-implementer') {
+    if (coordinates) {
+      return deny('Parallel implementers repair their assigned work directly and report to the main implementer with send_message; delegation belongs to the main implementer.');
     }
-    if (isCommand(tool)) {
-      const command = commandText(event);
-      if (usesRawGit(command)) return deny('Use Proofline Git helpers so trust stays exact and process-local.');
-      if (usesGateRun(command)) return deny('The assigning coordinator owns completion Gate execution.');
-      if (usesCoordinatorMutation(command) || usesOtherControlMutation(command)) {
-        return deny('The assigning coordinator owns Proofline control-state transitions.');
-      }
-      if (isRootInventory(command)) return deny('Use a path-scoped inspection instead of repository-wide inventory.');
-      if (isCompletionCommand(command) && !usesFeedback(command)) {
-        return deny('Implementation feedback must use run-gates.js feedback; completion checks belong to the coordinator.');
-      }
+    if (isEdit(tool) && isExecutionControlEdit(event)) {
+      return deny('The main implementer owns the agreed Spec and parallel assignment plan.');
+    }
+    if (isCommand(tool) && usesStateMutation(commandText(event), new Set([...STATE_READS, 'check', 'evidence']))) {
+      return deny('Parallel implementers may record verification; the main implementer owns capture, review, and completion.');
     }
     return emit();
   }
 
-  if (role === 'root-implementer') {
-    if (isPlan(tool) || /(?:^|__|\.)(?:create_thread|fork_thread)$/.test(tool)) {
-      return deny('Root-only implementation uses its existing Worktree and creates only a Reviewer agent.');
-    }
-    if (/(?:^|__|\.)spawn_agent$/.test(tool) && requestedExecutionRole(event) !== 'reviewer') {
-      return deny('Root implementation may create only a fresh Reviewer agent.');
-    }
-    if (isFollowup(tool)) return deny('Root implementation performs its own Repair in the same task.');
-    if (isWait(tool) && !/(?:^|__|\.)wait_agent$/.test(tool)) {
-      return deny('Root-only implementation may wait only for its Reviewer agent.');
-    }
-    if (isCommand(tool)) {
-      const command = commandText(event);
-      if (usesRawGit(command)) return deny('Use Proofline Git helpers so trust stays exact and process-local.');
-      if (usesCloseBatch(command)) {
-        return deny('A Branch coordinator owns Leaf cohort completion.');
-      }
-      if (usesGateRun(command)) {
-        return deny('Use coordinator-state.js close so the root Gate and review snapshot advance together.');
-      }
-      if (usesFeedback(command)) {
-        return deny('Run coordinator-state.js close and repair from its transient diagnostics.');
-      }
-      if (isRootInventory(command)) return deny('Use a path-scoped inspection instead of repository-wide inventory.');
-      if (/\bgit\s+(?:commit|cherry-pick|merge|reset|restore|checkout)\b/i.test(command)) {
-        return deny('Root-only commit and transport state changes belong to coordinator-state.js review-pass.');
-      }
-      if (isCompletionCommand(command) && !usesFeedback(command)) {
-        return deny('Completion checks belong to coordinator-state.js close.');
-      }
-    }
-    return emit();
+  if (isEdit(tool) || isPlan(tool) || coordinates) {
+    return deny('Reviewers read the current evidence and return findings; they cannot change files or coordinate implementation.');
   }
-
-  if (role === 'slice-coordinator') {
-    if (isPlan(tool) || /(?:^|__|\.)create_thread$/.test(tool)) {
-      return deny('Slice coordinators use same-role Branch tasks and fresh child agents.');
-    }
-    if (isWait(tool) && !/(?:^|__|\.)wait_agent$/.test(tool)) {
-      return deny('Slice coordinators may wait only for their own child agents.');
-    }
-    if (/(?:^|__|\.)fork_thread$/.test(tool)
-      && requestedExecutionRole(event) !== 'slice-coordinator') {
-      return deny('A Branch fork must keep the slice-coordinator role.');
-    }
-    if (/(?:^|__|\.)spawn_agent$/.test(tool)
-      && !['implementer', 'reviewer'].includes(requestedExecutionRole(event))) {
-      return deny('Slice coordinators may create only a fresh Leaf implementer or Reviewer agent.');
-    }
-    if (isEdit(tool)) {
-      return deny('Slice coordinators change control state only through Proofline helpers.');
-    }
-    if (isCommand(tool)) {
-      const command = commandText(event);
-      if (usesRawGit(command)) return deny('Use Proofline Git helpers so trust stays exact and process-local.');
-      if (isRootInventory(command)) return deny('Coordinator state comes from coordinator-state.js, not repository inventory.');
-      if (usesPrepareReviewMutation(command)) {
-        return deny('Leaf or root implementation owners stage product changes.');
-      }
-      if (usesGateRun(command)) {
-        return deny('Use coordinator-state.js close so scope, Gate, status, and review snapshot advance together.');
-      }
-      if (isCompletionCommand(command) && !usesGateRun(command)) {
-        return deny('Slice completion checks must run through coordinator-state.js close.');
-      }
-    }
-    return emit();
-  }
-
-  if (isEdit(tool) || isPlan(tool) || isTaskCreation(tool) || isWait(tool)
-    || isFollowup(tool) || isMessaging(tool)) {
-    return deny('Reviewers are read-only and cannot create or wait for other tasks.');
-  }
-  if (isCommand(tool)) {
-    const command = commandText(event);
-    if (usesRawGit(command) || isCompletionCommand(command) || usesGateRun(command)
-      || usesCoordinatorMutation(command) || usesOtherControlMutation(command)
-      || usesPrepareReviewMutation(command)
-      || (/prepare-review\.js\b/i.test(command) && !usesPrepareReviewRead(command))
-      || /\bgit\s+(?:add|commit|reset|restore|checkout|cherry-pick|merge)\b/i.test(command)
-      || /\b(?:set-content|out-file|remove-item|move-item|copy-item|new-item)\b/i.test(command)) {
-      return deny('Reviewers inspect the staged snapshot without verification or mutation.');
-    }
+  if (isCommand(tool) && !isReadOnlyCommand(commandText(event))) {
+    return deny('Reviewers use read-only file or Git inspection and implementation-state.js status, diff, or review-input; verification and state changes belong to implementers.');
   }
   return emit();
 }
 
 function promptSubmit(event) {
   const prompt = String(event.prompt || '');
-  const match = prompt.match(/^PROOFLINE_EXECUTION_ROLE: (preparation|slice-coordinator|implementer|root-implementer|reviewer)(?:\r?\n|$)/);
+  const match = prompt.match(/^PROOFLINE_EXECUTION_ROLE: ([a-z-]+)(?:\r?\n|$)/);
+  if (prompt.startsWith('PROOFLINE_EXECUTION_ROLE:') && !match) {
+    return emit({ decision: 'block', reason: 'Malformed Proofline execution role marker.' });
+  }
   if (match) {
+    if (!ROLES.has(match[1])) {
+      return emit({ decision: 'block', reason: `Unsupported Proofline execution role: ${match[1]}.` });
+    }
     const bound = bindRole(event, match[1]);
     if (!bound.ok) {
       return emit({

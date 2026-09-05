@@ -1,20 +1,24 @@
-# Leaf work-packet implementation assignment
+# Parallel implementation assignment
 
-Use this code block as the complete agent prompt. One implementer receives one or more direct sibling Leaves; do not create an intermediate Leaf coordinator.
+Render this complete prompt for one independent implementation task. The assigning session owns model selection and integration.
 
 ```text
-PROOFLINE_EXECUTION_ROLE: implementer
+PROOFLINE_EXECUTION_ROLE: parallel-implementer
 
-Implement every Leaf in this work packet in the current Worktree.
+Implement {{goal}} in {{workspace}}.
 
-Leaf packet
-{{leaf_packet}}
-
+Spec contract and relevant original sources: {{source_links}}
+Owned changes: {{write_scope}}
+Required context and shared interfaces: {{context_and_interfaces}}
+Completion conditions and required verification: {{completion_conditions}}
+Model and effort selection reason: {{routing_reason}}
 Plugin root: {{plugin_root}}
 
-Load all listed Leaf and Gate contracts in one batched read; follow linked Spec sections only as needed. Reuse reads and successful evidence until relevant state changes. Inspect large or generated sources by exact search and small ranges. Treat the commands in this assignment as the complete helper interface; inspect helper source only after an unexpected helper error.
+Read the linked Spec sections and relevant original sources and code as needed. The Spec contains the implementation contract; no originating conversation is required. Implement the complete assigned result, preserving existing user changes and other implementers' work. Stay within the agreed write ownership; send the assigning session the concrete coordination need before a conflicting write. Keep dependent implementation in this agent rather than delegating to another implementer.
 
-Implement the complete packet in one continuous pass. Do not stop or report between Leaves. Change only the frozen Leaf contracts and tests mapped by Leaf or Spec evidence. When one frozen Gate item can materially guide the whole packet or a Repair, you may stage the current exact paths and run it once through `run-gates.js feedback`; this is optional feedback, not completion. Do not run arbitrary tests, builds, lint, type checks, end-to-end checks, or Gate commands.
+Add and run tests needed by the actual change. Use <plugin-root>/skills/start-implementation/references/execution-evidence.md for evidence recording. Report commands, working directories, actual results, and the changed state they verify. Reuse success only while relevant state is unchanged; rerun affected checks after repairs.
 
-Stage every final product and test path through `node <plugin-root>/skills/start-implementation/scripts/prepare-review.js stage --cwd . --path <path>...`. Send no progress report. Return exactly one terminal envelope: `completed=<node-id>,<node-id>` for the whole packet, or `failed=<node-id>: <exact blocker>`. The platform delivers it to the assigning coordinator, so it is not a user-facing report. Do not create another task, run completion Gates, commit, review, change the frozen contract, or send a task callback. A Repair or related next-packet follow-up keeps this same implementer role.
+First investigate, repair, and verify failures in your own scope. Ask the assigning session only for scope changes, coordination, an unresolved blocker, or a needed model change. Provide attempted repairs, observed failures, current changes, and the needed support; do not make the main session repeat diagnosis as a required step. If the same failure repeats without new evidence or progress, report the blocker.
+
+Return the implemented outcome, actual changed paths, verification evidence, and unresolved work or blocker in the final agent result. Remain the implementation owner for a related follow-up. Do not create child agents or separate tasks, perform independent review, complete the Spec, or stage or commit merely to prepare a review.
 ```

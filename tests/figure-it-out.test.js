@@ -6,68 +6,41 @@ const test = require('node:test');
 const repoRoot = path.resolve(__dirname, '..');
 const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
 
-test('figure-it-out is a compact linked workflow without copied stage contracts', () => {
+test('figure-it-out hands a ready Spec to the launcher without owning implementation', () => {
   const skill = read('skills', 'figure-it-out', 'SKILL.md');
-  const preparation = read(
-    'skills', 'figure-it-out', 'references', 'preparation-task.md',
-  );
+  const preparation = read('skills', 'figure-it-out', 'references', 'preparation-task.md');
 
   assert.match(skill, /Run from the earliest incomplete applicable stage/);
-  assert.match(skill, /thin top coordinator/);
-  assert.match(skill, /Before Preparation, load only/);
-  assert.match(skill, /do not load `start-implementation` yet/);
-  assert.match(skill, /references\/preparation-task\.md/);
+  assert.match(skill, /hands the ready Spec to a new implementation session/);
+  assert.match(skill, /If preparation remains/);
   assert.match(skill, /complete current request copied verbatim/);
   assert.match(skill, /never summarize, translate, rename, or omit/);
   assert.match(skill, /spawn_agent\(task_name: "preparation", fork_turns: "none"\)/);
-  assert.doesNotMatch(skill, /model:|reasoning_effort:/);
-  assert.match(skill, /wait only for it/);
-  assert.match(skill, /Retain only returned artifact links, revision, readiness/);
-  assert.match(skill, /load \[\$start-implementation\]\(\.\.\/start-implementation\/SKILL\.md\) once and run it/);
-  assert.match(skill, /This invoking task is its top coordinator/);
-  assert.match(skill, /This invocation owns the full chain/);
+  assert.match(skill, /actual model and reasoning through explicit fields or documented history-free inheritance/);
+  assert.match(skill, /model routing does not apply/);
+  assert.match(skill, /returned or already ready Spec/);
+  assert.match(skill, /create the new implementation session in the current project folder/);
+  assert.match(skill, /without waiting for implementation results/);
   assert.match(skill, /Resolve facts from evidence\. Ask only for unresolved material decisions, then resume/);
+  assert.doesNotMatch(skill, /model-routing\.md|thin top coordinator|create_thread|fork_thread/);
 
-  assert.match(preparation, /\{\{skill_root\}\}/);
-  assert.match(preparation, /<BEGIN_ORIGINAL_REQUEST>[\s\S]*\{\{original_request\}\}[\s\S]*<END_ORIGINAL_REQUEST>/);
-  assert.doesNotMatch(preparation, /\{\{request\}\}/);
-  assert.doesNotMatch(
-    preparation,
-    /development_plan_skill|tenet_skill|implementation_spec_skill|spec_slice_skill/,
-  );
-
-  assert.ok(skill.split(/\r?\n/).length <= 15);
-  const renderedPrompt = preparation.match(/```text\r?\n([\s\S]*?)\r?\n```/)[1];
-  assert.doesNotMatch(renderedPrompt, /AGENTS\.md|system, developer, project/);
-  assert.match(preparation, /load one bounded evidence manifest in one batch/);
   assert.match(preparation, /^PROOFLINE_EXECUTION_ROLE: preparation$/m);
-  assert.match(preparation, /Execute in/);
+  assert.match(preparation, /<BEGIN_ORIGINAL_REQUEST>[\s\S]*\{\{original_request\}\}[\s\S]*<END_ORIGINAL_REQUEST>/);
   assert.match(preparation, /do not invoke `figure-it-out` or another agent/);
-  assert.match(preparation, /capped at 4,000 tokens/);
+  assert.match(preparation, /implementation-spec\/SKILL\.md.*implementation-spec\/assets\/templates\/spec\.md.*one batched read/);
   assert.match(preparation, /Reuse it unless a source changes/);
+  assert.match(preparation, /capped at 4,000 tokens/);
   assert.match(preparation, /Use documented helper commands directly/);
   assert.match(preparation, /inspect helper source only after an actual helper error/);
-  assert.match(preparation, /do not enumerate skill or writer directories/);
-  assert.match(preparation, /implementation-spec\/SKILL\.md.*implementation-spec\/assets\/templates\/spec\.md.*one batched read/);
-  assert.match(preparation, /only then make one targeted follow-up read/);
   assert.match(preparation, /Source result-changing behavior/);
   assert.match(preparation, /do not fill gaps/);
   assert.match(preparation, /Leave only material gaps unknown/);
-  assert.match(preparation, /instead of guessing/);
   assert.match(preparation, /without renaming or paraphrasing it away/);
-  assert.match(preparation, /not a user-facing report/);
   assert.match(preparation, /only if the Spec would otherwise invent/);
   assert.match(preparation, /Produce one authoritative Spec/);
-  assert.doesNotMatch(preparation, /compact authoritative Spec/);
-  assert.match(preparation, /After the Spec, load `tenet-me\/SKILL\.md`, `spec-slice\/SKILL\.md`/);
-  assert.match(preparation, /spec-slice\/assets\/templates\/slice\.md/);
-  assert.match(preparation, /spec-slice\/assets\/templates\/gates\.md.*together in one batched read/);
-  assert.match(preparation, /all Node and Gate files in one structured edit call/);
   assert.match(preparation, /scope=verified-to-original-request/);
-  assert.match(preparation, /fewest reliable Nodes/);
-  assert.match(preparation, /No implementation/);
-  assert.ok(preparation.length <= 2800);
-  assert.doesNotMatch(skill, /## Authority|## Stage contracts|## Stop|Implementation Gate|cherry-pick|run_after|blocked_by/);
+  assert.match(preparation, /No implementation, parallel assignments, or execution artifact generation/);
+  assert.doesNotMatch(preparation, /spec-slice\/|tree readiness|Node and Gate|create-gates\.js/);
 });
 
 test('owned stages return to figure-it-out while standalone calls keep their boundaries', () => {
