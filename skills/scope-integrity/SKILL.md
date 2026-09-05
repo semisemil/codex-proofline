@@ -1,6 +1,6 @@
 ---
 name: scope-integrity
-description: Use when work is large, risky, multi-step, or easy to shrink accidentally. Keep the full approved goal, checkpoints, verification plan, risks, and approval decisions visible. Not for ordinary low-risk work.
+description: Use when multiple requirements or stages risk losing approved scope or completion criteria. Not for ordinary low-risk work.
 ---
 
 # Proofline Scope Integrity
@@ -20,7 +20,9 @@ For large work, state:
 
 ## During
 
-Split large work into checkpoints. Warn about risk when needed. If a checkpoint fails, fix it, report a blocker, or ask approval to change scope.
+Split large work into checkpoints; flag risks as needed. Fix checkpoint failures within authorized scope and rerun affected checks.
+
+If missing information, permissions, or external conditions block progress, report the affected work and cause. Request approval for necessary scope changes.
 
 ## Complete
 
