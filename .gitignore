@@ -10,3 +10,6 @@ build/
 AGENTS.md
 CONTEXT.md
 !skills/AGENTS.md
+
+# Local development plans and execution records
+/.local/development-docs/
