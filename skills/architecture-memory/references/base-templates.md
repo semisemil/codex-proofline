@@ -2,7 +2,7 @@
 
 Use the manifest language. Replace every angle-bracket placeholder and omit empty conditional sections or rows.
 
-Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, or `planned` state and evidence beside the affected content; for a table row, use a keyed annotation directly below its table. No document-wide exception section.
+Use [recording](recording.md) for section routing and evidence. Mark confidence and lifecycle explicitly; unmarked existing content is unclassified. For mixed structural tables, put each exceptional state and its evidence beside the affected row. Keep a section's conditions and exceptions together.
 
 ## `README.md`
 
@@ -11,7 +11,7 @@ Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, 
 
 <One paragraph describing the system and this document set.>
 
-<One-sentence legend: unmarked is confirmed/current; other states and evidence sit beside the affected content.>
+<Brief legend explaining explicit confidence/lifecycle and attributed evidence; missing state is not confirmation.>
 
 ## <Document map>
 
@@ -23,12 +23,9 @@ Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, 
 | [<Architecture context>](04-context.md) | <Goals, constraints, qualities, plans, risks> |
 | [<Decision records>](decisions/README.md) | <Historical architecture decisions> |
 
-## <Reading order>
+## <Find relevant context>
 
-1. <System context>
-2. <Containers>
-3. <Relevant components, when present>
-4. <Architecture context and related ADRs>
+<Use the system context for orientation; for a concrete task search its topic or code path and read the selected sections. Follow related ADRs when the rationale matters.>
 
 ## <Unknown areas>
 
@@ -113,6 +110,10 @@ Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, 
 ## <Constraints>
 
 - <Condition that limits architecture choices>
+
+## <Operating environment>
+
+<Actual users, physical setting, devices, connectivity, and operating procedures that affect design. Attribute conversation facts and distinguish unknown conditions. Split independent constraints into titled level-2 records with their own scope and evidence.>
 
 ## <Quality criteria>
 

@@ -21,6 +21,7 @@
 | 공통 `proofline`·응답 모드 | 플러그인 스킬, `SessionStart`, `UserPromptSubmit`, Node.js | 해당 자동 주입 또는 모드 변경이 적용되지 않음 |
 | 실행 가드 | `UserPromptSubmit`, `PreToolUse`, 일치하는 도구 이름, 작업·세션 식별자 | 역할 상태가 없거나 읽히지 않으면 차단하지 않음 |
 | 이슈·Plan·Spec·아키텍처 메모리 | 해당 스킬과 프로젝트 파일 읽기·쓰기 권한 | 필요한 산출물을 생성하거나 갱신할 수 없음 |
+| 아키텍처 메모리 자동 연결 | 초기화로 만든 `.proofline/architecture.json`, 세션/에이전트 식별자가 있는 `SessionStart`·`UserPromptSubmit` 훅. 하위 에이전트는 `SubagentStart` | 명시적 스킬 호출 사용. 훅은 매 대화의 기록을 보장하지 않음 |
 | `start-implementation` | 아래 작업 전송 기능과 Git Worktree | 필수 기능 하나라도 없으면 대체 실행 없이 미완료로 중단함 |
 
 ## `start-implementation` 필수 기능

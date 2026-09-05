@@ -1,81 +1,23 @@
-# Initialization
+# Initialization evidence and content
 
-## Preflight
-
-Before repository analysis or template reads, inspect the default architecture root and find every `docs/**/.architecture-memory/manifest.json` in one bounded search. If neither a manifest nor a conflicting documentation system exists, use `docs/architecture/`.
-
-Do not implicitly overwrite or reorganize an existing architecture collection. On conflict, stop before analysis and ask whether to integrate, use another root under `docs/`, or leave it unchanged.
-
-For a supported manifest:
-
-- `managed: true`: report that the project is initialized, then stop; ordinary changes belong to `architecture-memory`.
-- `managed: false`: validate registered paths with the Manifest rules before opening them, confirm file compatibility, read registered files but no templates, change only `managed` to `true`, run registration below, report compactly, then stop.
-
-A malformed, unsupported, or ambiguous manifest stops without analysis or write. There is no migration workflow.
+`<workflow>` means `<plugin-root>/skills/architecture-memory/scripts/workflow.js`. Append `--project-root <project>` to each command. Reuse completed analysis and existing draft sections on resume.
 
 ## Evidence pass
 
-Start with repository instructions, existing documentation, and a bounded file map. Narrow from build and package configuration to entry points, runtime or deployment units, data stores, integrations, representative tests, and architecture-sensitive areas. Exclude generated output, dependencies, vendor trees, caches, and large data files unless they directly evidence architecture.
+Use `inventory` for directory counts, then `inventory --prefix <directory/>` or `--offset 0` for relevant paths. Trace entrypoints, runtime/storage units, integrations and deployment boundaries through representative code and existing documentation. Retrieve evidence with `source --path <path>`; it reads the captured commit even if the working tree or HEAD changes. `next_offset` exposes remaining lines; request only the continuation needed for the claim. Commands and recovery details are in [workflow](../../architecture-memory/references/workflow.md).
 
-Batch independent reads and return only boundary evidence. Reuse current-task evidence. Distinguish confirmed facts, evidence-backed inferences, accepted plans, and unknowns.
+With no committed HEAD, the helper tracks observed working files and detects changes before publication; the checkpoint stays null. Later `architecture-memory-update` seeds the first committed baseline. Keep uncommitted implementation claims outside a committed baseline. User facts, requirements and accepted plans remain attributable conversation evidence.
 
-Do not invent or interview for missing intent; record it in the relevant `Open questions` section. Reconstruct neither historical rationale nor retrospective ADRs from code.
+Identify purpose, scope/non-goals, physical and organizational operating conditions, actors, external systems, responsibility and data boundaries, deployment, quality tradeoffs, consequential risks and unknowns. Code proves structure; record motives and accepted choices only from explicit decision evidence. A missing decision history stays unknown.
 
 ## Baseline
 
-After the evidence pass, read [the base templates](../../architecture-memory/references/base-templates.md). Read [the component templates](../../architecture-memory/references/component-templates.md) only when selecting L3, and [the decision template](../../architecture-memory/references/decision-templates.md) only when an ADR is warranted.
+Use [recording](../../architecture-memory/references/recording.md) and [base templates](../../architecture-memory/references/base-templates.md) to fill the five documents already registered in the draft manifest: index, system context (C4 L1), containers (L2), current project context, and decision index. Tables/prose are authoritative; add Mermaid only for evidenced relationships.
 
-Create a compact baseline:
+Use [component templates](../../architecture-memory/references/component-templates.md) only where L2 cannot explain a material responsibility or risk boundary. Use [decision templates](../../architecture-memory/references/decision-templates.md) only for an established consequential choice with rationale. An empty decision index needs a statement that no supported ADR was found, not fabricated history.
 
-- `README.md`, C4 L1 `01-system-context.md`, C4 L2 `02-containers.md`, `04-context.md`, and `decisions/README.md`;
-- L1 and L2 Mermaid diagrams only when the recorded relationships have sufficient evidence;
-- `components/README.md` and one document per selected container only when L2 cannot explain a material responsibility or risk boundary;
-- an ADR only for a decision explicitly established by available decision records or the current conversation;
-- `.architecture-memory/manifest.json` with every document owned by this architecture memory and the committed Git checkpoint.
+Compose prose/headings in manifest `language`; retain fixed filenames, enums, C4 identifiers and manifest keys. Use C4 IDs for referenced `PER`, `SYS`, `EXT`, `CNT` and `CMP` nodes; retain existing IDs and never reuse retired IDs or ADR numbers.
 
-Tables and prose are authoritative; Mermaid is secondary. Use the conversation language for titles and prose, store its BCP 47 tag in manifest `language`, and keep fixed identifiers, enum values, filenames, and manifest keys in English.
+Keep the generated manifest. To register another document, copy an existing entry and supply a unique stable ID, supported kind and normalized relative `.md` path within the draft; retain the six entry fields. Whole-document evidence review may set `verified_at` and `source_revision`; partial edits retain them. The helper validates registration and assigns the checkpoint during `apply`.
 
-Use C4 IDs only for referenced `PER`, `SYS`, `EXT`, `CNT`, and `CMP` nodes. Reuse neither removed C4 IDs nor ADR numbers. Record repository-relative source paths and prefer symbols over line numbers.
-
-For a Git worktree with committed `HEAD`, set `git_checkpoint.revision` to its full object ID, `branch_at_check` to the current branch or detached `null`, and `checked_at` to the current ISO 8601 time. This covers committed history through `HEAD`; working-tree evidence may inform the baseline but is outside the checkpoint. Without committed `HEAD`, set all three fields to `null`. After the first commit, explicit `architecture-memory-update` reconciles the current committed state once and fills the checkpoint.
-
-## Manifest
-
-Use exactly this schema-v2 shape:
-
-```json
-{
-  "schema_version": 2,
-  "managed": true,
-  "language": "ko",
-  "git_checkpoint": {
-    "revision": "0123456789abcdef0123456789abcdef01234567",
-    "branch_at_check": "main",
-    "checked_at": "2026-08-30T00:00:00.000Z"
-  },
-  "documents": [
-    {
-      "id": "architecture-index",
-      "kind": "index",
-      "path": "README.md",
-      "order": 10,
-      "verified_at": null,
-      "source_revision": null
-    }
-  ]
-}
-```
-
-Use only these kinds: `index`, `system-context`, `containers`, `component-index`, `component`, `context`, `decision-index`, and `decision`. IDs are stable, unique, and match `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`. Paths are unique, normalized relative `.md` paths inside the architecture root; reject absolute paths, backslashes, empty, `.`, `..`, and `.architecture-memory` segments. Existing symlinks or junctions must resolve inside the root. `order` is a non-negative integer. `verified_at` is `null` or the ISO 8601 time of a whole-document evidence review; `source_revision` is `null` or the full Git revision covered by that review. Partial updates preserve both.
-
-## Write and register
-
-Render the complete set, then create it in one batched write. After success, do not validate or reread.
-
-Resolve `<plugin-root>` from this skill's `SKILL.md`, then run from the project root:
-
-~~~text
-node <plugin-root>/dashboard/register-project.js register --project-root <absolute-project-root>
-~~~
-
-Registration is a separate result. Keep the created memory if it fails and report the failure compactly. Report success compactly.
+Initialization may establish a truthful baseline with important unknowns. State those unknowns beside affected claims; ask only when the answer is required for the pending work. Future conversation supplies additional context through ordinary memory capture.

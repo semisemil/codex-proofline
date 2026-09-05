@@ -2,6 +2,8 @@
 
 Use the manifest language and replace every angle-bracket placeholder.
 
+Create an ADR for a significant explicit choice whose rationale will affect later decisions. Put the active effect in its current context section and keep the ADR as historical evidence. Use [recording](recording.md) for provenance and routing; mark an ADR section `confirmed/historical` only for an explicitly established choice, or `proposed/planned` for an actual proposal. Existing ADR documents remain excluded from ordinary search regardless of their local formatting.
+
 ## `decisions/ADR-<number>-<slug>.md`
 
 ~~~markdown
@@ -13,23 +15,25 @@ Use the manifest language and replace every angle-bracket placeholder.
 - <Superseded by>: none | ADR-<number>
 - <Current document>: <Relative link showing the current effect>
 
-## <Context>
+## <Decision record>
+
+### <Context>
 
 <Conditions and constraints at the time.>
 
-## <Decision>
+### <Decision>
 
 <Direction chosen at the time.>
 
-## <Consequences>
+### <Consequences>
 
 - <Positive or negative consequence>
 
-## <Alternatives>
+### <Alternatives>
 
 - <Alternative actually considered and why it was not selected>
 
-## <Evidence>
+### <Evidence>
 
 - <User confirmation or repository-relative path and symbol>
 ~~~
@@ -37,3 +41,5 @@ Use the manifest language and replace every angle-bracket placeholder.
 In one write, create the ADR, add `[ADR-<number>](ADR-<number>-<slug>.md)` to `decisions/README.md`, add a relative link from the affected current C4 or Context item to its rationale, and register it as `decision`.
 
 An accepted ADR's Context, Decision, Consequences, Alternatives, and Evidence are immutable history. Only Status, Supersedes, Superseded by, Current document, and clear typographical errors may change. A new direction gets a new ADR pointing `Supersedes` to the old ADR; the old ADR points `Superseded by` to the new one.
+
+Keep the choice, conditions, consequences, and evidence within one retrievable level-2 section (use level-3 headings for its parts), or declare required `links` between their stable section IDs. A decision retrieved alone must not lose the reasons or limits that qualify it. Include only alternatives actually considered.

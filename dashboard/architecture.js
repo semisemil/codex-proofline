@@ -272,7 +272,7 @@ function normalizeDocumentPath(value) {
   return value;
 }
 
-function parseManifest(content) {
+function parseManifest(content, options = {}) {
   let value;
   try {
     value = JSON.parse(content.replace(/^\uFEFF/, ''));
@@ -292,7 +292,7 @@ function parseManifest(content) {
       || !Array.isArray(value.documents)) {
     throw architectureError('architecture-manifest-invalid', '아키텍처 매니페스트 형식이 올바르지 않습니다.');
   }
-  if (!value.managed) {
+  if (!value.managed && !options.allowDisabled) {
     throw architectureError('architecture-not-managed', '이 프로젝트의 아키텍처 메모리는 비활성 상태입니다.', 404);
   }
 
@@ -324,7 +324,7 @@ function parseManifest(content) {
   return { ...value, documents };
 }
 
-function loadArchitecture(project) {
+function loadArchitecture(project, options = {}) {
   const projectRoot = canonicalProjectRoot(project);
   const { docsRoot, manifestPath } = discoverManifest(projectRoot);
   const architectureRootPath = path.dirname(path.dirname(manifestPath));
@@ -351,7 +351,7 @@ function loadArchitecture(project) {
   });
   return {
     architectureRoot,
-    manifest: parseManifest(manifestFile.content),
+    manifest: parseManifest(manifestFile.content, options),
     manifestRelativePath: toRelative(projectRoot, manifestPath),
     projectRoot,
   };
@@ -388,19 +388,7 @@ class ArchitectureService {
     if (!registered) {
       throw architectureError('architecture-document-not-found', '아키텍처 문서를 찾을 수 없습니다.', 404);
     }
-    const filePath = path.resolve(
-      state.architectureRoot,
-      ...registered.path.split('/'),
-    );
-    const file = readSecureFile({
-      path: filePath,
-      projectRoot: state.projectRoot,
-      boundaryRoot: state.architectureRoot,
-      maxBytes: MAX_DOCUMENT_BYTES,
-      tooLargeMessage: '아키텍처 문서가 2 MiB 한도를 초과합니다.',
-      utf8Code: 'architecture-document-invalid-utf8',
-      utf8Message: '아키텍처 문서가 올바른 UTF-8이 아닙니다.',
-    });
+    const file = readArchitectureDocument(state, documentId);
     return {
       ...registered,
       content_type: 'text/markdown',
@@ -408,6 +396,22 @@ class ArchitectureService {
       modified_at: file.modifiedAt,
     };
   }
+}
+
+function readArchitectureDocument(state, documentId) {
+  const registered = state.manifest.documents.find((document) => document.id === documentId);
+  if (!registered) {
+    throw architectureError('architecture-document-not-found', '아키텍처 문서를 찾을 수 없습니다.', 404);
+  }
+  return readSecureFile({
+    path: path.resolve(state.architectureRoot, ...registered.path.split('/')),
+    projectRoot: state.projectRoot,
+    boundaryRoot: state.architectureRoot,
+    maxBytes: MAX_DOCUMENT_BYTES,
+    tooLargeMessage: '아키텍처 문서가 2 MiB 한도를 초과합니다.',
+    utf8Code: 'architecture-document-invalid-utf8',
+    utf8Message: '아키텍처 문서가 올바른 UTF-8이 아닙니다.',
+  });
 }
 
 module.exports = {
@@ -419,4 +423,5 @@ module.exports = {
   discoverManifest,
   loadArchitecture,
   parseManifest,
+  readArchitectureDocument,
 };

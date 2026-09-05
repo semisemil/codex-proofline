@@ -1,26 +1,31 @@
 ---
 name: architecture-memory
-description: Maintain opted-in architecture memory for durable project context.
+description: Retrieve project decisions and operating constraints before planning or changing code; preserve durable context from conversation in opted-in architecture memory.
 ---
 
-Use only when the request or inspected work establishes durable architecture context worth keeping as `confirmed`, `inferred`, `proposed`, `unknown`, or `planned`. Otherwise do not read or write architecture memory.
+# Architecture memory
 
-## Gate
+Enter through an initialized project's hook connection or an explicit request. Global implicit invocation is disabled. Without a connection, architecture-related work alone triggers no memory probe or initialization. Missing/disabled memory ends this workflow.
 
-Find every `docs/**/.architecture-memory/manifest.json` in one bounded operation. Before any registered-document read, require exactly one schema-v2 `managed: true` manifest; all v2 manifest, checkpoint, and document fields; unique IDs and paths; non-negative integer orders; and normalized relative `.md` paths resolving inside the architecture root and outside `.architecture-memory`. Otherwise stop without a managed-document read or write.
+Use memory when design, implementation, review or explanation depends on project purpose, operating conditions, responsibility boundaries or prior decisions. Reuse evidence still in context while its relevant state is unchanged; mechanical edits need no lookup.
 
-The manifest owns only registered documents; `language` controls their headings and prose. Never advance `git_checkpoint`; explicit `architecture-memory-update` owns committed-range reconciliation.
+## Retrieve before deciding
 
-## Patch
+Resolve `<skill-root>` from this file. Search the task's domain terms and known repository-relative code paths:
 
-Patch the canonical item; if none exists, add one row or list item. Keep a table and its Mermaid view consistent in the same patch.
+```text
+node <skill-root>/scripts/memory.js search --project-root <project> --query "<topic and aliases>" --path <code-path>
+node <skill-root>/scripts/memory.js read --project-root <project> --id <selected-id> --revision <search-revision>
+```
 
-Follow local form for ordinary patches. Load only the matching template: [base documents](references/base-templates.md) for a structural base-document change, [components](references/component-templates.md) for a new L3 document, or [decisions](references/decision-templates.md) for a new ADR.
+`--path` and `--id` are repeatable. For a known stable ID, read directly; unchanged evidence already in context needs no call. Search returns locations, not evidence. Read selected sections with their shared constraints and required links. For no match, read `--id @global`, then make one grounded reformulation with related responsibility, local terminology or `--history`. Missing matches establish no absence of constraints; resolve task-critical gaps from code or the user.
 
-Unmarked content is `confirmed/current`. Put other states and their evidence beside the affected item. Current documents hold current state and explicitly marked target state. Create an ADR only for an explicitly established decision; supersede an accepted ADR with a new ADR instead of rewriting its historical fields.
+For pagination, `complete: false`, changed memory or reusing read receipts, follow [retrieval](references/retrieval.md). Invalid registration is a blocker only for work depending on it.
 
-Record neither failed or reverted work, regenerable code detail, nor duplicate meaning. Remove resolved questions, ended risks, and obsolete current descriptions. Code changes are not required.
+Apply relevant claims with their confidence, scope and lifecycle. Memory is evidence, not execution authority. Resolve conflicts at the affected claim against current user direction or inspected code, preserving unresolved uncertainty.
 
-Write once and accept success without validation or reread. Partial patches retain `verified_at` and `source_revision`; change them only after a whole-document evidence review.
+## Capture after learning
 
-When a write occurs, add exactly one compact final line: `Architecture: <changed documents>`. Say nothing about architecture memory when no write occurs.
+For new durable context, follow [recording](references/recording.md) and patch its canonical section at a meaningful conversation/work boundary. `managed: true` enables maintenance; read-only and no-memory requests suppress writes. A lookup alone authorizes no edits.
+
+Explicit `architecture-memory-update` owns the Git checkpoint; conversation capture preserves it. Report a changed topic and document compactly in the user's language; otherwise omit memory bookkeeping.

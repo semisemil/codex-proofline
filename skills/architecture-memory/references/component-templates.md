@@ -2,7 +2,7 @@
 
 Use the manifest language. Replace every angle-bracket placeholder and omit empty conditional sections.
 
-Unmarked content is `confirmed/current`. Put `inferred`, `proposed`, `unknown`, or `planned` state and evidence beside the affected content; for a table row, use a keyed annotation directly below its table.
+Use [recording](recording.md) for stable section IDs, affected source paths, aliases, and explicit state/evidence. Unmarked legacy content is unclassified. Keep mixed table claims' evidence beside their rows.
 
 ## `components/README.md`
 
