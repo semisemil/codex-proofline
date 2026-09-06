@@ -70,6 +70,27 @@ test('hook registration covers SessionStart only and all sources', () => {
   assert.equal(entry.hooks[0].commandWindows.includes('start-dashboard-server.js'), true);
 });
 
+test('benchmark mode completes without starting a dashboard server', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-hook-benchmark-'));
+  const env = {
+    ...isolatedEnvironment(root),
+    PROOFLINE_BENCHMARK_DISABLE_DASHBOARD: '1',
+  };
+  const directory = dashboardDirectory({ env });
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const result = spawnSync(process.execPath, [hookPath], {
+    encoding: 'utf8',
+    env,
+    input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup' }),
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, '');
+  assert.equal((await inspectServer({ directory })).status, 'stopped');
+  assert.equal(fs.existsSync(directory), false);
+});
+
 test('startup replaces an expired lock whose owner PID was reused', async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-hook-stale-lock-'));
   const project = path.join(root, 'project');

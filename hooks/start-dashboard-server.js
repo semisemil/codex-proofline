@@ -8,6 +8,9 @@ async function main() {
   if (rawInput.trim()) {
     JSON.parse(rawInput);
   }
+  if (process.env.PROOFLINE_BENCHMARK_DISABLE_DASHBOARD === '1') {
+    return;
+  }
   const result = await startServer();
   if (!result.ok && result.reason !== 'start-in-progress') {
     process.stderr.write(`Proofline dashboard server not started: ${result.reason}\n`);
