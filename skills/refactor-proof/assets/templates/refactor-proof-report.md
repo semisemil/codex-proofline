@@ -1,41 +1,19 @@
 # Refactor Proof Report
 
-## Structural changes confirmed
+## Structural results
 
-- Before:
-- After:
-- Evidence:
+| Planned change | Actual owner, path, or relationship | Evidence | Status |
+| --- | --- | --- | --- |
+| | | | |
 
-## Call path
+## Remaining work, when present
 
-- Old path:
-- New path:
-- Evidence:
+| Current owner or coupling | Intended structure | Required change | Next proof check |
+| --- | --- | --- | --- |
+| | | | |
 
-## Responsibility split
+## Verification results
 
-- Moved responsibility:
-- New owner:
-- Evidence:
-
-## Dependency/state flow
-
-- Dependency direction now:
-- State/data owner now:
-- Evidence:
-
-## Remaining structural work
-
-- Current owner/coupling:
-- Intended owner/path:
-- Required change:
-- Next proof check:
-
-## Checks run
-
-- `command`: result
-
-## Not verified
-
-- Item:
-- Reason:
+| Check | Result or unverified reason | Coverage |
+| --- | --- | --- |
+| | | |

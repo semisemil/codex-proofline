@@ -3,24 +3,22 @@
 ## User goal
 
 
-## Non-negotiable requirements
+## Requirements and approved changes
 
--
+| Required outcome | User requirement or approval | Completion check | Status and evidence |
+| --- | --- | --- | --- |
+| | | | |
 
-## Checkpoints
+## Execution plan
 
-1.
-2.
-3.
+Existing plan:
 
-## Verification plan
+Checkpoints, when needed:
 
--
+Optional checks, when useful:
 
-## Known risks or blockers
+## Risks, blockers, and unresolved decisions, when present
 
--
-
-## User approval needed
-
-- None, unless listed here.
+| Affected work | Risk, blocker, or decision | Needed input or condition | Independent work |
+| --- | --- | --- | --- |
+| | | | |
