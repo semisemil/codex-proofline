@@ -13,20 +13,20 @@ test('figure-it-out hands a ready Spec to the launcher without owning implementa
   assert.match(skill, /Run from the earliest incomplete applicable stage/);
   assert.match(skill, /hands the ready Spec to a new implementation session/);
   assert.match(skill, /If preparation remains/);
-  assert.match(skill, /complete current request copied verbatim/);
-  assert.match(skill, /never summarize, translate, rename, or omit/);
-  assert.match(skill, /spawn_agent\(task_name: "preparation", fork_turns: "none"\)/);
-  assert.match(skill, /actual model and reasoning through explicit fields or documented history-free inheritance/);
-  assert.match(skill, /model routing does not apply/);
-  assert.match(skill, /returned or already ready Spec/);
+  assert.match(skill, /directly in this session using the current request and existing context/);
+  assert.match(skill, /Preserve every explicit output, identifier, path, command, number, and example/);
+  assert.match(skill, /Keep the current model and reasoning/);
+  assert.match(skill, /model routing does not apply to preparation/);
+  assert.doesNotMatch(skill, /spawn_agent|Preparation agent|delimited authority block/);
+  assert.match(skill, /prepared or already ready Spec/);
   assert.match(skill, /create the new implementation session in the current project folder/);
   assert.match(skill, /without waiting for implementation results/);
   assert.match(skill, /Resolve facts from evidence\. Ask only for unresolved material decisions, then resume/);
   assert.doesNotMatch(skill, /model-routing\.md|thin top coordinator|create_thread|fork_thread/);
 
-  assert.match(preparation, /^PROOFLINE_EXECUTION_ROLE: preparation$/m);
-  assert.match(preparation, /<BEGIN_ORIGINAL_REQUEST>[\s\S]*\{\{original_request\}\}[\s\S]*<END_ORIGINAL_REQUEST>/);
-  assert.match(preparation, /do not invoke `figure-it-out` or another agent/);
+  assert.match(preparation, /directly in the invoking session and project folder/);
+  assert.match(preparation, /Reuse the request and evidence already in context/);
+  assert.doesNotMatch(preparation, /PROOFLINE_EXECUTION_ROLE|\{\{original_request\}\}|parent-delivered/);
   assert.match(preparation, /implementation-spec\/SKILL\.md.*implementation-spec\/assets\/templates\/spec\.md.*one batched read/);
   assert.match(preparation, /Reuse it unless a source changes/);
   assert.match(preparation, /capped at 4,000 tokens/);
@@ -38,7 +38,7 @@ test('figure-it-out hands a ready Spec to the launcher without owning implementa
   assert.match(preparation, /without renaming or paraphrasing it away/);
   assert.match(preparation, /only if the Spec would otherwise invent/);
   assert.match(preparation, /Produce one authoritative Spec/);
-  assert.match(preparation, /scope=verified-to-original-request/);
+  assert.match(preparation, /scope is verified against the original request/);
   assert.match(preparation, /No implementation, parallel assignments, or execution artifact generation/);
   assert.doesNotMatch(preparation, /spec-slice\/|tree readiness|Node and Gate|create-gates\.js/);
 });

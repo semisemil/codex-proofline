@@ -30,9 +30,11 @@ and optional improvements. Read only: do not edit, run tests or delegate.
 End with pass or fail; fail only for a valid in-scope defect.
 ```
 
-Provide current Spec/source paths, this run's changes and actual verification results, without implementation conversation, self-assessment or prior review history. Use guaranteed fresh-context setting inheritance only if explicit settings are unavailable; report a limitation if neither works.
+For the initial review, provide current Spec/source paths, this run's changes and actual verification results, without implementation conversation or self-assessment. Use guaranteed fresh-context setting inheritance only if explicit settings are unavailable; report a limitation if neither works.
 
-Fix valid findings, rerun affected checks and request a fresh review. Explain out-of-scope exclusions against the Spec; an out-of-scope-only fail does not require another review. Finish only when all Spec conditions are met and no valid finding remains on the final reviewed state.
+Fix valid findings and rerun affected checks. Resume the same reviewer with `followup_task`, supplying the fixes, changed paths and updated verification results. Ask it to verify resolution of its findings and inspect the corrections for regressions or unmet Spec requirements on affected paths, reusing prior review context for unchanged code. Keep its role and read-only constraints unchanged.
+
+Explain out-of-scope exclusions against the Spec; an out-of-scope-only fail does not require another review. Finish only when all Spec conditions are met and no valid finding remains on the final reviewed state.
 
 ## Finish
 

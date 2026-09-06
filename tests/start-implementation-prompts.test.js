@@ -25,11 +25,11 @@ test('parallel workers share routing and have bounded nonrecursive assignments',
   assert.match(read('skills/start-implementation/assets/model-routing.md'), /Explicit user model, reasoning, and usage limits take precedence/);
 });
 
-test('review uses fresh context and repairs valid findings before completion', () => {
+test('initial review is independent and corrections return to the same reviewer', () => {
   const reviewer = skill.match(/```text\n([\s\S]*?)\n```/)[1];
   assert.deepEqual([...reviewer.matchAll(/\{\{(\w+)\}\}/g)].map(m => m[1]), ['spec_path', 'this_run_changes', 'verification_results']);
   for (const pattern of [/PROOFLINE_EXECUTION_ROLE: reviewer/, /do not edit, run tests or delegate/, /fail only for a valid in-scope defect/]) assert.match(reviewer, pattern);
-  for (const pattern of [/main session's actual model and reasoning/, /without implementation conversation, self-assessment or prior review history/, /Fix valid findings, rerun affected checks and request a fresh review/, /no valid finding remains on the final reviewed state/]) assert.match(skill, pattern);
+  for (const pattern of [/main session's actual model and reasoning/, /For the initial review/, /without implementation conversation or self-assessment/, /Resume the same reviewer with `followup_task`/, /verify resolution of its findings/, /corrections for regressions or unmet Spec requirements/, /reusing prior review context for unchanged code/, /Keep its role and read-only constraints unchanged/, /no valid finding remains on the final reviewed state/]) assert.match(skill, pattern);
 });
 
 test('completion uses the existing document writer without additional execution records', () => {
