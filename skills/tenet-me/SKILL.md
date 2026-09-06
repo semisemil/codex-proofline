@@ -18,11 +18,7 @@ Build one internal directed graph containing every current intended result at it
 - Treat the requested outcome and explicit boundaries as the scope ceiling; repository facts may constrain delivery but cannot create another intended result
 - Treat every explicit identifier, output field name, path, command, quantity, and example as a source edge; omission, translation, or renaming breaks that edge
 
-For every required result:
-
-- trace backward to an initial or current state or evidence boundary;
-- reconstruct forward over the same edges;
-- leave unsupported edges unresolved.
+For every required result, backtrace to an initial or current state or evidence boundary, then verify forward over the same edges. Leave unsupported edges unresolved.
 
 For a pre-implementation Spec, judge whether its acceptance conditions are implementable, its planned verification can decide them, and its paths conflict with the existing system; future code and results are not missing evidence. For an existing implementation or completed result, require current evidence and treat missing required implementation or verification as a possible gap.
 
