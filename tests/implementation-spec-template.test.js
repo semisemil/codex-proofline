@@ -40,57 +40,17 @@ test('Spec template renders the machine-readable v2 envelope', () => {
   assert.equal(metadata.title, 'Fix: settings #1');
 });
 
-test('Spec creation batches bounded project evidence and reuses unchanged sources', () => {
-  const skill = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'implementation-spec', 'SKILL.md'),
-    'utf8',
-  );
+function linkedFiles(documentPath) {
+  const source = fs.readFileSync(documentPath, 'utf8');
+  return [...source.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)]
+    .map((match) => path.resolve(path.dirname(documentPath), match[1].split('#')[0]));
+}
 
-  assert.match(skill, /form one bounded manifest of the project evidence/);
-  assert.match(skill, /load it in one batched tool call/);
-  assert.match(skill, /another read is only for a newly discovered or changed source/);
-  assert.match(skill, /Prefer symbol searches and relevant excerpts for large generated sources and test files/);
-  assert.match(skill, /Reuse unchanged skill, template, project, and artifact evidence/);
-});
+test('Spec document operations and template are reachable through local Markdown links', () => {
+  const skillPath = path.join(__dirname, '..', 'skills', 'implementation-spec', 'SKILL.md');
+  const operationsPath = path.join(path.dirname(skillPath), 'references', 'document-operations.md');
 
-test('Spec selects realistic outcome-level evidence without boundary test proliferation', () => {
-  const skill = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'implementation-spec', 'SKILL.md'),
-    'utf8',
-  );
-
-  assert.match(skill, /one minimum-sufficient completion set/);
-  assert.match(skill, /smallest realistic check on the real production path/);
-  assert.match(skill, /One check may decide multiple acceptance conditions/);
-  assert.match(skill, /distinct source-required result or a reproduced regression/);
-  assert.match(skill, /Reuse existing checks when sufficient/);
-  assert.match(skill, /automation would be indirect or unrealistic/);
-  assert.match(skill, /review evidence or no mechanical check instead of inventing a test/);
-  assert.match(skill, /explicit artifact obligation such as adding a test, migration, or generated contract/);
-  assert.match(skill, /Unchanged behavior and implementation details get no new test/);
-  assert.match(skill, /Preserve the completion conditions and user-required verification/);
-  assert.match(skill, /Implementers may add and run checks needed by the actual change/);
-  assert.match(
-    skill,
-    /without fixing every command in advance/,
-  );
-  assert.doesNotMatch(skill, /one representative success path/);
-  assert.doesNotMatch(skill, /authorization, input, state, or concurrency boundary/);
-  assert.doesNotMatch(skill, /verification units|targeted, broad, and deep checks/);
-  assert.match(skill, /reuse success while relevant state is unchanged and rerun affected checks after changes/);
-  assert.match(skill, /Required conditions must have current evidence before completion/);
-  assert.doesNotMatch(skill, /only completion suite|without pre-running completion checks/);
-});
-
-test('Spec keeps only document-specific body style rules', () => {
-  const skill = fs.readFileSync(
-    path.join(__dirname, '..', 'skills', 'implementation-spec', 'SKILL.md'),
-    'utf8',
-  );
-
-  assert.match(skill, /conventional telegraphic style/);
-  assert.match(skill, /Use tables and bullets when they improve structure/);
-  assert.match(skill, /Avoid terminal periods/);
-  assert.doesNotMatch(skill, /Compress content as far as possible/);
-  assert.doesNotMatch(skill, /short, dense development-document style/);
+  assert.ok(linkedFiles(skillPath).includes(operationsPath), 'SKILL.md must link to document operations');
+  assert.ok(linkedFiles(operationsPath).includes(templatePath), 'Document operations must link to the Spec template');
+  assert.ok(fs.statSync(templatePath).isFile());
 });

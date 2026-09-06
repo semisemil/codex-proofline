@@ -383,17 +383,12 @@ test('document writer owns mechanical writes and direct post-write registration'
   assert.doesNotMatch(writer, /register-project\.js/);
 });
 
-test('Plan and Spec skills route writes through document-writer without direct registration', () => {
+test('Plan skill routes writes through document-writer without direct registration', () => {
   const plan = fs.readFileSync(path.join(repoRoot, 'skills', 'development-plan', 'SKILL.md'), 'utf8');
-  const spec = fs.readFileSync(path.join(repoRoot, 'skills', 'implementation-spec', 'SKILL.md'), 'utf8');
 
-  for (const skill of [plan, spec]) {
-    assert.match(skill, /writers\/document-writer\.js write/);
-    assert.match(skill, /complete UTF-8 Markdown/);
-    assert.match(skill, /stdin in one tool call/);
-    assert.doesNotMatch(skill, /dashboard\/register-project\.js register/);
-  }
+  assert.match(plan, /writers\/document-writer\.js write/);
+  assert.match(plan, /complete UTF-8 Markdown/);
+  assert.match(plan, /stdin in one tool call/);
+  assert.doesNotMatch(plan, /dashboard\/register-project\.js register/);
   assert.match(plan, /Write Plan files only through/);
-  assert.match(spec, /Write Spec files and snapshots only through/);
-  assert.match(spec, /--change-kind major\|operational/);
 });

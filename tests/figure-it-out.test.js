@@ -27,9 +27,6 @@ test('figure-it-out hands a ready Spec to the launcher without owning implementa
   assert.match(preparation, /directly in the invoking session and project folder/);
   assert.match(preparation, /Reuse the request and evidence already in context/);
   assert.doesNotMatch(preparation, /PROOFLINE_EXECUTION_ROLE|\{\{original_request\}\}|parent-delivered/);
-  assert.match(preparation, /implementation-spec\/SKILL\.md.*implementation-spec\/assets\/templates\/spec\.md.*one batched read/);
-  assert.match(preparation, /Reuse it unless a source changes/);
-  assert.match(preparation, /capped at 4,000 tokens/);
   assert.match(preparation, /Use documented helper commands directly/);
   assert.match(preparation, /inspect helper source only after an actual helper error/);
   assert.match(preparation, /Source result-changing behavior/);
@@ -45,16 +42,12 @@ test('figure-it-out hands a ready Spec to the launcher without owning implementa
 
 test('owned stages return to figure-it-out while standalone calls keep their boundaries', () => {
   const plan = read('skills', 'development-plan', 'SKILL.md');
-  const spec = read('skills', 'implementation-spec', 'SKILL.md');
   const tenet = read('skills', 'tenet-me', 'SKILL.md');
 
   assert.match(plan, /figure-it-out\/SKILL\.md` owns the explicit user request/);
   assert.match(plan, /otherwise report it and leave review, specification, slicing, and implementation to separate user requests/);
-  assert.match(spec, /implementation requires a separate user request unless `\.\.\/figure-it-out\/SKILL\.md` owns the explicit request/);
   assert.match(tenet, /explicitly invokes \$tenet-me or \$figure-it-out owns the explicit workflow/);
   assert.match(tenet, /return the final result to it for the next revision or stage/);
-  assert.match(spec, /named algorithm, policy, standard, format/);
-  assert.match(spec, /derived from the candidate implementation cannot independently decide/);
   assert.match(tenet, /unversioned algorithm or policy name as non-authoritative/);
   assert.match(tenet, /derived from the candidate implementation as circular/);
 });

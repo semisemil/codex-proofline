@@ -1,82 +1,42 @@
 ---
 name: implementation-spec
-description: "Create, revise, complete, cancel, or supersede a project implementation Spec under .proofline/specs without implementing it. Use when the user explicitly requests Spec lifecycle work or invokes this skill with a Spec ID, path, or proposed implementation contract."
+description: "Create, revise, complete, cancel, or supersede an implementation Spec under .proofline/specs without implementing it. Use for explicit Spec work, including invocation with an ID, path, or proposed contract."
 ---
 
-# Proofline Implementation Spec
+# Implementation Spec
 
-## Scope
-
-- **Target:** `.proofline/specs/**` only
-- **Exceptions:** Domain documentation maintained through an available `domain-modeling` skill; named issues updated through `../issue-ledger/references/work-link.md` when the request or target Spec identifies a `PL-*` work target
-- **Excluded:** Product implementation; legacy `.proofline/prds/**` implementation or migration
-- **Output:** A standalone implementation document containing the settled change, product behavior, fixed design decisions, boundaries, and proof obligations, without requiring the conversation, an issue, or a Plan; repository-discoverable mechanics and ordinary build/test policy remain in the environment
-
-## Project language
-
-- Read the project's domain glossary (`CONTEXT.md`) and relevant ADRs first
-- Use the available `domain-modeling` skill when a project term is ambiguous, conflicts with an existing definition, becomes canonical, or an important design decision settles
-
-## Evidence load
-
-- After discovery, form one bounded manifest of the project evidence needed to settle the contract and load it in one batched tool call; another read is only for a newly discovered or changed source
-- Prefer symbol searches and relevant excerpts for large generated sources and test files; full implementation context belongs to the later execution task
-- Reuse unchanged skill, template, project, and artifact evidence for the rest of this Spec operation
+Produce a standalone implementation contract. Modify only `.proofline/specs/**`, except domain documentation through available `domain-modeling` and named `PL-*` links through `../issue-ledger/references/work-link.md`. Legacy `.proofline/prds/**` is excluded.
 
 ## Resolve
 
-- **Existing Spec:** Resolve an explicit path or ID directly
-- **Creation:** Inspect metadata and only plausible active `draft | ready | blocked` bodies with the same goal; stop on identity ambiguity
-- **No-op:** Compare contract, metadata, lifecycle, and links before writing; when already matched, report `no-op` without rewriting, snapshotting, or revising
-- **Path:** `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md`
-- **ID:** Never overwrite a collision; keep ID/slug fixed
-- **Snapshots:** `revisions/REV-<revision>.md`; no global index
+Identify creation, revision, or lifecycle work. Resolve an explicit path or ID directly; for creation inspect only plausible active same-goal Specs. Ask on identity ambiguity. For lifecycle-only work, go to [document operations](references/document-operations.md).
 
-Write Spec files and snapshots only through `node <plugin-root>/writers/document-writer.js write --kind spec --project-root <absolute-project-root> --relative-path <project-relative-spec-path>`, passing the complete UTF-8 Markdown on stdin in one tool call. Add `--change-kind major|operational` only when changing an existing Spec. Report its separate `write` and `registration` results.
+Use the request and confirmed decisions, a supplied or linked ready Plan as the primary planning source, and relevant project/domain evidence; apply later confirmed user corrections. Read `CONTEXT.md` and relevant ADRs. Use available `domain-modeling` for ambiguous or conflicting terms, canonical definitions, or settled important design decisions.
 
-## Write the Spec
+## Establish the contract
 
-### Envelope
+Inspect facts affecting the outcome, scope, compatibility, or completion judgment. Batch independent reads and reuse unchanged evidence; reread targeted portions when output is truncated or a concrete fact remains unresolved, including in an already-read source. Prefer focused searches and excerpts over full implementation files.
 
-- Create from `assets/templates/spec.md` and serialize its JSON safely
-- Require `schema_version: 2`; `SPEC-0001`-form `id`; stable `title`; `kind` in `feature | bug | refactor | exact_port | maintenance`; `status` in `draft | ready | blocked | completed | cancelled | superseded`; positive `revision`; arrays `supersedes`/`related_issues`; nullable `superseded_by`
-- Create no other metadata; preserve unknown keys in an existing valid Spec
+Ask only for unresolved material user decisions: choices affecting capability, compatibility, safety, privacy, retention, or meaningful scope/cost. Names of algorithms, policies, standards or formats, examples, current code, and model familiarity do not settle omitted result-changing semantics. Leave ordinary implementation choices to the implementer using narrow repository-consistent defaults, without promoting them into requirements.
 
-### Contract
+Write the current contract so implementation and review need neither the conversation nor a Plan or issue. Preserve explicit identifiers, fields, paths, commands, quantities, examples, and conditions. The requested outcome and boundaries cap scope; include supporting work only when necessary to deliver that outcome or preserve an existing contract on the changed path.
 
-- **Sources:** When a ready Plan is supplied or linked, use it as the primary planning source; apply later confirmed user corrections and decisions, then current project evidence and authoritative domain or linked documents. Without a Plan, use the request and the same remaining sources
-- **Exact terms:** Preserve explicit identifiers, output field names, paths, commands, quantities, and examples from their authoritative source; do not generalize, translate, or rename them across the Spec or verification contract
-- **Scope ceiling:** The requested outcome and explicit boundaries are the maximum product scope. Repository evidence and a Plan constrain delivery but do not authorize adjacent behavior, generic hardening, cleanup, migration, future extensibility, or new goals. Include supporting work only when omitting it would leave a requested result incomplete or break an existing contract on the changed path
-- **Source gaps:** A named algorithm, policy, standard, format, example, current implementation, or model familiarity does not supply omitted result-changing semantics. A gap is material only when plausible choices would materially change the requested capability, compatibility with an existing consumer or authority, safety, privacy, data retention, or meaningful scope and cost. A detail is not material merely because implementation must fix it or expose it in a file, schema, or API. For a non-material gap, select the narrowest repository-consistent default and keep it as an implementation decision rather than adding a user requirement or acceptance condition
-- **Standalone body:** Include linked information required for implementation or review
-- **Body:** Current contract only
-- **Acceptance:** Convert the current intent into observable, source-supported acceptance conditions and one minimum-sufficient completion set. Every required result has planned evidence capable of deciding it
-- **Verification:** Prove the changed outcome through the smallest realistic check on the real production path. One check may decide multiple acceptance conditions. Add another check only when the primary check cannot decide a distinct source-required result or a reproduced regression. Reuse existing checks when sufficient. When automation would be indirect or unrealistic, use review evidence or no mechanical check instead of inventing a test. Distinguish an explicit artifact obligation such as adding a test, migration, or generated contract from merely passing an existing command. Unchanged behavior and implementation details get no new test
-- **Independence:** A verifier, expected value, or report derived from the candidate implementation cannot independently decide that implementation's correctness
-- **Verification commitment:** Preserve the completion conditions and user-required verification. Implementers may add and run checks needed by the actual change without fixing every command in advance. Record each command, location, result, and verified state; reuse success while relevant state is unchanged and rerun affected checks after changes. Required conditions must have current evidence before completion
-- **Boundary:** Do not add product behavior or generic error, performance, or quality conditions absent from the sources; an implementation decision must stay inside the requested result and cannot enlarge acceptance
+Make the change, boundaries, fixed decisions, material prerequisites/order, state/data semantics, compatibility obligations, and observable completion conditions clear where relevant. Choose structure to fit the content; no required headings, repeated outcome sections, or diagrams. Keep existing reference targets identifiable. Leave execution decomposition and repository-discoverable build mechanics to execution.
 
-### Body style
+Use concise, target-language telegraphic phrasing: key facts rather than extended sentences. Use sentences when needed to preserve conditions, exceptions, or causality. Prefer tables when equally suitable; omit terminal periods. Bullets are optional.
 
-- Write the Spec body in the target language's conventional telegraphic style
-- Use tables and bullets when they improve structure, preferring tables when either form works
-- Avoid terminal periods
+Plan minimum-sufficient evidence capable of deciding every required result on the real production path. Reuse existing checks; one may cover multiple conditions. Add checks only for otherwise undecidable required results or reproduced regressions. Use review evidence when automation would be indirect or unrealistic. Preserve explicit artifact/test obligations separately from commands to run. Candidate-derived expectations cannot establish correctness independently. Leave execution-time commands, reruns, and review/fix procedures to `implement`.
 
-### Contract structure
+## Check readiness
 
-- Keep each acceptance condition, its material boundaries and fixed decisions, and its planned evidence together enough for implementation and review
-- Give every required outcome a stable linkable section that keeps its acceptance conditions, owned boundary, prerequisite or ordering relationship, and planned evidence together
-- Keep outcomes together when they must be implemented and reviewed as one final state; separate them only when each remains a coherent independently implementable result
-- Keep execution decomposition out of the Spec; `spec-slice` derives it without changing the implementation contract
-- Use Mermaid for graph-shaped relationships with multiple branches or actors
+Compare with the sources for omissions, altered intent, or added obligations. Confirm the implementer can proceed without inventing a material product decision and each completion condition has sufficient planned evidence.
 
-## Lifecycle
+- `ready`: these checks pass; ordinary implementation choices may remain
+- `draft`: expose a material decision or unverified fact that could change the contract
+- `blocked`: an actual external prerequisite prevents progress; transient tool/runtime/reviewer failures do not change status
 
-- **Ready:** Every material source intent is represented, every acceptance condition is source-supported, and each required result has a verification plan capable of producing observable evidence; the implementer can proceed directly from the Spec without inventing a requested product result, scope, outcome ownership, material prerequisite or ordering relationship, source-constrained state or data semantics, compatibility obligation, or proof of the required results. Ordinary implementation choices may remain when the narrow-default rule decides them
-- **Draft:** A material decision or unsupported current-state claim could change the contract; expose the gap instead of filling it by inference
-- **Blocked:** An actual external prerequisite only; transient task, tool, reviewer, or runtime failures do not change status
-- **Create:** Revision `1`, with status determined by the ready rule
-- **Major revision:** Select `major`, increment once, and invalidate old evidence; the writer snapshots the previous revision and refuses a differing snapshot
-- **Operational edit:** Select `operational` and keep the revision unchanged for typo/formatting, relation links, or lifecycle-only changes
-- **Terminal:** Complete only from current same-revision verification and an independent review of the final changes, with no valid unresolved finding. The same reviewer may verify corrections using its prior review context. The main implementer may exclude an out-of-scope-only `fail` with reasons tied to the Spec contract and change evidence. Cancel only by user; supersede by linking both Specs; preserve body/location
-- **Report:** Operation, resulting ID/title/path/revision/status, registration result, any snapshot, material decisions or blockers, and that no implementation occurred; implementation requires a separate user request unless `../figure-it-out/SKILL.md` owns the explicit request, in which case return the result to that workflow
+## Save and report
+
+Before writing, read [document operations](references/document-operations.md) for the requested operation. Compare contract, metadata, status, and links; if unchanged, report `no-op` without a write, snapshot, or revision.
+
+Keep drafting actions and reports outside the contract body. Report operation, ID/title/path/revision/status, separate write/registration results, any snapshot, and material decisions or blockers. No product implementation occurs here. Return to `../figure-it-out/SKILL.md` when it owns the explicit request; otherwise end. Implementation requires a separate request.
