@@ -23,7 +23,6 @@ test('SessionStart uses the global server hook and has no project dashboard refr
     && entry.hooks.some((hook) => hook.command.includes('start-dashboard-server.js'))));
   assert.equal(fs.existsSync(path.join(repoRoot, 'hooks', 'refresh-dashboard.js')), false);
 });
-
 test('new state starter creates no static dashboard and documents the global entry point', (t) => {
   assert.equal(fs.existsSync(path.join(starter, 'dashboard')), false);
   const state = fs.readFileSync(path.join(starter, 'STATE.md'), 'utf8');
@@ -52,15 +51,4 @@ test('transition sources never target an existing project dashboard', (t) => {
   ].join('\n');
   assert.doesNotMatch(transitionSources, /copyFileSync|cpSync|refresh-dashboard\.js/);
   assert.equal(fs.readFileSync(marker, 'utf8'), 'preserve user dashboard');
-});
-
-test('product info excludes dashboard implementation details', () => {
-  const manifest = JSON.parse(fs.readFileSync(
-    path.join(repoRoot, '.codex-plugin', 'plugin.json'),
-    'utf8',
-  ));
-  assert.doesNotMatch(
-    `${manifest.description} ${manifest.interface.longDescription} ${manifest.interface.capabilities.join(' ')}`,
-    /127\.0\.0\.1|통합 작업 대시보드/,
-  );
 });

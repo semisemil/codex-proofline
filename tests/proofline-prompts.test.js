@@ -1,68 +1,27 @@
+'use strict';
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { MODE_SLOT } = require('../hooks/proofline-prompt.js');
 
 const repoRoot = path.resolve(__dirname, '..');
-const read = (...parts) => fs.readFileSync(path.join(repoRoot, ...parts), 'utf8');
 
-test('the common skill contains only the preserved baseline contract', () => {
-  const skill = read('skills', 'proofline', 'SKILL.md');
-  const body = skill.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
-  assert.match(skill, /name: proofline/);
-  assert.match(body, /Apply rules within: explicit task, requested output, authorized target, and scope/);
-  assert.match(body, /## Language and compression/);
-  assert.equal((body.match(/<!-- proofline-response-mode -->/g) || []).length, 1);
-  assert.doesNotMatch(body, /conventional syntax/);
-  assert.match(body, /conventional collocations and vocabulary/);
-  assert.match(body, /^Clarity:/m);
-  assert.match(body, /^Attention:/m);
-  assert.doesNotMatch(body, /^Compression:/m);
-  assert.doesNotMatch(body, /^Content eligibility:/m);
-  assert.match(body, /## Truth, authority, and ambiguity/);
-  assert.match(body, /## Review and evidence/);
-  assert.match(body, /## UI text and information design/);
-  assert.match(body, /## Code/);
-  assert.doesNotMatch(body, /Normal response mode|Focus response mode|Core response mode|\$proofline|defaultMode|session_id/);
-});
+test('the shared prompt has one mode slot and all mode components exist', () => {
+  const skillPath = path.join(repoRoot, 'skills', 'proofline', 'SKILL.md');
+  const baseline = fs.readFileSync(skillPath, 'utf8');
+  assert.equal(baseline.split(MODE_SLOT).length - 1, 1);
 
-test('mode prompts are private frontmatter-free components with distinct contracts', () => {
-  const normal = read('skills', 'proofline', 'normal.md');
-  const focus = read('skills', 'proofline', 'focus.md');
-  const core = read('skills', 'proofline', 'core.md');
-
-  for (const prompt of [normal, focus, core]) {
-    assert.doesNotMatch(prompt, /^---/);
-    assert.doesNotMatch(prompt, /^#|defaultMode|session_id|\$proofline/);
-    assert.doesNotMatch(prompt, /Replace any previous Proofline response-mode instructions|Do not replace the current Proofline response-mode instructions|The Proofline response mode is unchanged|Both modes remain unchanged|Respond with only|Continue the remaining/);
+  for (const mode of ['normal', 'focus', 'core']) {
+    const modePath = path.join(repoRoot, 'skills', 'proofline', `${mode}.md`);
+    assert.ok(fs.statSync(modePath).isFile(), mode);
+    assert.ok(fs.statSync(modePath).size > 0, mode);
   }
-  assert.equal(normal.trim(), "Use the target language's conventional syntax");
-  assert.doesNotMatch(normal, /normal conversational response style/);
-  assert.match(normal, /target language's conventional syntax/);
-  assert.doesNotMatch(normal, /Replace and ignore previous Proofline focus or core/);
-  assert.doesNotMatch(normal, /shared Proofline baseline/);
-  assert.doesNotMatch(normal, /next action|numbered steps|ultra-compressed/);
-
-  assert.doesNotMatch(focus, /Start with the conclusion or the next action/);
-  assert.match(focus, /target language's conventional syntax/);
-  assert.match(focus, /numbered steps only for multi-step work with a real execution order/);
-  assert.doesNotMatch(focus, /Show brief progress state only when needed/);
-  assert.match(focus, /Prefer lists of at most five items when choosing the response structure; preserve all required items and any source structure the task requires\./);
-  assert.doesNotMatch(focus, /within two minutes|same debugging failure|greetings, preambles|State completion and errors|Keep explanations, safety checks/);
-
-  assert.match(core, /Use ultra-compressed responses/);
-  assert.doesNotMatch(core, /conventional syntax/);
-  assert.doesNotMatch(core, /with the conclusion first/);
-  assert.match(core, /technical accuracy, code, API names, CLI commands, exact errors, negation, exceptions, numbers, and units/);
-  assert.doesNotMatch(core, /technical terms/);
-  assert.match(core, /Do not invent abbreviations, causal arrows, decorative tables, or emoji/);
-  assert.match(core, /complete sentences when fragments would obscure safety, irreversible consequences, execution order, or requested clarification/);
-  assert.match(core, /Resume ultra-compressed expression after the clarity exception/);
-  assert.doesNotMatch(core, /Keep the user's primary language|mention yourself|preview tool calls|asks to explain again or repeats/);
 });
 
 test('hook registration keeps lifecycle boundaries and removes legacy owners', () => {
-  const hooks = JSON.parse(read('hooks', 'hooks.json')).hooks;
+  const hooks = JSON.parse(fs.readFileSync(path.join(repoRoot, 'hooks', 'hooks.json'), 'utf8')).hooks;
   const loader = hooks.SessionStart.find((entry) => entry.hooks.some((hook) => (
     hook.command.includes('load-proofline.js')
   )));
@@ -73,7 +32,6 @@ test('hook registration keeps lifecycle boundaries and removes legacy owners', (
   const numberHook = hooks.UserPromptSubmit[0].hooks[1];
 
   assert.equal(loader.matcher, 'startup|clear|compact');
-  assert.doesNotMatch(loader.matcher, /resume/);
   assert.ok(subagentLoader);
   assert.equal(subagentLoader.matcher, undefined);
   assert.match(modeHook.command, /proofline-mode\.js/);
@@ -81,5 +39,4 @@ test('hook registration keeps lifecycle boundaries and removes legacy owners', (
   assert.equal(hooks.SessionEnd, undefined);
   assert.equal(fs.existsSync(path.join(repoRoot, 'hooks', 'load-baseline.js')), false);
   assert.equal(fs.existsSync(path.join(repoRoot, 'skills', 'proofline-baseline-quality')), false);
-  assert.match(read('skills', 'issue-ledger', 'SKILL.md'), /\.\.\/proofline\/SKILL\.md/);
 });

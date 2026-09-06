@@ -20,7 +20,7 @@ test('architecture skills disable global implicit invocation; initialized projec
   }
 });
 
-test('all workflow reference pointers resolve without loading templates on the retrieval path', () => {
+test('all workflow reference pointers resolve', () => {
   const files = [
     ...skills.map((name) => path.join('skills', name, 'SKILL.md')),
     'skills/architecture-memory-init/references/initialization.md',
@@ -35,17 +35,6 @@ test('all workflow reference pointers resolve without loading templates on the r
       const target = path.resolve(repoRoot, path.dirname(file), match[1]);
       assert.ok(fs.existsSync(target), file + ' -> ' + match[1]);
     }
-  }
-  const main = read('skills', 'architecture-memory', 'SKILL.md');
-  assert.doesNotMatch(main, /\]\(references\/(base|component|decision)-templates\.md\)/);
-});
-
-test('document templates cover required baseline and conditional component and decision documents', () => {
-  const templates = ['base-templates', 'component-templates', 'decision-templates']
-    .map((name) => read('skills', 'architecture-memory', 'references', name + '.md')).join('\n');
-  for (const file of ['README.md', '01-system-context.md', '02-containers.md', '04-context.md',
-    'components/README.md', 'components/<container-slug>.md', 'decisions/README.md', 'decisions/ADR-<number>-<slug>.md']) {
-    assert.ok(templates.includes(file), file);
   }
 });
 

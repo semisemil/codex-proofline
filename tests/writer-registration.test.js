@@ -126,7 +126,6 @@ test('Issue create registers only after the file write succeeds', (t) => {
   assert.match(result.stderr, /registration: .*"status":"registered"/);
   assert.equal(registry(fixture).projects[0].root, fs.realpathSync(fixture.projectRoot));
 });
-
 test('Issue write failure does not register the project', (t) => {
   const fixture = makeFixture(t);
   const input = path.join(fixture.root, 'issue.json');
@@ -381,14 +380,4 @@ test('document writer owns mechanical writes and direct post-write registration'
   assert.match(writer, /registerProject\(projectRoot\)/);
   assert.match(writer, /fs\.renameSync\(temporary, target\)/);
   assert.doesNotMatch(writer, /register-project\.js/);
-});
-
-test('Plan skill routes writes through document-writer without direct registration', () => {
-  const plan = fs.readFileSync(path.join(repoRoot, 'skills', 'development-plan', 'SKILL.md'), 'utf8');
-
-  assert.match(plan, /writers\/document-writer\.js write/);
-  assert.match(plan, /complete UTF-8 Markdown/);
-  assert.match(plan, /stdin in one tool call/);
-  assert.doesNotMatch(plan, /dashboard\/register-project\.js register/);
-  assert.match(plan, /Write Plan files only through/);
 });

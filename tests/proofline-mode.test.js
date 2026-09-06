@@ -4,6 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
+const { composeProoflinePrompt } = require('../hooks/proofline-prompt.js');
 
 const repoRoot = path.resolve(__dirname, '..');
 const hookPath = path.join(repoRoot, 'hooks', 'proofline-mode.js');
@@ -94,9 +95,7 @@ test('mode changes are ASCII case-insensitive and emit the SessionStart prompt',
   const response = output(runHook(env, '\n  $proofline FoCuS  '));
   assert.match(response.systemMessage, /focus/);
   const prompt = response.hookSpecificOutput.additionalContext;
-  assert.match(prompt, /# Proofline/);
-  assert.match(prompt, /Use line breaks with noun phrases/);
-  assert.doesNotMatch(prompt, /Replace any previous Proofline response-mode instructions|Do not replace the current Proofline response-mode instructions|The Proofline response mode is unchanged|Both modes remain unchanged|Respond with only|Continue the remaining|proofline-response-mode|^# (?:Normal|Focus|Core) response mode/m);
+  assert.equal(prompt, composeProoflinePrompt('focus'));
   const loaded = runLoader(env);
   assert.equal(loaded.status, 0, loaded.stderr);
   assert.equal(prompt, loaded.stdout);
@@ -106,8 +105,7 @@ test('mode changes are ASCII case-insensitive and emit the SessionStart prompt',
 test('a valid command is applied before the remaining task', (t) => {
   const { env } = fixture(t);
   const response = output(runHook(env, '$proofline core\nDiagnose the failing test.'));
-  assert.match(response.hookSpecificOutput.additionalContext, /Use ultra-compressed responses/);
-  assert.doesNotMatch(response.hookSpecificOutput.additionalContext, /Continue the remaining user request/);
+  assert.equal(response.hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'core' });
 });
 
@@ -144,7 +142,7 @@ test('saved caveman preferences load and report as core for existing and new ses
   for (const sessionId of ['session-a', 'session-b']) {
     const loaded = runLoader(env, sessionId);
     assert.equal(loaded.status, 0, loaded.stderr);
-    assert.match(loaded.stdout, /Use ultra-compressed responses/);
+    assert.equal(loaded.stdout, composeProoflinePrompt('core'));
   }
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env, 'session-b'), 'utf8')), { mode: 'core' });
 });
@@ -153,7 +151,7 @@ test('default changes persist first and immediately apply to the current session
   const { env } = fixture(t);
   const response = output(runHook(env, '$proofline default CORE'));
   assert.match(response.systemMessage, /기본 모드와 현재 모드를 core/);
-  assert.match(response.hookSpecificOutput.additionalContext, /Use ultra-compressed responses/);
+  assert.equal(response.hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
   const loaded = runLoader(env);
   assert.equal(loaded.status, 0, loaded.stderr);
   assert.equal(response.hookSpecificOutput.additionalContext, loaded.stdout);
@@ -176,7 +174,7 @@ for (const [label, sessionId] of [
     const { env } = fixture(t);
     const changed = output(runHook(env, '$proofline default focus', sessionId));
     assert.match(changed.systemMessage, /기본 모드와 현재 모드를 focus로 변경/);
-    assert.match(changed.hookSpecificOutput.additionalContext, /Use line breaks with noun phrases/);
+    assert.equal(changed.hookSpecificOutput.additionalContext, composeProoflinePrompt('focus'));
     assert.equal(fs.existsSync(path.join(env.PLUGIN_DATA, 'proofline-mode')), false);
 
     const queried = output(runHook(env, '$proofline', sessionId));

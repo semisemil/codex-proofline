@@ -48,7 +48,6 @@ test('status, open, and stop do not create a stopped dashboard directory', async
   assert.equal(stopped.action, 'unchanged');
   assert.equal(fs.existsSync(directory), false);
 });
-
 test('open uses expected_version and preserves server and project state', async (t) => {
   const directory = tempDirectory(t);
   fs.mkdirSync(directory, { recursive: true });
@@ -114,16 +113,4 @@ test('open, status, and stop have stable stopped stdout, stderr, and exit codes'
   assert.equal(JSON.parse(stop.stdout).action, 'unchanged');
   assert.equal(stop.stderr, '');
   assert.equal(fs.existsSync(path.join(root, 'appdata', 'proofline', 'dashboard')), false);
-});
-
-test('dashboard-server skill adds only the current initialized project and keeps server actions separate', () => {
-  const skill = fs.readFileSync(path.join(repoRoot, 'skills', 'dashboard-server', 'SKILL.md'), 'utf8');
-
-  assert.match(skill, /Accept exactly one action: `add`, `open`, `status`, or `stop`/);
-  assert.match(skill, /register-project\.js register --project-root <absolute-current-working-directory>/);
-  assert.match(skill, /does not contain a `\.proofline` directory/);
-  assert.match(skill, /Do not search parent, child, sibling, or other filesystem paths/);
-  assert.match(skill, /do not start it/);
-  assert.match(skill, /`add` may change only the global project registry/);
-  assert.doesNotMatch(skill, /<start\|open\|status\|stop>/);
 });

@@ -4,6 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
+const { composeProoflinePrompt } = require('../hooks/proofline-prompt.js');
 
 const repoRoot = path.resolve(__dirname, '..');
 const loaderPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
@@ -51,28 +52,11 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value), 'utf8');
 }
 
-function assertModeAtResponseSlot(prompt, pattern) {
-  const wordingIndex = prompt.indexOf('Wording:');
-  const modeIndex = prompt.search(pattern);
-  const clarityIndex = prompt.indexOf('Clarity:');
-  assert.ok(wordingIndex >= 0 && wordingIndex < modeIndex);
-  assert.ok(modeIndex < clarityIndex);
-  assert.doesNotMatch(prompt, /proofline-response-mode|^# (?:Normal|Focus|Core) response mode|shared Proofline baseline/m);
-}
-
 test('startup inserts normal at the response slot', (t) => {
   const { env } = fixture(t);
   const result = runLoader(env, 'session-a', 'startup');
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /# Proofline/);
-  assert.equal((result.stdout.match(/^Clarity:/gm) || []).length, 1);
-  assert.equal((result.stdout.match(/^Attention:/gm) || []).length, 1);
-  assert.doesNotMatch(result.stdout, /^Compression:|^Content eligibility:/m);
-  assert.match(result.stdout, /target language's conventional syntax/);
-  assertModeAtResponseSlot(result.stdout, /target language's conventional syntax/);
-  assert.doesNotMatch(result.stdout, /normal conversational response style/);
-  assert.doesNotMatch(result.stdout, /Replace and ignore previous Proofline focus or core/);
-  assert.doesNotMatch(result.stdout, /^---|\$proofline|defaultMode|session_id/);
+  assert.equal(result.stdout, composeProoflinePrompt('normal'));
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), 'utf8')),
     { mode: 'normal' },
@@ -87,9 +71,7 @@ test('startup, clear, and compact preserve the stored mode for one session', (t)
   for (const source of ['startup', 'clear', 'compact']) {
     const result = runLoader(env, 'session-a', source);
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /target language's conventional syntax/);
-    assertModeAtResponseSlot(result.stdout, /Use line breaks with noun phrases/);
-    assert.doesNotMatch(result.stdout, /Use ultra-compressed responses/);
+    assert.equal(result.stdout, composeProoflinePrompt('focus'));
     assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf8')), { mode: 'focus' });
   }
 });
@@ -103,10 +85,8 @@ test('new session IDs initialize from the latest default without changing existi
   const fresh = runLoader(env, 'session-b', 'startup');
   assert.equal(existing.status, 0, existing.stderr);
   assert.equal(fresh.status, 0, fresh.stderr);
-  assertModeAtResponseSlot(existing.stdout, /Use ultra-compressed responses/);
-  assert.doesNotMatch(existing.stdout, /conventional syntax/);
-  assertModeAtResponseSlot(fresh.stdout, /Use line breaks with noun phrases/);
-  assert.match(fresh.stdout, /target language's conventional syntax/);
+  assert.equal(existing.stdout, composeProoflinePrompt('core'));
+  assert.equal(fresh.stdout, composeProoflinePrompt('focus'));
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), 'utf8')),
     { mode: 'core' },
@@ -132,8 +112,7 @@ test('SubagentStart receives the parent session Proofline mode', (t) => {
 
   const result = runLoader(env, 'session-a', undefined, loaderPath, 'SubagentStart');
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /# Proofline/);
-  assertModeAtResponseSlot(result.stdout, /Use line breaks with noun phrases/);
+  assert.equal(result.stdout, composeProoflinePrompt('focus'));
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf8')), { mode: 'focus' });
 });
 
