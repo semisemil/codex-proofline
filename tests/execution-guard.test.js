@@ -55,7 +55,7 @@ test('the unmarked current session can implement, verify, and coordinate paralle
   for (const tool of ['collaboration.spawn_agent', 'collaboration.followup_task', 'collaboration.send_message', 'collaboration.wait_agent']) {
     assert.equal(toolAllowed(state, tool), true, tool);
   }
-  assert.equal(commandAllowed(state, 'node implementation-state.js complete --state run.json'), true);
+  assert.equal(commandAllowed(state, 'node writers/document-writer.js write --kind spec --change-kind operational'), true);
 });
 
 test('preparation writes planning documents through the writer and an optional flat assignment plan', (t) => {
@@ -69,7 +69,7 @@ test('preparation writes planning documents through the writer and an optional f
     assert.equal(toolAllowed(state, 'Edit', { file_path: file }), false, file);
   }
   assert.equal(toolAllowed(state, 'apply_patch', { patch: '*** Update File: .proofline/specs/SPEC-0001/PARALLEL.md\n*** Move to: src/product.js' }), false);
-  for (const command of ['npm test', 'node implementation-state.js capture --cwd .', 'node implementation-state.js complete --state run.json']) {
+  for (const command of ['npm test']) {
     assert.equal(commandAllowed(state, command), false, command);
   }
   for (const tool of ['spawn_agent', 'followup_task', 'wait_agent', 'create_thread', 'send_message_to_thread']) {
@@ -85,9 +85,6 @@ test('parallel implementers diagnose, repair, and verify directly without recurs
   for (const command of [
     'npm test', 'uv run pytest tests/api/test_items.py -q', 'bun run --cwd frontend build',
     'node --test tests/changed.test.js', 'git diff -- src/a.js', 'rg --files',
-    'rg -n implementation-state.js skills/start-implementation',
-    'node implementation-state.js check --state run.json --id API -- node --test tests/api.test.js',
-    'node implementation-state.js evidence --state run.json',
   ]) assert.equal(commandAllowed(state, command), true, command);
   for (const tool of [
     'spawn_agent', 'collaboration.spawn_agent', 'functions.collaboration.spawn_agent',
@@ -95,9 +92,6 @@ test('parallel implementers diagnose, repair, and verify directly without recurs
     'create_thread', 'mcp__codex_app__create_thread', 'fork_thread',
     'send_message_to_thread', 'mcp__codex_app__send_message_to_thread', 'wait_agent', 'wait_threads',
   ]) assert.equal(toolAllowed(state, tool), false, tool);
-  for (const action of ['capture', 'review', 'complete']) {
-    assert.equal(commandAllowed(state, 'node implementation-state.js ' + action + ' --state run.json'), false, action);
-  }
   assert.equal(toolAllowed(state, 'Write', { path: '.proofline/specs/SPEC-0001/SPEC.md' }), false);
 });
 
@@ -110,15 +104,13 @@ test('reviewers inspect actual state, source, and evidence through read-only com
     'git ls-files', 'git rev-parse --show-toplevel',
     'rg -n "test|build" src', 'rg --files src',
     "Get-Content 'src/a.js' | Select-Object -First 40",
-    "node 'C:\\plugin\\implementation-state.js' status --state run.json",
-    'node implementation-state.js diff --state run.json',
-    'node implementation-state.js review-input --state run.json',
+    'Get-Content .proofline/specs/SPEC-0001/SPEC.md',
     'Get-Content src/a.js; Get-Content src/b.js',
   ]) assert.equal(commandAllowed(state, command), true, command);
   assert.equal(toolAllowed(state, 'read_file', { path: 'src/a.js' }), true);
 });
 
-test('reviewers cannot execute checks or mutate files, Git, or implementation state', (t) => {
+test('reviewers cannot execute checks or mutate files or Git', (t) => {
   const state = fixture(t);
   arm(state, 'reviewer');
   for (const tool of ['apply_patch', 'functions.apply_patch', 'Write', 'update_plan', 'collaboration.spawn_agent', 'collaboration.followup_task', 'collaboration.wait_agent', 'create_thread']) {
@@ -128,19 +120,14 @@ test('reviewers cannot execute checks or mutate files, Git, or implementation st
     assert.equal(toolAllowed(state, tool, { command: 'npm test', cmd: 'npm test' }), false, tool);
   }
   for (const command of [
-    'npm test', 'node --test tests/a.test.js', 'python inspect.py',
+    'npm test', 'node --test tests/a.test.js', 'python inspect.py', 'node inspect.js',
     'git add src/a.js', 'git -C . commit -m done', 'git status; git reset --hard',
     'git diff --output=diff.txt', 'git diff --ext-diff',
     'Set-Content src/a.js fixed', 'Get-Content src/a.js > output.txt',
     'rg --pre formatter src', 'node -e "require(\'fs\').writeFileSync(\'x\', \'x\')"',
     'Get-Content $(Remove-Item src/a.js)', 'Get-Content "src/$(Set-Content x y)"',
     'Get-Content src/a.js | ForEach-Object { Set-Content x $_ }',
-    'node implementation-state.js capture --cwd .',
-    'node implementation-state.js check --state run.json',
-    'node implementation-state.js evidence --state run.json',
-    'node implementation-state.js review --state run.json',
-    'node implementation-state.js complete --state run.json',
-    'node implementation-state.js', 'Get-Content "unfinished',
+    'node writers/document-writer.js write --kind spec --change-kind operational',
   ]) assert.equal(commandAllowed(state, command), false, command);
 });
 

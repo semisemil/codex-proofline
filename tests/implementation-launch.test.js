@@ -6,8 +6,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 const { prepareLaunch, parseArgs } = require('../skills/start-implementation/scripts/prepare-launch.js');
-const implementation = require('../skills/start-implementation/scripts/implementation-state.js');
-const { fixture, git, checkBehavior, reviewPass, MAIN_SETTINGS } = require('./helpers/implementation-fixture.js');
+const { fixture, git, MAIN_SETTINGS } = require('./helpers/implementation-fixture.js');
 
 function options(f, extra = {}) {
   return { cwd: f.cwd, spec: 'SPEC-0001', projectRoot: f.cwd, projectId: 'saved-project',
@@ -15,7 +14,7 @@ function options(f, extra = {}) {
 }
 
 test('launch CLI yields one exact Spec-only prompt and explicit local project settings without writes', t => {
-  const f = fixture(t, { beforeCapture: ({ write }) => write('uncommitted.txt', 'keep me') });
+  const f = fixture(t, { beforeLaunch: ({ write }) => write('uncommitted.txt', 'keep me') });
   // The Spec itself need not be committed for a local implementation session.
   f.write(f.spec, f.read(f.spec) + '\nCurrent uncommitted contract clarification.\n');
   const before = git(f.cwd, 'status', '--porcelain=v1');
@@ -69,39 +68,5 @@ test('missing, ambiguous, non-ready, mismatched Specs and a different project pr
   assert.throws(() => prepareLaunch(options(f)), /Ambiguous/);
   assert.throws(() => parseArgs(['--cwd', f.cwd, '--cwd', f.cwd]), /once/);
   assert.throws(() => parseArgs(['--unsupported', 'value']), /supported/);
-  assert.equal(git(f.cwd, 'rev-parse', 'HEAD'), f.initialHead);
-});
-
-test('a Spec-only task can capture, implement, verify, review and complete without conversation authority', t => {
-  const f = fixture(t);
-  const request = prepareLaunch(options(f));
-  assert.equal(request.prompt, '$proofline:implement SPEC-0001');
-  const initial = f.state();
-  assert.equal(initial.schema_version, 2);
-  assert.equal(Object.hasOwn(initial.authority, 'original_request'), false);
-  assert.deepEqual(initial.authority.decisions, []);
-  assert.equal(initial.authority.spec.id, 'SPEC-0001');
-  assert.equal(initial.authority.spec.revision, 1);
-  assert.equal(initial.authority.spec.text, f.read(f.spec));
-  assert.match(initial.authority.spec.text, /Change src\/value.js to export 2/);
-  f.write('src/value.js', 'module.exports = 2;\n');
-  assert.equal(checkBehavior(f).passed, true);
-  implementation.prepareSnapshot(f.statePath);
-  const packet = implementation.reviewInput(f.statePath, MAIN_SETTINGS);
-  assert.equal(Object.hasOwn(packet, 'original_request'), false);
-  assert.equal(Object.hasOwn(packet, 'accepted_decisions'), false);
-  assert.equal(packet.spec.text, initial.authority.spec.text);
-  reviewPass(f);
-  assert.equal(implementation.complete(f.statePath).status, 'completed');
-  assert.equal(f.read('src/other.js'), 'module.exports = "unchanged";\n');
-});
-
-test('version 1 evidence is rejected without conversion or repository changes', t => {
-  const f = fixture(t);
-  const legacy = { ...f.state(), schema_version: 1 };
-  fs.writeFileSync(f.statePath, JSON.stringify(legacy));
-  const before = fs.readFileSync(f.statePath);
-  assert.throws(() => implementation.status(f.statePath), /Invalid execution state/);
-  assert.deepEqual(fs.readFileSync(f.statePath), before);
   assert.equal(git(f.cwd, 'rev-parse', 'HEAD'), f.initialHead);
 });

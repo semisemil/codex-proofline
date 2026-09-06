@@ -1,50 +1,43 @@
 ---
 name: implement
-description: "Explicit-only execution of one ready Spec by ID in this session, with optional parallel agents and fresh independent review."
+description: "Implement a ready Spec, optionally in parallel, then review and fix until complete. Explicit invocation only."
 ---
 
-# Proofline Implement
+# Implement
 
-Implement the ready Spec in this invoking session using its current model and reasoning effort. Own direct implementation, independent assignments, integration, and the completion decision.
+Implement the unique ready `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md` in this session with its current model and reasoning. Report a missing, ambiguous or non-ready Spec. `start-implementation` owns session creation; the Spec and required sources are the implementation contract.
 
-## Prepare
+## Implement and verify
 
-Resolve the supplied Spec ID in this project's `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md` and read the unique ready Spec. Report a missing, ambiguous, or non-ready Spec before implementation. The Spec supplies the requirements, settled decisions, boundaries, and completion conditions; read its required original sources and relevant repository evidence. No originating conversation or separate handoff summary is required. Do not reconstruct a missing original request or label the Spec as a verbatim user request. This session owns execution and reports directly to the user; it does not invoke the session launcher or return completion to the originating session.
+Inspect existing staged, unstaged and untracked changes before editing. Preserve them and keep enough starting-state context to distinguish this run's changes for review. Implement the Spec and run the checks needed for its completion conditions, including user-required tests. Read focused code and concise output; inspect full logs only when needed. Reuse successful checks while their relevant state is unchanged and rerun affected checks after edits.
 
-Before changing product files, read [execution evidence](../start-implementation/references/execution-evidence.md) and capture the start state. Distinguish this run's changes from existing staged, unstaged, and untracked files; preserve existing user changes. Use the location selected by the user and execution environment. Review preparation requires neither staging nor a commit.
+When independent assignments can shorten the work, use [model routing](../start-implementation/assets/model-routing.md) to select each worker's model and reasoning. Give each fresh `spawn_agent(fork_turns: "none")` a `PROOFLINE_EXECUTION_ROLE: parallel-implementer` assignment containing its goal, Spec sections, owned files/interfaces and required checks. Workers implement, diagnose and verify their scope, then return changes and test results; they do not delegate or complete the Spec. Supply common Proofline instructions if hooks are disabled.
 
-This workflow applies to new runs. Preserve existing execution documents and records; resuming or automatically converting an in-progress legacy run is outside this workflow.
+Keep writes non-overlapping and dependent work sequential. Continue your own implementation while workers run; use `send_message` or same-role `followup_task` as needed, then collect and integrate results. End a worker's writes before replacing it. No separate assignment document is required. Escalate missing decisions or persistent blockers with evidence.
 
-## Implement and optionally delegate
+## Review and fix
 
-Proceed directly from the Spec when one session can implement the work coherently. Sequential work stays with this session. Split only when goals, change boundaries, and interfaces are clear and independent execution has a useful parallel benefit. File count and desired agent count are not decomposition criteria.
+After integration and verification, create a fresh reviewer with `fork_turns: "none"`, the main session's actual model and reasoning, and this assignment:
 
-When a split is useful, read [Spec Slice](../spec-slice/SKILL.md) and record the flat assignments in one `PARALLEL.md` beside the Spec. Keep a concrete implementation task for yourself. Before dispatch, establish non-conflicting write ownership and the shared interfaces; overlapping changes require sequencing or a revised assignment, not concurrent writers.
+```text
+PROOFLINE_EXECUTION_ROLE: reviewer
+Review {{spec_path}} against {{this_run_changes}} and {{verification_results}}.
+Read the actual changes and relevant code. Check Spec compliance, regressions
+introduced by this change and directly affected contracts. Check that the
+verification proves the required behavior, not merely the implementation's own
+assumptions. Give concrete evidence for findings; distinguish unrelated issues
+and optional improvements. Read only: do not edit, run tests or delegate.
+End with pass or fail; fail only for a valid in-scope defect.
+```
 
-For each parallel implementer, load [model routing](../start-implementation/assets/model-routing.md) and [the implementation assignment](../start-implementation/references/implementation-task.md). Select model and reasoning separately and record the work characteristic and selection reason in one sentence. Render only the necessary Spec context, owned scope, and interfaces. Dispatch with `spawn_agent(fork_turns: "none")`, setting both selected fields. The shared routing policy selects new implementation sessions and parallel implementers. This running session keeps its actual settings; Preparation and Reviewer settings follow their own contracts.
+Provide current Spec/source paths, this run's changes and actual verification results, without implementation conversation, self-assessment or prior review history. Use guaranteed fresh-context setting inheritance only if explicit settings are unavailable; report a limitation if neither works.
 
-Continue your own implementation immediately after dispatch. Wait only when your own work is done or a result is needed; collect and integrate the results in this same turn. Use `send_message` for coordination with a running agent and `followup_task` to continue an existing implementer's work. Internal assignments use subagents rather than automatically creating separate Codex tasks for message transport. Parallel implementers do not delegate further.
-
-Each child has one immutable execution role: `preparation`, `parallel-implementer`, or `reviewer`. A different role requires a fresh history-free agent; never send a different `PROOFLINE_EXECUTION_ROLE` marker to an existing agent. The main session has no execution role marker. Children receive the Proofline baseline through the runtime hooks; when hooks are disabled, supply that baseline at child start.
-
-## Repair and verify
-
-The implementer that encountered a failure first investigates, repairs, and verifies it within its assigned scope. This includes your own work. Escalate only a scope change, coordination with another assignment, an unresolved blocker, or a needed model change, with failure evidence and the required support. The main session handles that coordination or reassignment without a mandatory second diagnosis.
-
-If the runtime cannot change an existing agent's model or reasoning, wait for or stop that execution and confirm its writes have ended before assigning a replacement. Transfer the same task, current changes, attempted repairs, failure evidence, and unresolved work. Reassess parallel implementer fit using model routing; there is no fixed promotion ladder. This workflow does not automatically recreate the main session or transfer an in-progress run to another task. Treat environment errors and missing requirements according to their cause. Report a blocker when the same failure repeats without new evidence or progress.
-
-Implementers may add and run tests needed by the actual change. Preserve the Spec's completion conditions and user-required verification; commands need not be fixed before implementation. Follow execution evidence to record each command, location, result, and tested state. Reuse successful evidence while relevant state is unchanged; after a change, rerun only affected checks. All required conditions must have current evidence before completion.
-
-Once all writers have finished and results are integrated, verify the actual run delta and required outcomes. Keep the reviewed and verified state aligned with that delta, including changes to previously dirty files.
-
-## Fresh independent review
-
-Load [the reviewer assignment](../start-implementation/references/reviewer.md) and create a new `reviewer` with `fork_turns: "none"` for every review, including after repairs. Use the main session's model and reasoning effort at dispatch, independently of worker routing. Read the actual settings from the runtime and set both tool fields explicitly when available. Use documented inheritance only if it guarantees both settings with fresh context; if neither is possible, report the missing capability instead of guessing settings or inheriting the implementation conversation.
-
-Build the assignment from the captured Spec and its relevant original sources, the actual run diff, and current verification evidence. The Spec is the implementation and review contract. Use the evidence helper's snapshot and read command. Supply no implementation conversation, implementer self-assessment, or earlier review findings, verdicts, rebuttals, or history. After repairs, use the same input composition against the latest state. The reviewer may read related code to establish impact; it does not change files or execution state.
-
-On findings, follow [review disposition](../start-implementation/references/review-conflicts.md). Repair only valid in-scope findings, update affected evidence, and create another fresh reviewer. An out-of-scope-only `fail` does not prevent completion when its exclusion is supported, no valid finding remains unresolved, and all required verification is current.
+Fix valid findings, rerun affected checks and request a fresh review. Explain out-of-scope exclusions against the Spec; an out-of-scope-only fail does not require another review. Finish only when all Spec conditions are met and no valid finding remains on the final reviewed state.
 
 ## Finish
 
-Use execution evidence to confirm the final state matches the verified and reviewed changes and complete the Spec only when its requirements are met and no valid blocking finding remains. Report the delivered outcome, relevant verification, and any unresolved limitation. Preserve existing user changes and execution records. Commit or push only when the user has authorized it.
+Set the Spec status to `completed`, preserving its body, identity and revision, through the existing document writer:
+
+`node <plugin-root>/writers/document-writer.js write --kind spec --project-root <root> --relative-path <SPEC.md> --change-kind operational`
+
+Pass the complete updated Markdown on stdin. Report the implementation and verification results, plus any write or registration failure. Commit or push only when authorized.

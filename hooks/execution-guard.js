@@ -253,20 +253,6 @@ function executableName(value) {
   return String(value || '').split(/[\\/]/).pop().toLowerCase().replace(/\.(?:exe|cmd)$/, '');
 }
 
-const STATE_READS = new Set(['status', 'diff', 'review-input']);
-
-function stateAction(words) {
-  return executableName(words[0]) === 'node' && executableName(words[1]) === 'implementation-state.js'
-    ? words[2] || '' : null;
-}
-
-function usesStateMutation(command, allowed = STATE_READS) {
-  return commandSegments(command).some((segment) => {
-    const action = stateAction(commandWords(segment));
-    return action !== null && !allowed.has(action);
-  });
-}
-
 function readOnlyGit(words) {
   let index = 1;
   while (index < words.length && words[index].startsWith('-')) {
@@ -306,9 +292,6 @@ function isReadOnlyCommand(command) {
     const words = commandWords(segment);
     const executable = executableName(words[0]);
     if (executable === 'git') return readOnlyGit(words);
-    if (executable === 'node') {
-      return executableName(words[1]) === 'implementation-state.js' && STATE_READS.has(words[2]);
-    }
     if (!reads.has(executable)) return false;
     if (executable === 'rg' && words.some((word) => /^--pre(?:=|$)/.test(word))) return false;
     return true;
@@ -330,7 +313,7 @@ function preTool(event) {
     }
     if (isCommand(tool)) {
       const command = commandText(event);
-      if (usesStateMutation(command) || isCompletionCommand(command)) {
+      if (isCompletionCommand(command)) {
         return deny('Preparation returns the prepared Spec; the main implementer owns implementation and verification.');
       }
     }
@@ -344,9 +327,6 @@ function preTool(event) {
     if (isEdit(tool) && isExecutionControlEdit(event)) {
       return deny('The main implementer owns the agreed Spec and parallel assignment plan.');
     }
-    if (isCommand(tool) && usesStateMutation(commandText(event), new Set([...STATE_READS, 'check', 'evidence']))) {
-      return deny('Parallel implementers may record verification; the main implementer owns capture, review, and completion.');
-    }
     return emit();
   }
 
@@ -354,7 +334,7 @@ function preTool(event) {
     return deny('Reviewers read the current evidence and return findings; they cannot change files or coordinate implementation.');
   }
   if (isCommand(tool) && !isReadOnlyCommand(commandText(event))) {
-    return deny('Reviewers use read-only file or Git inspection and implementation-state.js status, diff, or review-input; verification and state changes belong to implementers.');
+    return deny('Reviewers use read-only file or Git inspection; implementation and verification belong to implementers.');
   }
   return emit();
 }

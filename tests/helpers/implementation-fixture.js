@@ -5,7 +5,6 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnGit } = require('../../lib/git-policy.js');
-const implementation = require('../../skills/start-implementation/scripts/implementation-state.js');
 
 const MAIN_SETTINGS = Object.freeze({ model: 'gpt-6-astra', reasoning: 'low' });
 const SPEC = '.proofline/specs/SPEC-0001/SPEC.md';
@@ -46,34 +45,11 @@ function fixture(t, options = {}) {
   write('.gitignore', 'ignored/\n');
   git(cwd, 'add', '--all');
   git(cwd, 'commit', '-m', 'fixture base');
-  options.beforeCapture?.({ cwd, write });
-  const input = { sources: ['authority.txt'],
-    requirements: [{ id: 'behavior', text: 'The requested export equals 2.' }], settings: MAIN_SETTINGS,
-    ...options.input };
+  options.beforeLaunch?.({ cwd, write });
   const initialIndex = fs.readFileSync(path.join(cwd, '.git', 'index'));
   const initialHead = git(cwd, 'rev-parse', 'HEAD');
-  const captured = implementation.capture({ cwd, spec: SPEC }, input);
-  t.after(() => removeFixture(path.dirname(captured.state_path)));
-  return { cwd, write, statePath: captured.state_path, captured, input, spec: SPEC, initialIndex, initialHead,
-    read: name => fs.readFileSync(path.join(cwd, name), 'utf8'),
-    state: () => JSON.parse(fs.readFileSync(captured.state_path, 'utf8')) };
+  return { cwd, write, spec: SPEC, initialIndex, initialHead,
+    read: name => fs.readFileSync(path.join(cwd, name), 'utf8') };
 }
 
-function checkBehavior(f, overrides = {}) {
-  return implementation.check(f.statePath, { requirements: ['behavior'], dependencies: ['src/value.js'],
-    command: [process.execPath, '-e', 'if (require("./src/value.js") !== 2) process.exit(1);'], ...overrides });
-}
-
-function reviewPass(f, reviewerId = 'reviewer-1', overrides = {}) {
-  return implementation.review(f.statePath, { fingerprint: implementation.status(f.statePath).fingerprint,
-    reviewer_id: reviewerId, main_settings: MAIN_SETTINGS, reviewer_settings: MAIN_SETTINGS,
-    verdict: 'pass', findings: [], ...overrides });
-}
-
-function finding(overrides = {}) {
-  return { id: 'finding-1', category: 'regression', requirement: 'The other export remains unchanged.',
-    trigger: 'Import src/other.js.', evidence: 'src/other.js:1 exports an unexpected value.',
-    change_relation: 'The current change modifies that export.', ...overrides };
-}
-
-module.exports = { fixture, git, checkBehavior, reviewPass, finding, MAIN_SETTINGS, SPEC };
+module.exports = { fixture, git, MAIN_SETTINGS, SPEC };
