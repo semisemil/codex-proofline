@@ -13,3 +13,7 @@ CONTEXT.md
 
 # Local development plans and execution records
 /.local/development-docs/
+/apps/
+
+# Local benchmark runs, analysis and report archives
+/.local/

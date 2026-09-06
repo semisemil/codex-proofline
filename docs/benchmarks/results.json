@@ -1,0 +1,954 @@
+{
+  "date": "2026-09-06",
+  "task": "superjson-error-stack-serialization",
+  "cost_kind": "api_equivalent_estimate_usd",
+  "models": [
+    {
+      "name": "Astra",
+      "model": "gpt-6-astra",
+      "reasoning": "low",
+      "source_documents_sha256": {
+        "metrics": "87458134bee6c94f2a0cbf7c55cc4df50c2cd1e8aa1b450abcd60d4b227a8c1c",
+        "code": "c9fe5550867c8a8c9d510d42b9ae468a14670e61e891094c50dbb21c108a4ef1"
+      },
+      "runs": [
+        {
+          "condition": "none",
+          "response_mode": null,
+          "measurement_valid": true,
+          "task_success": true,
+          "tests": {
+            "reward": 1,
+            "f2p_total": 80,
+            "f2p_passed": 80,
+            "p2p_total": 116,
+            "p2p_passed": 116,
+            "f2p": 1,
+            "p2p": 1,
+            "partial": 1
+          },
+          "usage": {
+            "input_tokens": 240333,
+            "cached_input_tokens": 206976,
+            "cache_write_input_tokens": 0,
+            "uncached_input_tokens": 33357,
+            "output_tokens": 5795,
+            "reasoning_output_tokens": 401,
+            "total_tokens": 246128
+          },
+          "api_estimate_usd": 0.830296,
+          "elapsed_ms": 322064,
+          "artifact": {
+            "file": "superjson-none-r01.workspace.bundle",
+            "sha256": "4a474f5c331d66bdebf3670cb7997f8bd460d9b7b217290a32b9b6cead05d8e9",
+            "base_commit": "bb13cda9c1019480951e41362c0f84f0647301cc",
+            "snapshot_commit": "ac5eff7ffd977c1af98933a30b6be3bf80b58de4"
+          },
+          "code_checks_passed": 1,
+          "code_checks_total": 13
+        },
+        {
+          "condition": "core",
+          "response_mode": "normal",
+          "measurement_valid": true,
+          "task_success": true,
+          "tests": {
+            "reward": 1,
+            "f2p_total": 80,
+            "f2p_passed": 80,
+            "p2p_total": 116,
+            "p2p_passed": 116,
+            "f2p": 1,
+            "p2p": 1,
+            "partial": 1
+          },
+          "usage": {
+            "input_tokens": 250367,
+            "cached_input_tokens": 198528,
+            "cache_write_input_tokens": 0,
+            "uncached_input_tokens": 51839,
+            "output_tokens": 6126,
+            "reasoning_output_tokens": 136,
+            "total_tokens": 256493
+          },
+          "api_estimate_usd": 1.023218,
+          "elapsed_ms": 374091,
+          "artifact": {
+            "file": "superjson-core-r01.workspace.bundle",
+            "sha256": "d627e0fe9e393af2a0b6d918a832bf92992350fc3b8883a6038e324b857af4e0",
+            "base_commit": "bb13cda9c1019480951e41362c0f84f0647301cc",
+            "snapshot_commit": "0bae6c23b7dabfa5b2b3ed8f275d4248fd017148"
+          },
+          "code_checks_passed": 2,
+          "code_checks_total": 13
+        },
+        {
+          "condition": "workflow",
+          "response_mode": "normal",
+          "measurement_valid": true,
+          "task_success": true,
+          "tests": {
+            "reward": 1,
+            "f2p_total": 80,
+            "f2p_passed": 80,
+            "p2p_total": 116,
+            "p2p_passed": 116,
+            "f2p": 1,
+            "p2p": 1,
+            "partial": 1
+          },
+          "usage": {
+            "input_tokens": 2378105,
+            "cached_input_tokens": 2183552,
+            "cache_write_input_tokens": 0,
+            "uncached_input_tokens": 194553,
+            "output_tokens": 23369,
+            "reasoning_output_tokens": 3765,
+            "total_tokens": 2401474
+          },
+          "api_estimate_usd": 5.297532,
+          "elapsed_ms": 1028380,
+          "artifact": {
+            "file": "superjson-workflow-r01.workspace.bundle",
+            "sha256": "12b848aee82430908bc62450cbffeaba11a3acae0ea609cbc9ec62bc13bc3982",
+            "base_commit": "bb13cda9c1019480951e41362c0f84f0647301cc",
+            "snapshot_commit": "c62f9a0e976e876b28b6278c2226542c4c6ef110"
+          },
+          "code_checks_passed": 5,
+          "code_checks_total": 13
+        }
+      ],
+      "code_checks": [
+        {
+          "id": "basename-root",
+          "description": "basename keeps only the filename for a root-level absolute path",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /app.ts:1:2'\n- 'header\\nat app.ts:1:2'\n              ^\n",
+              "actual": "header\nat /app.ts:1:2",
+              "expected": "header\nat app.ts:1:2"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /app.ts:1:2'\n- 'header\\nat app.ts:1:2'\n              ^\n",
+              "actual": "header\nat /app.ts:1:2",
+              "expected": "header\nat app.ts:1:2"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /app.ts:1:2'\n- 'header\\nat app.ts:1:2'\n              ^\n",
+              "actual": "header\nat /app.ts:1:2",
+              "expected": "header\nat app.ts:1:2"
+            }
+          }
+        },
+        {
+          "id": "basename-relative",
+          "description": "basename keeps only the filename for a relative path",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (src/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (src/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (src/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (src/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (src/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (src/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            }
+          }
+        },
+        {
+          "id": "basename-spaces",
+          "description": "basename keeps only the filename when a directory contains spaces",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (Jane Doe/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (Jane Doe/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (Jane Doe/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (Jane Doe/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (Jane Doe/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (Jane Doe/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            }
+          }
+        },
+        {
+          "id": "cwd-prefix-boundary",
+          "description": "strip_cwd removes a path prefix, not a matching interior directory",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /otherapp.ts:1:2'\n- 'header\\nat /other/repo/app.ts:1:2'\n                    ^\n",
+              "actual": "header\nat /otherapp.ts:1:2",
+              "expected": "header\nat /other/repo/app.ts:1:2"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /otherapp.ts:1:2'\n- 'header\\nat /other/repo/app.ts:1:2'\n                    ^\n",
+              "actual": "header\nat /otherapp.ts:1:2",
+              "expected": "header\nat /other/repo/app.ts:1:2"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /otherapp.ts:1:2'\n- 'header\\nat /other/repo/app.ts:1:2'\n                    ^\n",
+              "actual": "header\nat /otherapp.ts:1:2",
+              "expected": "header\nat /other/repo/app.ts:1:2"
+            }
+          }
+        },
+        {
+          "id": "carriage-return-frames",
+          "description": "frames represent each line even without newline normalization",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n+     raw: 'header\\r  frame'\n-     raw: 'header'\n    },\n-   {\n-     raw: 'frame'\n-   }\n  ]\n",
+              "actual": [
+                {
+                  "raw": "header\r  frame"
+                }
+              ],
+              "expected": [
+                {
+                  "raw": "header"
+                },
+                {
+                  "raw": "frame"
+                }
+              ]
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    {\n+     raw: 'header\\r  frame'\n-     raw: 'header'\n    },\n-   {\n-     raw: 'frame'\n-   }\n  ]\n",
+              "actual": [
+                {
+                  "raw": "header\r  frame"
+                }
+              ],
+              "expected": [
+                {
+                  "raw": "header"
+                },
+                {
+                  "raw": "frame"
+                }
+              ]
+            },
+            "workflow": {
+              "passed": true,
+              "observed": [
+                {
+                  "raw": "header"
+                },
+                {
+                  "raw": "frame"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "legacy-receiver-allowances",
+          "description": "omitting errorStack preserves legacy receiver property allowances",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ [\n+   1\n+ ]\n- undefined\n",
+              "actual": [
+                1
+              ]
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ [\n+   1\n+ ]\n- undefined\n",
+              "actual": [
+                1
+              ]
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ [\n+   1\n+ ]\n- undefined\n",
+              "actual": [
+                1
+              ]
+            }
+          }
+        },
+        {
+          "id": "legacy-aggregate",
+          "description": "omitting errorStack preserves the original AggregateError serialized fields",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\ntrue !== false\n",
+              "actual": true,
+              "expected": false
+            },
+            "core": {
+              "passed": true,
+              "observed": [
+                "name",
+                "message"
+              ]
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\ntrue !== false\n",
+              "actual": true,
+              "expected": false
+            }
+          }
+        },
+        {
+          "id": "configured-allowed-errors",
+          "description": "new stack options preserve explicitly allowed ordinary Error properties",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ undefined\n- [\n-   1\n- ]\n",
+              "expected": [
+                1
+              ]
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ undefined\n- [\n-   1\n- ]\n",
+              "expected": [
+                1
+              ]
+            },
+            "workflow": {
+              "passed": true,
+              "observed": [
+                1
+              ]
+            }
+          }
+        },
+        {
+          "id": "registered-cause",
+          "description": "a retained registered Error subclass preserves its class and fields",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n",
+              "actual": false,
+              "expected": true
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n",
+              "actual": false,
+              "expected": true
+            },
+            "workflow": {
+              "passed": true,
+              "observed": {
+                "classPreserved": true,
+                "code": 42
+              }
+            }
+          }
+        },
+        {
+          "id": "shared-cause-identity",
+          "description": "the retained cause and standalone Error share identity when their views match",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "core": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "workflow": {
+              "passed": true,
+              "observed": true
+            }
+          }
+        },
+        {
+          "id": "hook-object-cross-call",
+          "description": "serializing an Error cause does not change subsequent plain-object serialization",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\ntrue !== false\n",
+              "actual": true,
+              "expected": false
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\ntrue !== false\n",
+              "actual": true,
+              "expected": false
+            },
+            "workflow": {
+              "passed": true,
+              "observed": {
+                "plainObject": true
+              }
+            }
+          }
+        },
+        {
+          "id": "box-shared-identity",
+          "description": "diagnostic: an Error referenced both directly and in a registered container",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "core": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            }
+          }
+        },
+        {
+          "id": "registered-primitive-policy",
+          "description": "sanitizeMessage applies to a retained custom Error serialization with string output",
+          "results": {
+            "none": {
+              "passed": true,
+              "observed": "[redacted]"
+            },
+            "core": {
+              "passed": true,
+              "observed": "[redacted]"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '[object Object]'\n- '[redacted]'\n",
+              "actual": "[object Object]",
+              "expected": "[redacted]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sol",
+      "model": "gpt-5.6-sol",
+      "reasoning": "medium",
+      "source_documents_sha256": {
+        "metrics": "c3d6d34d97c47b6ee0a89a7c67472a99d2308d83f12778a1f99ac801fc1755b8",
+        "code": "5bbaa7f07440725b38dc2efbc01dd43f4ea60679e4d8f986660e67b21c9d07f8"
+      },
+      "runs": [
+        {
+          "condition": "none",
+          "response_mode": null,
+          "measurement_valid": true,
+          "task_success": true,
+          "tests": {
+            "reward": 1,
+            "f2p_total": 80,
+            "f2p_passed": 80,
+            "p2p_total": 116,
+            "p2p_passed": 116,
+            "f2p": 1,
+            "p2p": 1,
+            "partial": 1
+          },
+          "usage": {
+            "input_tokens": 1500517,
+            "cached_input_tokens": 1415936,
+            "cache_write_input_tokens": 0,
+            "uncached_input_tokens": 84581,
+            "output_tokens": 23909,
+            "reasoning_output_tokens": 11469,
+            "total_tokens": 1524426
+          },
+          "api_estimate_usd": 1.3828784,
+          "elapsed_ms": 851565,
+          "artifact": {
+            "sha256": "de38798b819729f5e55c7e82daf0e1b71bfe442fe68034d4f8a8f01012cede27",
+            "commit": "e38f9a8baa35a94a88661ae2ff3bf75b7118d317",
+            "base_commit": "bb13cda9c1019480951e41362c0f84f0647301cc"
+          },
+          "code_checks_passed": 4,
+          "code_checks_total": 13
+        },
+        {
+          "condition": "core",
+          "response_mode": "normal",
+          "measurement_valid": true,
+          "task_success": true,
+          "tests": {
+            "reward": 1,
+            "f2p_total": 80,
+            "f2p_passed": 80,
+            "p2p_total": 116,
+            "p2p_passed": 116,
+            "f2p": 1,
+            "p2p": 1,
+            "partial": 1
+          },
+          "usage": {
+            "input_tokens": 1139134,
+            "cached_input_tokens": 1078400,
+            "cache_write_input_tokens": 0,
+            "uncached_input_tokens": 60734,
+            "output_tokens": 19695,
+            "reasoning_output_tokens": 6706,
+            "total_tokens": 1158829
+          },
+          "api_estimate_usd": 1.068196,
+          "elapsed_ms": 628855,
+          "artifact": {
+            "sha256": "ac555780ad371b264cd70c9c30b192ace95ffe4f0c6db38f5df459ce5b204353",
+            "commit": "82384cbe949abc496a2439523a7b251eca0baedf",
+            "base_commit": "bb13cda9c1019480951e41362c0f84f0647301cc"
+          },
+          "code_checks_passed": 4,
+          "code_checks_total": 13
+        },
+        {
+          "condition": "workflow",
+          "response_mode": "normal",
+          "measurement_valid": true,
+          "task_success": false,
+          "tests": {
+            "reward": 0,
+            "f2p_total": 80,
+            "f2p_passed": 79,
+            "p2p_total": 116,
+            "p2p_passed": 116,
+            "f2p": 0.9875,
+            "p2p": 1,
+            "partial": 0.9948979591836735
+          },
+          "usage": {
+            "input_tokens": 5494886,
+            "cached_input_tokens": 5232384,
+            "cache_write_input_tokens": 0,
+            "uncached_input_tokens": 262502,
+            "output_tokens": 53024,
+            "reasoning_output_tokens": 20065,
+            "total_tokens": 5547910
+          },
+          "api_estimate_usd": 4.2034416,
+          "elapsed_ms": 1559796,
+          "artifact": {
+            "sha256": "9bf56c829cfdb22d01056cf59b202cf5007dcf2e148fad808066d6e811c1d1b5",
+            "commit": "8ca38a2ba33f00e611d8514aacf240154b8647d9",
+            "base_commit": "bb13cda9c1019480951e41362c0f84f0647301cc"
+          },
+          "code_checks_passed": 7,
+          "code_checks_total": 13
+        }
+      ],
+      "code_checks": [
+        {
+          "id": "basename-root",
+          "description": "basename keeps only the filename for a root-level absolute path",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /app.ts:1:2'\n- 'header\\nat app.ts:1:2'\n              ^\n",
+              "actual": "header\nat /app.ts:1:2",
+              "expected": "header\nat app.ts:1:2"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /app.ts:1:2'\n- 'header\\nat app.ts:1:2'\n              ^\n",
+              "actual": "header\nat /app.ts:1:2",
+              "expected": "header\nat app.ts:1:2"
+            },
+            "workflow": {
+              "passed": true,
+              "observed": "header\nat app.ts:1:2"
+            }
+          }
+        },
+        {
+          "id": "basename-relative",
+          "description": "basename keeps only the filename for a relative path",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (src/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (src/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (src/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (src/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "workflow": {
+              "passed": true,
+              "observed": "header\nat fn (app.ts:1:2)"
+            }
+          }
+        },
+        {
+          "id": "basename-spaces",
+          "description": "basename keeps only the filename when a directory contains spaces",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (Jane Doe/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (Jane Doe/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (/Users/Jane Doe/app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (/Users/Jane Doe/app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat fn (Jane app.ts:1:2)'\n- 'header\\nat fn (app.ts:1:2)'\n                  ^\n",
+              "actual": "header\nat fn (Jane app.ts:1:2)",
+              "expected": "header\nat fn (app.ts:1:2)"
+            }
+          }
+        },
+        {
+          "id": "cwd-prefix-boundary",
+          "description": "strip_cwd removes a path prefix, not a matching interior directory",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /otherapp.ts:1:2'\n- 'header\\nat /other/repo/app.ts:1:2'\n                    ^\n",
+              "actual": "header\nat /otherapp.ts:1:2",
+              "expected": "header\nat /other/repo/app.ts:1:2"
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'header\\nat /otherapp.ts:1:2'\n- 'header\\nat /other/repo/app.ts:1:2'\n                    ^\n",
+              "actual": "header\nat /otherapp.ts:1:2",
+              "expected": "header\nat /other/repo/app.ts:1:2"
+            },
+            "workflow": {
+              "passed": true,
+              "observed": "header\nat /other/repo/app.ts:1:2"
+            }
+          }
+        },
+        {
+          "id": "carriage-return-frames",
+          "description": "frames represent each line even without newline normalization",
+          "results": {
+            "none": {
+              "passed": true,
+              "observed": [
+                {
+                  "raw": "header"
+                },
+                {
+                  "raw": "frame"
+                }
+              ]
+            },
+            "core": {
+              "passed": true,
+              "observed": [
+                {
+                  "raw": "header"
+                },
+                {
+                  "raw": "frame"
+                }
+              ]
+            },
+            "workflow": {
+              "passed": true,
+              "observed": [
+                {
+                  "raw": "header"
+                },
+                {
+                  "raw": "frame"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "legacy-receiver-allowances",
+          "description": "omitting errorStack preserves legacy receiver property allowances",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ [\n+   1\n+ ]\n- undefined\n",
+              "actual": [
+                1
+              ]
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ [\n+   1\n+ ]\n- undefined\n",
+              "actual": [
+                1
+              ]
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ [\n+   1\n+ ]\n- undefined\n",
+              "actual": [
+                1
+              ]
+            }
+          }
+        },
+        {
+          "id": "legacy-aggregate",
+          "description": "omitting errorStack preserves the original AggregateError serialized fields",
+          "results": {
+            "none": {
+              "passed": true,
+              "observed": [
+                "name",
+                "message"
+              ]
+            },
+            "core": {
+              "passed": true,
+              "observed": [
+                "name",
+                "message"
+              ]
+            },
+            "workflow": {
+              "passed": true,
+              "observed": [
+                "name",
+                "message"
+              ]
+            }
+          }
+        },
+        {
+          "id": "configured-allowed-errors",
+          "description": "new stack options preserve explicitly allowed ordinary Error properties",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ undefined\n- [\n-   1\n- ]\n",
+              "expected": [
+                1
+              ]
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ undefined\n- [\n-   1\n- ]\n",
+              "expected": [
+                1
+              ]
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ undefined\n- [\n-   1\n- ]\n",
+              "expected": [
+                1
+              ]
+            }
+          }
+        },
+        {
+          "id": "registered-cause",
+          "description": "a retained registered Error subclass preserves its class and fields",
+          "results": {
+            "none": {
+              "passed": true,
+              "observed": {
+                "classPreserved": true,
+                "code": 42
+              }
+            },
+            "core": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n\nfalse !== true\n",
+              "actual": false,
+              "expected": true
+            },
+            "workflow": {
+              "passed": true,
+              "observed": {
+                "classPreserved": true,
+                "code": 42
+              }
+            }
+          }
+        },
+        {
+          "id": "shared-cause-identity",
+          "description": "the retained cause and standalone Error share identity when their views match",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "core": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            }
+          }
+        },
+        {
+          "id": "hook-object-cross-call",
+          "description": "serializing an Error cause does not change subsequent plain-object serialization",
+          "results": {
+            "none": {
+              "passed": true,
+              "observed": {
+                "plainObject": true
+              }
+            },
+            "core": {
+              "passed": true,
+              "observed": {
+                "plainObject": true
+              }
+            },
+            "workflow": {
+              "passed": true,
+              "observed": {
+                "plainObject": true
+              }
+            }
+          }
+        },
+        {
+          "id": "box-shared-identity",
+          "description": "diagnostic: an Error referenced both directly and in a registered container",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "core": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Values have same structure but are not reference-equal:\n\n[Error: child] {\n  [cause]: undefined\n}\n",
+              "actual": {
+                "name": "Error"
+              },
+              "expected": {
+                "name": "Error"
+              }
+            }
+          }
+        },
+        {
+          "id": "registered-primitive-policy",
+          "description": "sanitizeMessage applies to a retained custom Error serialization with string output",
+          "results": {
+            "none": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '[object Object]'\n- '[redacted]'\n",
+              "actual": "[object Object]",
+              "expected": "[redacted]"
+            },
+            "core": {
+              "passed": true,
+              "observed": "[redacted]"
+            },
+            "workflow": {
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ '[object Object]'\n- '[redacted]'\n",
+              "actual": "[object Object]",
+              "expected": "[redacted]"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
