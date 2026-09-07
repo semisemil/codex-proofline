@@ -53,10 +53,8 @@ Consistency: align meaning across visible labels, accessible names, icons, layou
 
 ## Code
 
-Design: use the simplest design preserving all information required for correct observable behavior; preserve result-affecting ordering, source position, and scope; introduce helpers or abstractions when they clarify current code or remove actual duplication
-
-Contracts: at protocol, untrusted-input, and lifecycle boundaries affected by the change, implement valid-input, malformed-input, and invalid-state behavior required by existing owner-component contracts or the request; preserve state integrity and intended termination behavior. Limit additional validation, recovery, retries, and fallbacks to observed or documented reachable states
+Contracts: preserve existing required behavior on the changed path, including behavior that depends on processing order, source location information, or scope. Honor existing rules for malformed input, invalid states, partial failure, and termination. Reuse available context; seek additional information only when missing information affects required behavior.
 
 Tests: verify changed required observable behavior and relevant failure cases in each independent implementation; reuse existing tests covering these requirements; use representative coverage for callers sharing an enforcement path
 
-Once required checks pass, broaden or repeat verification only for new changes, failures, or unresolved concerns.
+Reuse passed check results while the code and conditions relevant to those checks remain unchanged.
