@@ -5,7 +5,7 @@ description: "Create, revise, complete, cancel, or supersede an implementation S
 
 # Implementation Spec
 
-Produce a standalone implementation contract. Modify only `.proofline/specs/**`, except domain documentation through available `domain-modeling` and named `PL-*` links through `../issue-ledger/references/work-link.md`. Legacy `.proofline/prds/**` is excluded.
+Produce a standalone, human-reviewable implementation contract. Modify only `.proofline/specs/**`, except domain documentation through available `domain-modeling` and named `PL-*` links through `../issue-ledger/references/work-link.md`. Legacy `.proofline/prds/**` is excluded.
 
 ## Resolve
 
@@ -13,26 +13,34 @@ Identify creation, revision, or lifecycle work. Resolve an explicit path or ID d
 
 Use the request and confirmed decisions, a supplied or linked ready Plan as the primary planning source, and relevant project/domain evidence; apply later confirmed user corrections. Read `CONTEXT.md` and relevant ADRs. Use available `domain-modeling` for ambiguous or conflicting terms, canonical definitions, or settled important design decisions.
 
-## Establish the contract
+## Establish the sources
 
-Inspect facts affecting the outcome, scope, compatibility, or completion judgment. Batch independent reads and reuse unchanged evidence; reread targeted portions when output is truncated or a concrete fact remains unresolved, including in an already-read source. Prefer focused searches and excerpts over full implementation files.
+Inspect facts needed for the requested behavior, affected existing guarantees, or completion evidence. Batch independent reads and reuse unchanged evidence; use focused excerpts when a fact is unresolved or output was truncated.
 
-Ask only for unresolved material user decisions: choices affecting capability, compatibility, safety, privacy, retention, or meaningful scope/cost. Names of algorithms, policies, standards or formats, examples, current code, and model familiarity do not settle omitted result-changing semantics. Leave ordinary implementation choices to the implementer using narrow repository-consistent defaults, without promoting them into requirements.
+The requested outcome and boundaries cap supporting work. At changed protocol and lifecycle boundaries, establish successful, malformed-input, and invalid-state outcomes required by the request or affected owner contracts. Resolve meanings from the full request, confirmed decisions, and relevant existing contracts. Leave result-preserving implementation choices to narrow repository-consistent defaults. Ask only when an unresolved choice prevents establishing required behavior and materially changes capability, compatibility, safety, privacy, retention, or scope/cost; identify the differing observable outcomes.
 
-Write the current contract so implementation and review need neither the conversation nor a Plan or issue. Preserve explicit identifiers, fields, paths, commands, quantities, examples, and conditions. The requested outcome and boundaries cap scope; include supporting work only when necessary to deliver that outcome or preserve an existing contract on the changed path.
+## Write the contract
 
-Make the change, boundaries, fixed decisions, material prerequisites/order, state/data semantics, compatibility obligations, and observable completion conditions clear where relevant. Choose structure to fit the content; no required headings, repeated outcome sections, or diagrams. Keep existing reference targets identifiable. Leave execution decomposition and repository-discoverable build mechanics to execution.
+Build a standalone body that implementation and review can use without the conversation, Plan, or issue. Group it by behavior or affected surface. Give each requirement one authoritative condition-to-result statement, with its defaults, exceptions, and API constraints together. Preserve each condition at its original source scope; state independently conditioned results separately. For optional behavior, state normalization, active and inactive outcomes, including retained and omitted data. Every written type, signature, table, and example must agree with that statement. Retain explicit identifiers, fields, paths, commands, quantities, examples, and source references needed for verification.
 
-Use concise, target-language telegraphic phrasing: key facts rather than extended sentences. Use sentences when needed to preserve conditions, exceptions, or causality. Prefer tables when equally suitable; omit terminal periods. Bullets are optional.
+For each result-changing dependency on the affected path, write a worked example beside its governing rules: concrete input and state, applicable conditions, and evaluated final values and relationships. Trace through the final consumer, including metadata, cached results, and reused state. Cases in the body must cover the identified interactions:
 
-Plan minimum-sufficient evidence capable of deciding every required result on the real production path. Reuse existing checks; one may cover multiple conditions. Add checks only for otherwise undecidable required results or reproduced regressions. Use review evidence when automation would be indirect or unrealistic. Preserve explicit artifact/test obligations separately from commands to run. Candidate-derived expectations cannot establish correctness independently. Leave execution-time commands, reruns, and review/fix procedures to `implement`.
+- Context-dependent behavior: the same source value used in different contexts during one operation or shared-state lifetime; calculate each position, including nesting where the rule recurs.
+- An earlier step changes information consumed later: combine those steps in one case with the relevant rules active, including nested state at observable handoffs and subsequent processing.
+- Affected compatibility: representative existing input and observed final values and relationships, preserved where the request leaves behavior unchanged.
 
-## Check readiness
+Finish each example through the full operation or requested round trip before moving on. Account for every changed value by its governing rule and retain unaffected data. One example may cover several dependencies when its final observations distinguish each; ordinary defaults need no extra examples. Keep internal representations and algorithms open where they preserve the contract.
 
-Compare with the sources for omissions, altered intent, or added obligations. Confirm the implementer can proceed without inventing a material product decision and each completion condition has sufficient planned evidence.
+Use concise target-language telegraphic phrasing: noun phrases and short clauses, with sentences for conditions, exceptions, and causality. Use tables for comparable facts when equally suitable; keep cells concise. Preserve existing reference targets.
 
-- `ready`: these checks pass; ordinary implementation choices may remain
-- `draft`: expose a material decision or unverified fact that could change the contract
+Use the authoritative rules and worked examples as the acceptance reference. A completion section links to them and records only distinct source-mandated completion actions, with the source and due stage. Required tests, commands, or artifacts need an explicit source instruction. Leave other verification methods, repository-discoverable commands, execution decomposition, reruns, and review/fix work to `implement`. If a proposed method helps, label it optional and give source-derived inputs and expected observations. Conclusive existing checks, code inspection, and targeted execution may establish the required results; derive expectations independently of the candidate.
+
+## Check the body against the sources
+
+Read the complete body, including examples and completion conditions. Check every source-required result is retained and every written obligation has source support, with unchanged conditions and scope. Locate the worked final observations for the identified interactions and affected compatibility guarantees; complete any missing case. Recalculate their results from the sources and existing final-consumer behavior. Check that the observations distinguish required behavior from a plausible violation, and that prose, tables, types, and examples agree. Resolve source-answerable gaps before readiness.
+
+- `ready`: the body passes these checks; ordinary implementation choices may remain
+- `draft`: a material decision or missing fact prevents establishing required behavior
 - `blocked`: an actual external prerequisite prevents progress; transient tool/runtime/reviewer failures do not change status
 
 ## Save and report

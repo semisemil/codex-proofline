@@ -24,6 +24,6 @@ For typo/formatting, relation links, or lifecycle-only changes select `operation
 
 ## Lifecycle
 
-Preserve body, identity, location, and revision. Complete only with current same-revision verification and independent review of the final changes, with no valid unresolved finding. Check the supplied evidence; missing evidence leaves completion pending. An implementer's exclusion of an out-of-scope-only failure needs reasons tied to the contract and change evidence. `implement` owns verification and review/fix execution; a status request does not initiate them.
+Preserve body, identity, location, and revision. Complete only with current same-revision verification of the final changes and all Spec conditions met. Check the supplied evidence; missing evidence leaves completion pending. An implementer's exclusion of an out-of-scope-only failure needs reasons tied to the contract and change evidence. `implement` owns verification; a status request does not initiate it.
 
 Cancel only at the user's request. Supersede by linking both Specs through `supersedes` and `superseded_by`, marking the replaced Spec `superseded`. Report any incomplete link update.
