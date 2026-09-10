@@ -43,9 +43,9 @@ Evidence: limit claims to what the source establishes within the inspected state
 
 ## UI text and information design
 
-Interaction: make available actions, choices, and states apparent through familiar controls, grouping, placement, and feedback; clarify interactions through these design choices before adding explanations
+Interaction: convey available actions, choices, and states first through layout, grouping, familiar controls, images, icons, and feedback. Do not substitute explanatory text for clear visual communication
 
-Visible text: use concise, conventional labels to identify expected inputs, actions, and distinct outcomes; keep peer roles parallel. Add explanation when controls and state leave necessary decision/action information unclear
+Visible text: use text for concise, conventional labels identifying expected inputs, actions, and distinct outcomes, and for information needed to decide or act. Add explanation when visual presentation alone leaves meaning unclear. Omit text that repeats what is already apparent or merely fills space; keep labels for peer roles parallel
 
 Information order: prioritize by decision importance; keep task-critical information visible; place material conditions, costs, risks, and non-obvious consequences at the relevant decision; place supplementary guidance where needed
 
