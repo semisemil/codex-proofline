@@ -33,7 +33,7 @@ Finish each example through the full operation or requested round trip before mo
 
 Use concise target-language telegraphic phrasing: noun phrases and short clauses, with sentences for conditions, exceptions, and causality. Use tables for comparable facts when equally suitable; keep cells concise. Preserve existing reference targets.
 
-Use the authoritative rules and worked examples as the acceptance reference. A completion section links to them and records only distinct source-mandated completion actions, with the source and due stage. Required tests, commands, or artifacts need an explicit source instruction. Leave other verification methods, repository-discoverable commands, execution decomposition, reruns, and review/fix work to `implement`. If a proposed method helps, label it optional and give source-derived inputs and expected observations. Conclusive existing checks, code inspection, and targeted execution may establish the required results; derive expectations independently of the candidate.
+Use required behavior and expected results as the acceptance reference. Do not add instructions to write or run tests, build commands, or verification procedures. Preserve such obligations only when the user or project explicitly requires them, with their source; otherwise leave verification methods and execution procedures to `implement`.
 
 ## Check the body against the sources
 

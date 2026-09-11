@@ -15,4 +15,4 @@ Build the creation arguments with:
 
 Pass the returned JSON unchanged to `create_thread` once. It uses the matching project with an explicit `local` environment, including for Git repositories. The new prompt is exactly `$proofline:implement <SPEC-ID>` on one line; settings and location are separate arguments. Add no conversation history or handoff summary.
 
-Report the returned task link and end. Do not wait for implementation results, send follow-up work or monitor completion. If the runtime requires an initial status confirmation, take one nonblocking snapshot only when a real task ID is available. Report creation failures; an uncertain result is not a reason to create a duplicate task. The new session owns implementation, parallel work and verification.
+Report the returned task link and end. Do not wait for implementation results, send follow-up work or monitor completion. If the runtime requires an initial status confirmation, take one nonblocking snapshot only when a real task ID is available. Report creation failures; an uncertain result is not a reason to create a duplicate task. The new session owns implementation and verification.

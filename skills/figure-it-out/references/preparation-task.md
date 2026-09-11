@@ -8,6 +8,6 @@ The user's request caps product scope. Carry every explicit output, identifier, 
 
 1. Load `<skill-root>/development-plan/SKILL.md` only if the Spec would otherwise invent outcome, scope, direction, or a material tradeoff. Review the Plan through `tenet-me/SKILL.md` as its stage contract requires.
 2. Produce one authoritative Spec through its documented writer.
-3. Load `tenet-me/SKILL.md` to resolve material gaps and ready the Spec with sufficient evidence for its completion conditions. Preserve user-required verification without fixing every implementation-time command.
+3. Load `tenet-me/SKILL.md` to resolve material user decisions and confirm that the Spec's behavior and expected results follow the sources.
 
 Preparation is complete when the Spec is ready and its scope is verified against the original request. Retain its path and revision for the implementation handoff. No implementation, parallel assignments, or execution artifact generation during preparation.

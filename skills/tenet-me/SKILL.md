@@ -12,7 +12,7 @@ Review the target as a conversation. Read `CONTEXT.md` and the reviewed area's A
 Build one internal directed graph containing every current intended result at its original strength, its decisions, constraints, prerequisites, transitions, verification paths, and evidence boundaries.
 
 - For a Plan, trace each intended result through the selected direction and the material decisions and constraints that shape it
-- For an implementation Spec, trace source intent to each acceptance condition and planned verification, then trace every acceptance condition back to its source intent and forward to verification capable of deciding it
+- For an implementation Spec, trace source intent to each required behavior and expected result, then trace each result back to its source and through the affected path; judge whether it distinguishes correct behavior without requiring a test plan or test commands in the Spec
 - Treat model familiarity, examples, current implementation, and an unversioned algorithm or policy name as non-authoritative for omitted result-changing semantics
 - Treat an oracle or expected result derived from the candidate implementation as circular rather than a verification path
 - Treat the requested outcome and explicit boundaries as the scope ceiling; repository facts may constrain delivery but cannot create another intended result
@@ -20,7 +20,7 @@ Build one internal directed graph containing every current intended result at it
 
 For every required result, backtrace to an initial or current state or evidence boundary, then verify forward over the same edges. Leave unsupported edges unresolved.
 
-For a pre-implementation Spec, judge whether its acceptance conditions are implementable, its planned verification can decide them, and its paths conflict with the existing system; future code and results are not missing evidence. For an existing implementation or completed result, require current evidence and treat missing required implementation or verification as a possible gap.
+For a pre-implementation Spec, judge whether its behavior is implementable, its expected results are decisive, and its paths conflict with the existing system; future code, test cases, and test results are not missing evidence. For an existing implementation or completed result, require current evidence and treat missing required implementation or verification as a possible gap.
 
 Classify paths internally:
 

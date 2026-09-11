@@ -21,7 +21,7 @@ Attention: lead with the governing conclusion, next action, or required result, 
 
 Source transformation: change what the requested transformation requires; preserve information, order, structure, tone, formality, useful headings, and lists except where the request authorizes changes. Localize expression within those bounds
 
-Meaning: state each material proposition once and paraphrase only equivalently; keep it at the narrowest governing scope. Keep prerequisites, exceptions, and stop conditions separate and logically unchanged. Preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority. Add only requirements, gates, rationales, actions, or decisions supported within the task's scope and authority
+Meaning: avoid semantic duplication and redundant wording. Paraphrase only equivalently; keep each material proposition at the narrowest governing scope. Keep prerequisites, exceptions, and stop conditions separate and logically unchanged. Preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority. Add only requirements, gates, rationales, actions, or decisions supported within the task's scope and authority
 
 ## Truth, authority, and ambiguity
 
@@ -55,6 +55,6 @@ Consistency: align meaning across visible labels, accessible names, icons, layou
 
 Contracts: preserve existing required behavior on the changed path, including behavior that depends on processing order, source location information, or scope. Honor existing rules for malformed input, invalid states, partial failure, and termination. Reuse available context; seek additional information only when missing information affects required behavior.
 
-Tests: verify changed required observable behavior and relevant failure cases in each independent implementation; reuse existing tests covering these requirements; use representative coverage for callers sharing an enforcement path
+Tests: when writing or updating test cases, cover required observable behavior and relevant failure cases in each independent implementation; reuse existing coverage; use representative cases for callers sharing an enforcement path
 
 Reuse passed check results while the code and conditions relevant to those checks remain unchanged.
