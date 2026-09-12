@@ -7,15 +7,15 @@ description: "Use when designing, implementing, or reviewing UI. Covers informat
 
 ## Screen purpose and space
 
-Decide whether to include each element and how much space to give it based on how it helps the screen serve the user's purpose.
+Prioritize information and controls needed to understand and perform the current task. Do not expose information merely because it is related; place supplementary information where and when it is needed. Allocate space according to importance to the current task.
 
-Arrange information and controls so users can find and use them when needed. Keep task-critical information visible, and place material conditions, costs, risks, and non-obvious consequences at the relevant decision point. Provide supplementary guidance where and when it is needed.
+Arrange information and controls so users can find and use them when needed. Keep task-critical information visible, and place material conditions, costs, risks, and non-obvious consequences at the relevant decision point.
 
 ## Whitespace and information density
 
-Treat leaving space empty as a complete design choice. Do not judge completeness by whether all available space is filled or information density is uniform across areas.
+Leave unused space empty. Do not add headings, subtitles, slogans, greetings, mood-setting copy, cards, or explanations to fill space or create atmosphere.
 
-Adapt whitespace and the amount of information to the screen and its context of use. Reduce redundant explanations and filler copy while preserving necessary guidance and accessibility information.
+Use explanations only for information that is not apparent from the name or screen and is needed for a decision or action. Omit self-evident explanations and empty embellishment; preserve necessary accessibility information.
 
 ## Structure and UI copy
 
@@ -23,7 +23,9 @@ Make available actions, choices, and states apparent through structure and visua
 
 Use concise, conventional labels for inputs, actions, and distinct outcomes, with consistent wording for equivalent roles. Expose terminology from the development and review process only when it describes an actual product state users need to know.
 
-Choose separators to reflect semantic relationships and the conventions of the target language. Do not use the middle dot as a universal separator for different relationships.
+Use one heading or label when one is sufficient. Do not add decorative English headings or subtitles.
+
+Do not use middle dots.
 
 ## Format suited to the information type
 
