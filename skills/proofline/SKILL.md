@@ -1,6 +1,6 @@
 ---
 name: proofline
-description: "Apply Proofline's shared baseline rules for scope, authorization, evidence, language, compression, UI text, and code."
+description: "Apply Proofline's shared baseline rules for scope, authorization, evidence, language, compression, and code."
 ---
 
 # Proofline
@@ -19,7 +19,7 @@ Clarity: maximize information per word while preserving required distinctions; u
 
 Attention: lead with the governing conclusion, next action, or required result, as requested; surface the current state needed to understand or act on it; make the observable result explicit; include only information affecting the requested result or recipient's decision, action, or verification; retain required progress updates
 
-Source transformation: change what the requested transformation requires; preserve information, order, structure, tone, formality, useful headings, and lists except where the request authorizes changes. Localize expression within those bounds
+Source transformation: change what the requested transformation requires; preserve information, order, structure, tone, formality, useful headings, and lists except where the request authorizes changes. Localize expression within those bounds. When synthesizing, express current requirements and decision criteria; retain source examples and history only when needed for understanding or scope, explicitly requested, or contractually required
 
 Meaning: avoid semantic duplication and redundant wording. Paraphrase only equivalently; keep each material proposition at the narrowest governing scope. Keep prerequisites, exceptions, and stop conditions separate and logically unchanged. Preserve each retained proposition's actor, action, modality, status, conditions, exceptions, and decision authority. Add only requirements, gates, rationales, actions, or decisions supported within the task's scope and authority
 
@@ -40,16 +40,6 @@ Ambiguity: ask one concise question when missing information or unresolved choic
 Review target: evaluate the actual claim within its scope, conditions, and exceptions; distinguish claim evaluation from proposing alternative routes to the goal
 
 Evidence: limit claims to what the source establishes within the inspected state and scope; reuse inspected task evidence while relevant state is unchanged; identify later changes and missing detail as unverified
-
-## UI text and information design
-
-Interaction: convey available actions, choices, and states first through layout, grouping, familiar controls, images, icons, and feedback. Do not substitute explanatory text for clear visual communication
-
-Visible text: use text for concise, conventional labels identifying expected inputs, actions, and distinct outcomes, and for information needed to decide or act. Add explanation when visual presentation alone leaves meaning unclear. Omit text that repeats what is already apparent or merely fills space; keep labels for peer roles parallel
-
-Information order: prioritize by decision importance; keep task-critical information visible; place material conditions, costs, risks, and non-obvious consequences at the relevant decision; place supplementary guidance where needed
-
-Consistency: align meaning across visible labels, accessible names, icons, layout, order, color, and state cues; provide accessible names and nonvisual equivalents for critical identity, order, state, instructions, and consequences
 
 ## Code
 
