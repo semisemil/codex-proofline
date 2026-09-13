@@ -5,11 +5,11 @@ description: Select model and reasoning and launch a local implementation sessio
 
 # Start Implementation
 
-Resolve the requested ready Design through [the contract resolver](../../dashboard/records/development-contracts.js), then use [model routing](assets/model-routing.md) to select model and reasoning. An unsuperseded ready legacy Spec is a compatible input. Respect user settings and limits; resolve material ambiguity instead of substituting another contract.
+Use [model routing](assets/model-routing.md) to select model and reasoning for the requested Design or unsuperseded ready legacy Spec. Respect user settings and limits; resolve material ambiguity instead of substituting another contract.
 
 Resolve the saved project matching the current folder. Check runtime support and authorization for the selected settings. When the creation tool requires an explicit user model choice, obtain it before dispatch. Explain the settings and task-based reason in one sentence.
 
-Build the creation arguments with:
+Resolve the contract, validate readiness and the matching project, and build the creation arguments in one call:
 
 ```text
 node <plugin-root>/skills/start-implementation/scripts/prepare-launch.js --cwd <current-folder> --design <DESIGN-ID> --project-root <matching-project-folder> --project-id <project-id> --model <model> --reasoning <effort>

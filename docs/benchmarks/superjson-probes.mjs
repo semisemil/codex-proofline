@@ -1,10 +1,12 @@
+// README의 추가 코드 검사 14항목. 모델별 None/Core/Workflow 제출물에 적용한다.
+// SEED는 변경 전 소스와 esbuild 의존성을 갖춘 경로이며, OUTPUT에 검사 결과를 저장한다.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
 const [seedArg,noneArg,coreArg,workflowArg,outputArg] = process.argv.slice(2);
-if (!outputArg) throw new Error('Usage: node probes.mjs SEED NONE CORE WORKFLOW OUTPUT');
+if (!outputArg) throw new Error('Usage: node docs/benchmarks/superjson-probes.mjs SEED NONE CORE WORKFLOW OUTPUT');
 const seed=path.resolve(seedArg);
 const root=path.resolve(outputArg);
 const sourceRoots={none:path.resolve(noneArg),'core':path.resolve(coreArg),workflow:path.resolve(workflowArg)};
@@ -107,6 +109,25 @@ probe('registered-primitive-policy', 'sanitizeMessage applies to a retained cust
   const out=round(sj,new Error('root',{cause:new CodedError('person@example.com')}));
   assert.equal(out.cause.message,'[redacted]');return out.cause.message;
 });
+// The task's "plain object" describes the serialization hook input, not the
+// deserialized cause. Original and reference implementations preserve Error
+// metadata across instances; no matching receiver configuration is required.
+probe('cross-instance-cause-type', 'retained Error causes preserve their type through JSON transport to an unconfigured receiver', ({SuperJSON:S}) => {
+  const observed={};
+  for(const mode of ['off','string','frames']){
+    const sender=new S({errorStack:{mode,includeCauses:'deep'}});
+    const payload=JSON.parse(JSON.stringify(sender.serialize(new Error('root',{
+      cause:new Error('child',{cause:new Error('grandchild')})
+    }))));
+    const restored=new S().deserialize(payload);
+    observed[mode]={child:restored.cause instanceof Error,grandchild:restored.cause?.cause instanceof Error};
+    assert.equal(observed[mode].child,true,`${mode}: immediate cause must restore as Error`);
+    assert.equal(observed[mode].grandchild,true,`${mode}: nested cause must restore as Error`);
+    assert.equal(restored.cause.message,'child');
+    assert.equal(restored.cause.cause.message,'grandchild');
+  }
+  return observed;
+},true);
 const results=[];
 for(const entry of cases){
   const row={id:entry.id,contract:entry.contract,variants:{}};

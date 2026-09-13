@@ -18,7 +18,7 @@ Use `.proofline/designs/DESIGN-0001-<slug>/DESIGN.md`. Preserve identity and loc
 
 Kinds: `feature | bug | refactor | exact_port | maintenance`. Status: `draft | ready | blocked | completed | cancelled | superseded`. `related_issues` contains explicit `PL-*` targets only; apply [work links](../../issue-ledger/references/work-link.md) for those targets.
 
-Write complete UTF-8 Markdown on stdin to:
+For creation or body/link edits, write complete UTF-8 Markdown on stdin to:
 
 ```text
 node <plugin-root>/writers/document-writer.js write --kind design --project-root <absolute-project-root> --relative-path <project-relative-design-path> --language <document-language>
@@ -30,11 +30,19 @@ Add `--memory off` when recording is prohibited for this request. Existing disab
 
 For an existing body/contract change add `--change-kind major`, increment revision once, and reassess readiness. The writer snapshots the old document in `revisions/REV-<revision>.md`. Preserve existing `supersedes` links. Use `operational` for status/link changes, preserving the body and revision. Identical content is a no-op.
 
+For status changes, pass the document ID and target state directly:
+
+```text
+node <plugin-root>/writers/document-writer.js status --project-root <absolute-project-root> --id <DESIGN-ID-or-legacy-SPEC-ID> --status completed
+```
+
+The command reads the existing metadata, preserves the body and revision, and returns the write, registration, Memory, and resulting document status. It takes no document stdin; the same `--memory off` and `--language` options apply.
+
 Complete only when current verification establishes every required condition for the final revision. Previous checks may be reused for unchanged code and requirements after confirming their applicability; the old revision's completion label alone is insufficient. A status request does not start verification. Cancel only when requested. A replacing Design declares the previous ID in `supersedes`; the shared resolver derives the previous document's effective superseded state without rewriting legacy files.
 
 ## Legacy succession
 
-Existing Plans and Specs remain readable. An unsuperseded ready Spec may still be implemented directly; complete it through `--kind spec` with its original path/body/revision and `--change-kind operational`.
+Existing Plans and Specs remain readable. An unsuperseded ready Spec may still be implemented directly; complete it with the status command using its original Spec ID.
 
 For requested new design work on a legacy Plan/Spec, resolve its latest active successor before editing. Create or revise one Design containing the current applicable contract and consequential decisions; put each document it replaces in `supersedes` and link the original for provenance. Replacing a legacy contract changes the active source immediately, even while the new Design is draft. Do not batch-convert or delete unrelated documents, or copy old readiness without evaluating the current requirements.
 

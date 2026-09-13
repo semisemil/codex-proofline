@@ -15,7 +15,7 @@ const {
   parseSpecMetadata,
   parseDesignMetadata,
 } = require('../dashboard/records/record-parser.js');
-const { assertDesignWrite } = require('../dashboard/records/development-contracts.js');
+const { assertDesignWrite, readDevelopmentRecord } = require('../dashboard/records/development-contracts.js');
 const { registerProject, rootKey } = require('../dashboard/registry.js');
 
 const PLAN_PATH = /^\.proofline\/plan\/(PLAN-\d{4,})-([^/\\]+)\/PLAN\.md$/;
@@ -37,15 +37,17 @@ function writerError(code, message, cause) {
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  if (command !== 'write') {
+  if (!['write', 'status'].includes(command)) {
     throw writerError(
       'invalid-command',
-      'Usage: document-writer.js write --kind design|plan|spec --project-root DIR --relative-path PATH [--change-kind major|operational] [--memory off]'
+      'Usage: document-writer.js write --kind design|plan|spec --project-root DIR --relative-path PATH, or status --project-root DIR --id DESIGN-ID|SPEC-ID --status STATE [--memory off]'
     );
   }
 
-  const options = {};
-  const allowed = new Set(['kind', 'project_root', 'relative_path', 'change_kind', 'memory', 'language']);
+  const options = command === 'status' ? { command } : {};
+  const allowed = new Set(command === 'status'
+    ? ['project_root', 'id', 'status', 'memory', 'language']
+    : ['kind', 'project_root', 'relative_path', 'change_kind', 'memory', 'language']);
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
     if (!argument.startsWith('--')) {
@@ -66,6 +68,12 @@ function parseArgs(argv) {
     index += 1;
   }
 
+  if (command === 'status') {
+    if (!/^(?:DESIGN|SPEC)-\d{4,}$/.test(options.id || '') || !options.status) {
+      throw writerError('invalid-argument', 'Supply --id DESIGN-ID|SPEC-ID and --status STATE');
+    }
+    options.kind = options.id.startsWith('DESIGN-') ? 'design' : 'spec';
+  }
   if (!new Set(['design', 'plan', 'spec']).has(options.kind)) {
     throw writerError('document-kind-invalid', '--kind는 design, plan 또는 spec이어야 합니다.');
   }
@@ -73,7 +81,7 @@ function parseArgs(argv) {
   if (typeof options.project_root !== 'string' || options.project_root.length === 0) {
     throw writerError('project-root-invalid', '--project-root에는 프로젝트 경로가 필요합니다.');
   }
-  if (typeof options.relative_path !== 'string' || options.relative_path.length === 0) {
+  if (command === 'write' && (typeof options.relative_path !== 'string' || options.relative_path.length === 0)) {
     throw writerError('document-path-invalid', '--relative-path 값이 필요합니다.');
   }
   if (options.change_kind !== undefined && !CHANGE_KINDS.has(options.change_kind)) {
@@ -323,13 +331,16 @@ function registrationResult(projectRoot) {
   }
 }
 
-function writeDocumentUnlocked(options, sourceBuffer) {
+function writeDocumentUnlocked(options, sourceBuffer, expectedSource) {
   const projectRoot = canonicalProjectRoot(options.project_root);
   const content = decodeContent(sourceBuffer);
   const { expectedId, target } = resolveTarget(projectRoot, options.kind, options.relative_path);
   const nextMetadata = metadataFor(options.kind, content, expectedId);
   if (options.kind === 'design') assertDesignWrite(projectRoot, nextMetadata, options.relative_path);
   const existing = readExisting(projectRoot, target);
+  if (expectedSource && (!existing || !existing.equals(expectedSource))) {
+    throw writerError('document-changed', '문서가 읽은 뒤 변경되어 덮어쓰지 않았습니다.');
+  }
 
   if (existing && existing.equals(sourceBuffer)) {
     return {
@@ -399,8 +410,8 @@ function memoryResult(projectRoot, options) {
   catch (error) { return { status: 'failed', error: { code: error.code || 'memory-start-failed', message: error.message } }; }
 }
 
-function writeDocument(options, sourceBuffer) {
-  if (options.kind !== 'design') return writeDocumentUnlocked(options, sourceBuffer);
+function withDocumentLock(options, operation) {
+  if (options.kind !== 'design') return operation();
   const root = canonicalProjectRoot(options.project_root);
   ensureSafeDirectory(root, path.join(root, '.proofline'));
   const lock = path.join(root, '.proofline', '.design-write.lock');
@@ -413,8 +424,42 @@ function writeDocument(options, sourceBuffer) {
     fs.unlinkSync(lock);
   }
   fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
-  try { return writeDocumentUnlocked(options, sourceBuffer); }
+  try { return operation(); }
   finally { fs.unlinkSync(lock); }
+}
+
+function writeDocument(options, sourceBuffer) {
+  return withDocumentLock(options, () => writeDocumentUnlocked(options, sourceBuffer));
+}
+
+function updateDocumentStatus(options) {
+  if (!/^(?:DESIGN|SPEC)-\d{4,}$/.test(options.id || '') || typeof options.status !== 'string' || !options.status) {
+    throw writerError('invalid-argument', 'Supply a Design or legacy Spec ID and status');
+  }
+  const kind = options.id.startsWith('DESIGN-') ? 'design' : 'spec';
+  return withDocumentLock({ ...options, kind }, () => {
+    const root = canonicalProjectRoot(options.project_root);
+    const record = readDevelopmentRecord(root, options.id);
+    const { target } = resolveTarget(root, kind, record.relativePath);
+    const existing = readExisting(root, target);
+    if (!existing) throw writerError('contract-unavailable', 'Document not found');
+    const content = decodeContent(existing);
+    const { metadataText } = parseFrontmatter(content);
+    const metadata = JSON.parse(metadataText);
+    const current = metadataFor(kind, content, options.id);
+    let source = existing;
+    if (current.status !== options.status) {
+      metadata.status = options.status;
+      const opening = /^---\r?\n/.exec(content)[0];
+      const newline = opening.endsWith('\r\n') ? '\r\n' : '\n';
+      const serialized = JSON.stringify(metadata, null, 2).replace(/\n/g, newline);
+      const updated = opening + serialized + content.slice(opening.length + metadataText.length);
+      const bom = existing.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf])) ? existing.subarray(0, 3) : Buffer.alloc(0);
+      source = Buffer.concat([bom, Buffer.from(updated, 'utf8')]);
+    }
+    const result = writeDocumentUnlocked({ ...options, kind, relative_path: record.relativePath, change_kind: 'operational' }, source, existing);
+    return { ...result, document_status: options.status };
+  });
 }
 
 function formatError(error) {
@@ -429,8 +474,9 @@ function formatError(error) {
 function main(argv = process.argv.slice(2), sourceBuffer) {
   try {
     const options = parseArgs(argv);
-    const input = sourceBuffer === undefined ? fs.readFileSync(0) : sourceBuffer;
-    const result = writeDocument(options, input);
+    const result = options.command === 'status'
+      ? updateDocumentStatus(options)
+      : writeDocument(options, sourceBuffer === undefined ? fs.readFileSync(0) : sourceBuffer);
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return result;
   } catch (error) {
@@ -449,4 +495,5 @@ module.exports = {
   main,
   parseArgs,
   writeDocument,
+  updateDocumentStatus,
 };
