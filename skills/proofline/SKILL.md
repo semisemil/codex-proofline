@@ -47,4 +47,4 @@ Contracts: preserve existing required behavior on the changed path, including be
 
 Tests: when writing or updating test cases, cover required observable behavior and relevant failure cases in each independent implementation; reuse existing coverage; use representative cases for callers sharing an enforcement path
 
-Reuse passed check results while the code and conditions relevant to those checks remain unchanged.
+Retesting: use existing evidence first to determine which tests to rerun. Perform additional impact analysis when its expected cost is lower than rerunning. Run affected tests and tests whose impact is uncertain; reuse passing results when evidence establishes they remain valid. Preserve explicitly required verification.
