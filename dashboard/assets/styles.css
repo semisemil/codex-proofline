@@ -501,7 +501,11 @@ th:not([aria-sort="none"]) .column-sort { color: var(--text); }
 .markdown-body p, .markdown-body li { color: var(--secondary); }
 .markdown-body code { color: var(--spec); }
 .markdown-body pre code { color: var(--secondary); }
-.is-changing { opacity: .28; transition: opacity 120ms ease-out; pointer-events: none; }
+.is-changing { pointer-events: none; }
+.transition-host { position: relative; min-height: 240px; }
+.project-loading { display: none; position: absolute; inset: 0; z-index: 4; max-height: calc(100dvh - 200px); min-height: 160px; place-items: center; }
+.transition-host:has(> .is-changing) > .project-loading { display: grid; }
+.project-loading span { padding: 12px 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-opaque); color: var(--text); box-shadow: 0 6px 24px #0002; font-size: .875rem; font-weight: 600; }
 @view-transition { navigation: auto; }
 .project-panel, .architecture-sidebar { view-transition-name: sidebar; }
 .workspace, .architecture-workspace { view-transition-name: workspace; }

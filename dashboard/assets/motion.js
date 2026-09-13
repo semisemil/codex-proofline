@@ -15,12 +15,12 @@
   const pending = new WeakMap();
   const entrances = new WeakMap();
 
-  function enter(node) {
-    if (!node) return;
+  function enter(node, subtle = false) {
+    if (!node || pending.has(node)) return;
     entrances.get(node)?.cancel();
     if (globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     entrances.set(node, node.animate([
-      { opacity: 0, transform: 'translateY(6px)' },
+      { opacity: subtle ? .8 : 0, transform: 'translateY(6px)' },
       { opacity: 1, transform: 'translateY(0)' },
     ], { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' }));
   }
@@ -42,7 +42,7 @@
     node.classList.remove('is-changing');
     node.removeAttribute('aria-busy');
     node.inert = false;
-    enter(node);
+    enter(node, true);
   }
 
   function sidebar(collapsed) {

@@ -33,8 +33,8 @@ function region() {
     classList: { add: (value) => classes.add(value), remove: (value) => classes.delete(value) },
     setAttribute: (key, value) => attributes.set(key, value),
     removeAttribute: (key) => attributes.delete(key),
-    animate() {
-      const animation = { cancelled: false, cancel() { this.cancelled = true; } };
+    animate(frames) {
+      const animation = { frames, cancelled: false, cancel() { this.cancelled = true; } };
       this.animations.push(animation);
       return animation;
     },
@@ -47,6 +47,7 @@ test('a stale project response cannot unlock or animate the current project tran
   const first = motion.begin(panel);
   const second = motion.begin(panel);
   motion.finish(first);
+  motion.enter(panel);
   assert.equal(panel.inert, true);
   assert.equal(panel.attributes.get('aria-busy'), 'true');
   assert.equal(panel.animations.length, 0);
@@ -55,6 +56,7 @@ test('a stale project response cannot unlock or animate the current project tran
   assert.equal(panel.attributes.has('aria-busy'), false);
   assert.equal(panel.classes.has('is-changing'), false);
   assert.equal(panel.animations.length, 1);
+  assert.equal(panel.animations[0].frames[0].opacity, .8);
   motion.finish(second);
   motion.finish(null);
   assert.equal(panel.animations.length, 1);

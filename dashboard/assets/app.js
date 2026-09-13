@@ -157,6 +157,7 @@
   function setLoading(loading, notice) {
     state.loading = loading;
     state.notice = notice || null;
+    updateContext();
     renderStatus();
   }
 
@@ -181,7 +182,7 @@
       error.setAttribute('role', 'alert');
       error.append(make('strong', '', errorTitle(state.error)), make('span', '', state.error.message));
       elements.status.append(error);
-    } else if ((state.loading && !state.projectTransition) || state.notice) {
+    } else if (!state.projectTransition && (state.loading || state.notice)) {
       const info = make('section', 'status-message');
       info.setAttribute('role', 'status');
       info.append(make('strong', '', state.loading ? '읽는 중' : '상태'), make('span', '', state.notice || '최신 상태입니다.'));
@@ -224,6 +225,7 @@
   }
 
   async function loadIndex(refresh = false, updateProjects = false) {
+    if (updateProjects && state.projectTransition) return;
     const project = selectedProject();
     if (!project || project.availability !== 'available') {
       state.index = null;
@@ -909,6 +911,7 @@
     fallbackFocusKey = null,
   ) {
     updateContext();
+    if (state.projectTransition && state.loading) return;
     state.workScrollLeft = elements.viewPanel.querySelector('.issue-table-wrap')?.scrollLeft || 0;
     elements.viewPanel.replaceChildren();
     const project = selectedProject();
