@@ -25,8 +25,6 @@ Use concise, conventional labels for inputs, actions, and distinct outcomes, wit
 
 Use one heading or label when one is sufficient. Do not add decorative English headings or subtitles.
 
-Do not use middle dots.
-
 ## Format suited to the information type
 
 Build on formats familiar to readers and conventional for the information type, making the needed content easy to find and understand. Provide both accurate content and an appropriate form of presentation.
