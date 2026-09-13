@@ -37,18 +37,18 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --accent-ink: color-mix(in srgb, var(--accent) 45%, #fff);
-  --bg: #141821;
-  --surface: #1b202b;
-  --surface-detail: #181d27;
-  --surface-strong: #282f3c;
-  --surface-opaque: #1b202b;
-  --text: #eef1f7;
-  --muted: #929fb3;
-  --secondary: #bbc6d8;
+  --bg: #191419;
+  --surface: #231c23;
+  --surface-detail: #1e181e;
+  --surface-strong: #322732;
+  --surface-opaque: #231c23;
+  --text: #f7eff5;
+  --muted: #b3a0ae;
+  --secondary: #d7c3d1;
   --plan: #60c6c8;
   --spec: #bc9bf1;
-  --line: #303745;
-  --border: #414b5f;
+  --line: #3e303b;
+  --border: #584452;
   --danger: #f19299;
   --warning: #e9bd74;
   --success: #75ceb1;
