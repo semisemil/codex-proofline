@@ -10,7 +10,7 @@
   },
   "origin": {
     "kind": "example",
-    "summary": "Proofline state starter example",
+    "summary": "Emeth Discipline state starter example",
     "refs": []
   },
   "state": {
@@ -19,7 +19,7 @@
     "next_action": "Delete this example before creating the first real issue."
   },
   "objective": {
-    "summary": "Demonstrate the Proofline Issue Ledger v2 format.",
+    "summary": "Demonstrate the Emeth Discipline Issue Ledger v2 format.",
     "constraints": [
       "Do not keep the example in a real project ledger."
     ]

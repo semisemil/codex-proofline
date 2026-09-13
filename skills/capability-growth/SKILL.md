@@ -3,7 +3,7 @@ name: capability-growth
 description: "Use for Codex capability growth: review repeated manual work, shortlist automation candidates, check existing tools, and prepare skill/script/hook/Codex automation registration only after user approval."
 ---
 
-# Proofline Capability Growth
+# Capability Growth
 
 Use this skill to decide whether repeated manual work should become a small automation.
 

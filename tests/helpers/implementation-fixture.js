@@ -32,7 +32,7 @@ function fixture(t, options = {}) {
     fs.writeFileSync(target, content);
   };
   git(cwd, 'init');
-  git(cwd, 'config', 'user.name', 'Proofline Test');
+  git(cwd, 'config', 'user.name', 'Emeth Discipline Test');
   git(cwd, 'config', 'user.email', 'proofline@example.invalid');
   git(cwd, 'config', 'core.autocrlf', 'false');
   const metadata = { schema_version: 2, id: 'SPEC-0001', title: 'Independent implementation fixture',

@@ -84,7 +84,7 @@ test('stored port owned by another process is reported and never replaced', asyn
   assert.equal(occupant.listening, true);
 });
 
-test('PID reuse and another health service are not treated as Proofline or stopped', async (t) => {
+test('PID reuse and another health service are not treated as Emeth Discipline or stopped', async (t) => {
   const directory = tempDirectory(t);
   const otherInstance = randomUUID();
   const service = http.createServer((_request, response) => {

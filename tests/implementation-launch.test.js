@@ -26,7 +26,7 @@ test('launch CLI yields one exact Spec-only prompt and explicit local project se
   { encoding: 'utf8', windowsHide: true });
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), {
-    prompt: '$proofline:implement SPEC-0001', model: 'gpt-6-astra', thinking: 'medium',
+    prompt: '$emeth-discipline:implement SPEC-0001', model: 'gpt-6-astra', thinking: 'medium',
     target: { type: 'project', projectId: 'saved-project', environment: { type: 'local' } },
   });
   assert.equal(git(f.cwd, 'status', '--porcelain=v1'), before);
@@ -43,7 +43,7 @@ test('the request builder preserves each selected model and effort without a mod
     const result = prepareLaunch(options(f, { model, reasoning }));
     assert.equal(result.model, model);
     assert.equal(result.thinking, reasoning);
-    assert.equal(result.prompt, '$proofline:implement SPEC-0001');
+    assert.equal(result.prompt, '$emeth-discipline:implement SPEC-0001');
   }
   // Availability and authorization belong to the runtime, not a baked-in model catalog.
   assert.equal(prepareLaunch(options(f, { model: 'user-selected-model' })).model, 'user-selected-model');

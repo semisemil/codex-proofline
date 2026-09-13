@@ -3,7 +3,7 @@ name: exact-port
 description: Use when the user asks to port, migrate, copy, or transplant an implementation while preserving behavior exactly or forbidding a rewrite. Keep the source authoritative and require approval for every deviation.
 ---
 
-# Proofline Exact Port
+# Exact Port
 
 Use `assets/templates/exact-port-plan.md` to track source-target mapping and `assets/templates/exact-port-report.md` to report equivalence evidence.
 

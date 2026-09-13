@@ -119,7 +119,7 @@ test('resume produces no injection and creates no session state', (t) => {
   assert.equal(fs.existsSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json')), false);
 });
 
-test('SubagentStart receives the parent session Proofline mode', (t) => {
+test('SubagentStart receives the parent session Emeth Discipline mode', (t) => {
   const { env } = fixture(t);
   const statePath = path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json');
   writeJson(statePath, { mode: 'focus' });
@@ -134,17 +134,17 @@ test('a missing selected mode fails and records the exact component path', (t) =
   const { root, env } = fixture(t);
   const tempPlugin = path.join(root, 'plugin');
   const hooksDir = path.join(tempPlugin, 'hooks');
-  const skillDir = path.join(tempPlugin, 'skills', 'proofline');
+  const skillDir = path.join(tempPlugin, 'skills', 'emeth-discipline');
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.mkdirSync(skillDir, { recursive: true });
   copyRuntime(tempPlugin);
-  fs.copyFileSync(path.join(repoRoot, 'skills', 'proofline', 'SKILL.md'), path.join(skillDir, 'SKILL.md'));
+  fs.copyFileSync(path.join(repoRoot, 'skills', 'emeth-discipline', 'SKILL.md'), path.join(skillDir, 'SKILL.md'));
 
   const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'run.js'));
   assert.equal(result.status, 1);
   const logPath = path.join(env.HOME, '.codex', 'log', 'proofline-hook.log');
   const entries = fs.readFileSync(logPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
-  assert.match(entries.at(-1).filePath, /proofline[\\/]normal\.md$/);
+  assert.match(entries.at(-1).filePath, /emeth-discipline[\\/]normal\.md$/);
 });
 
 test('a missing baseline fails and records the exact component path', (t) => {
@@ -162,27 +162,27 @@ test('a missing baseline fails and records the exact component path', (t) => {
   const entry = entries.at(-1);
   assert.equal(entry.code, 'ENOENT');
   assert.equal(entry.pluginRoot, tempPlugin);
-  assert.match(entry.skillPath, /proofline[\\/]SKILL\.md$/);
-  assert.match(entry.filePath, /proofline[\\/]SKILL\.md$/);
+  assert.match(entry.skillPath, /emeth-discipline[\\/]SKILL\.md$/);
+  assert.match(entry.filePath, /emeth-discipline[\\/]SKILL\.md$/);
 });
 
 test('a missing response slot fails and records the baseline path', (t) => {
   const { root, env } = fixture(t);
   const tempPlugin = path.join(root, 'plugin');
   const hooksDir = path.join(tempPlugin, 'hooks');
-  const skillDir = path.join(tempPlugin, 'skills', 'proofline');
+  const skillDir = path.join(tempPlugin, 'skills', 'emeth-discipline');
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.mkdirSync(skillDir, { recursive: true });
   copyRuntime(tempPlugin);
-  const baseline = fs.readFileSync(path.join(repoRoot, 'skills', 'proofline', 'SKILL.md'), 'utf8')
+  const baseline = fs.readFileSync(path.join(repoRoot, 'skills', 'emeth-discipline', 'SKILL.md'), 'utf8')
     .replace('<!-- proofline-response-mode -->', '');
   fs.writeFileSync(path.join(skillDir, 'SKILL.md'), baseline, 'utf8');
-  fs.copyFileSync(path.join(repoRoot, 'skills', 'proofline', 'normal.md'), path.join(skillDir, 'normal.md'));
+  fs.copyFileSync(path.join(repoRoot, 'skills', 'emeth-discipline', 'normal.md'), path.join(skillDir, 'normal.md'));
 
   const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'run.js'));
   assert.equal(result.status, 1);
   const logPath = path.join(env.HOME, '.codex', 'log', 'proofline-hook.log');
   const entry = JSON.parse(fs.readFileSync(logPath, 'utf8').trim());
   assert.equal(entry.code, 'INVALID_MODE_SLOT');
-  assert.match(entry.filePath, /proofline[\\/]SKILL\.md$/);
+  assert.match(entry.filePath, /emeth-discipline[\\/]SKILL\.md$/);
 });

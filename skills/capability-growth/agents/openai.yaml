@@ -1,5 +1,5 @@
 interface:
-  display_name: "Proofline Capability Growth"
+  display_name: "Capability Growth"
   short_description: "Turn repeated work into approved automation"
   default_prompt: "Use $capability-growth to evaluate repeated work for automation without implementing it."
 

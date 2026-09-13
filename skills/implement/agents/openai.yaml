@@ -1,5 +1,5 @@
 interface:
-  display_name: "Proofline Implement"
+  display_name: "Implement"
   short_description: "Implement a ready Design and verify the result"
   default_prompt: "Use $implement to implement this ready Design by ID and verify the result in this session."
 

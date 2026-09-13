@@ -3,7 +3,7 @@ name: refactor-proof
 description: Use for structural refactors involving responsibility ownership, call paths, dependencies, or state/data flow. Verify that the intended structure is actually used.
 ---
 
-# Proofline Refactor Proof
+# Refactor Proof
 
 ## Before
 

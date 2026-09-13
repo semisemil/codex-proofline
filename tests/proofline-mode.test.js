@@ -71,7 +71,7 @@ test('ordinary prompts and namespaced skill calls emit zero stdout bytes and kee
   assert.equal(Buffer.byteLength(ordinary.stdout), 0);
   assert.equal(fs.existsSync(statePath(env)), false);
 
-  const skill = runHook(env, '$proofline:implementation-spec\nWrite a Spec.');
+  const skill = runHook(env, '$emeth-discipline:implementation-spec\nWrite a Spec.');
   assert.equal(skill.status, 0, skill.stderr);
   assert.equal(Buffer.byteLength(skill.stdout), 0);
   assert.equal(fs.existsSync(statePath(env)), false);
@@ -79,15 +79,15 @@ test('ordinary prompts and namespaced skill calls emit zero stdout bytes and kee
 
 test('status and default queries report canonical modes without changing state', (t) => {
   const { env } = fixture(t);
-  let response = output(runHook(env, '$proofline'));
+  let response = output(runHook(env, '$emeth-discipline'));
   assert.match(response.systemMessage, /현재 모드 normal, 기본 모드 normal/);
   assert.equal(response.hookSpecificOutput, undefined);
   assert.equal(fs.existsSync(statePath(env)), false);
 
-  output(runHook(env, '$proofline focus'));
+  output(runHook(env, '$emeth-discipline focus'));
   const before = fs.readFileSync(statePath(env), 'utf8');
 
-  response = output(runHook(env, '$proofline default'));
+  response = output(runHook(env, '$emeth-discipline default'));
   assert.match(response.systemMessage, /기본 모드 normal/);
   assert.equal(response.hookSpecificOutput, undefined);
   assert.equal(fs.readFileSync(statePath(env), 'utf8'), before);
@@ -95,7 +95,7 @@ test('status and default queries report canonical modes without changing state',
 
 test('mode changes are ASCII case-insensitive and emit the SessionStart prompt', (t) => {
   const { env } = fixture(t);
-  const response = output(runHook(env, '\n  $proofline FoCuS  '));
+  const response = output(runHook(env, '\n  $emeth-discipline FoCuS  '));
   assert.match(response.systemMessage, /focus/);
   const prompt = response.hookSpecificOutput.additionalContext;
   assert.equal(prompt, composeProoflinePrompt('focus'));
@@ -107,20 +107,20 @@ test('mode changes are ASCII case-insensitive and emit the SessionStart prompt',
 
 test('a valid command is applied before the remaining task', (t) => {
   const { env } = fixture(t);
-  const response = output(runHook(env, '$proofline core\nDiagnose the failing test.'));
+  const response = output(runHook(env, '$emeth-discipline core\nDiagnose the failing test.'));
   assert.equal(response.hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'core' });
 });
 
 test('invalid modes, missing shapes, and extra arguments preserve the current mode and continue work', (t) => {
   const { env } = fixture(t);
-  output(runHook(env, '$proofline focus'));
+  output(runHook(env, '$emeth-discipline focus'));
   const invalidPrompts = [
-    '$proofline verbose\nKeep reviewing.',
-    '$proofline caveman\nKeep reviewing.',
-    '$proofline default caveman\nKeep reviewing.',
-    '$proofline focus extra\nKeep reviewing.',
-    '$proofline default focus extra\nKeep reviewing.',
+    '$emeth-discipline verbose\nKeep reviewing.',
+    '$emeth-discipline caveman\nKeep reviewing.',
+    '$emeth-discipline default caveman\nKeep reviewing.',
+    '$emeth-discipline focus extra\nKeep reviewing.',
+    '$emeth-discipline default focus extra\nKeep reviewing.',
   ];
 
   for (const prompt of invalidPrompts) {
@@ -140,7 +140,7 @@ test('saved caveman preferences load and report as core for existing and new ses
   fs.writeFileSync(configPath, JSON.stringify({ defaultMode: 'caveman' }));
   fs.writeFileSync(statePath(env), JSON.stringify({ mode: 'caveman' }));
 
-  const response = output(runHook(env, '$proofline'));
+  const response = output(runHook(env, '$emeth-discipline'));
   assert.match(response.systemMessage, /현재 모드 core, 기본 모드 core/);
   for (const sessionId of ['session-a', 'session-b']) {
     const loaded = runLoader(env, sessionId);
@@ -152,7 +152,7 @@ test('saved caveman preferences load and report as core for existing and new ses
 
 test('default changes persist first and immediately apply to the current session', (t) => {
   const { env } = fixture(t);
-  const response = output(runHook(env, '$proofline default CORE'));
+  const response = output(runHook(env, '$emeth-discipline default CORE'));
   assert.match(response.systemMessage, /기본 모드와 현재 모드를 core/);
   assert.equal(response.hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
   const loaded = runLoader(env);
@@ -164,7 +164,7 @@ test('default changes persist first and immediately apply to the current session
   );
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'core' });
 
-  output(runHook(env, '$proofline focus', 'session-b'));
+  output(runHook(env, '$emeth-discipline focus', 'session-b'));
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env, 'session-b'), 'utf8')), { mode: 'focus' });
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'core' });
 });
@@ -175,12 +175,12 @@ for (const [label, sessionId] of [
 ]) {
   test(`${label} session IDs apply a default change immediately without session state`, (t) => {
     const { env } = fixture(t);
-    const changed = output(runHook(env, '$proofline default focus', sessionId));
+    const changed = output(runHook(env, '$emeth-discipline default focus', sessionId));
     assert.match(changed.systemMessage, /기본 모드와 현재 모드를 focus로 변경/);
     assert.equal(changed.hookSpecificOutput.additionalContext, composeProoflinePrompt('focus'));
     assert.equal(fs.existsSync(path.join(env.PLUGIN_DATA, 'proofline-mode')), false);
 
-    const queried = output(runHook(env, '$proofline', sessionId));
+    const queried = output(runHook(env, '$emeth-discipline', sessionId));
     assert.match(queried.systemMessage, /현재 모드 focus, 기본 모드 focus/);
     assert.equal(fs.existsSync(path.join(env.PLUGIN_DATA, 'proofline-mode')), false);
   });
@@ -188,11 +188,11 @@ for (const [label, sessionId] of [
 
 test('default write failure changes neither mode', (t) => {
   const { root, env } = fixture(t);
-  output(runHook(env, '$proofline focus'));
+  output(runHook(env, '$emeth-discipline focus'));
   const blockedAppData = path.join(root, 'blocked-appdata');
   fs.writeFileSync(blockedAppData, 'file', 'utf8');
   const failedEnv = { ...env, APPDATA: blockedAppData, XDG_CONFIG_HOME: blockedAppData };
-  const response = output(runHook(failedEnv, '$proofline default core'));
+  const response = output(runHook(failedEnv, '$emeth-discipline default core'));
   assert.match(response.systemMessage, /기본 모드 저장 실패/);
   assert.equal(response.hookSpecificOutput, undefined);
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'focus' });
@@ -203,7 +203,7 @@ test('a current-session write failure preserves a successfully saved default and
   const blockedPluginData = path.join(root, 'blocked-plugin-data');
   fs.writeFileSync(blockedPluginData, 'file', 'utf8');
   const failedEnv = { ...env, PLUGIN_DATA: blockedPluginData };
-  const response = output(runHook(failedEnv, '$proofline default focus'));
+  const response = output(runHook(failedEnv, '$emeth-discipline default focus'));
   assert.match(response.systemMessage, /현재 모드 변경 실패/);
   assert.equal(response.hookSpecificOutput, undefined);
   assert.deepEqual(

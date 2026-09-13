@@ -286,7 +286,7 @@ function acquireRegistryLock(registryPath, options) {
       if (remaining <= 0) {
         throw new RegistryError(
           'registry-lock-timeout',
-          '다른 Proofline 작업이 projects.json을 갱신 중입니다.'
+          '다른 Emeth Discipline 작업이 projects.json을 갱신 중입니다.'
         );
       }
       sleepFor(Math.min(retryMs, remaining));

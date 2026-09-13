@@ -1,8 +1,8 @@
-# Proofline
+# Emeth Discipline
 
-Proofline은 Codex가 요청받은 작업 범위를 끝까지 지키고, 직접 확인한 결과를 바탕으로 완료 여부를 보고하도록 돕는 플러그인입니다.
+Emeth Discipline은 Codex가 요청받은 작업 범위를 끝까지 지키고, 직접 확인한 결과를 바탕으로 완료 여부를 보고하도록 돕는 플러그인입니다.
 
-작업이 길어지면 처음 요청의 세부 조건을 빠뜨리거나, 확인하지 않은 부분까지 끝났다고 보고하기 쉽습니다. 대화 중 발견한 버그나 후속 작업도 다음 작업으로 이어지지 않고 잊히곤 합니다. Proofline은 대화에 적용할 공통 기준과 작업별 스킬, 프로젝트에 남는 기록으로 이런 누락을 줄입니다.
+작업이 길어지면 처음 요청의 세부 조건을 빠뜨리거나, 확인하지 않은 부분까지 끝났다고 보고하기 쉽습니다. 대화 중 발견한 버그나 후속 작업도 다음 작업으로 이어지지 않고 잊히곤 합니다. Emeth Discipline은 대화에 적용할 공통 기준과 작업별 스킬, 프로젝트에 남는 기록으로 이런 누락을 줄입니다.
 
 ## ✨ 주요 기능
 
@@ -38,11 +38,11 @@ Workflow는 요구사항, 설계 근거, 기대 결과를 `DESIGN.md`에 남기�
 
 ### Codex CLI에서 설치
 
-Proofline 마켓플레이스를 추가한 다음 플러그인을 설치합니다.
+Emeth Discipline 마켓플레이스를 추가한 다음 플러그인을 설치합니다.
 
 ```bash
-codex plugin marketplace add semisemil/codex-proofline
-codex plugin add proofline@proofline
+codex plugin marketplace add semisemil/emeth-discipline
+codex plugin add emeth-discipline@emeth-discipline
 codex
 ```
 
@@ -51,19 +51,19 @@ codex
 Codex가 열리면 다음 순서로 마무리합니다.
 
 1. `/hooks`를 엽니다.
-2. Proofline의 `SessionStart`, `SubagentStart`, `UserPromptSubmit`, `PreToolUse` 훅을 확인하고 승인합니다.
+2. Emeth Discipline의 `SessionStart`, `SubagentStart`, `UserPromptSubmit`, `PreToolUse` 훅을 확인하고 승인합니다.
 3. 새 작업을 시작합니다.
 
 ## 🚀 빠르게 사용하기
 
 ### 공통 기준과 응답 모드
 
-`proofline` 공통 기준은 새 작업을 시작하거나 `/clear`, `/compact`를 실행할 때 자동으로 불러옵니다. 기존 작업을 재개할 때(`resume`)는 공통 기준을 다시 불러오지 않지만, 대시보드 서버 확인과 아키텍처 메모리 연결 훅은 실행됩니다. 하위 에이전트에도 `SubagentStart` 훅으로 공통 기준을 전달합니다.
+`emeth-discipline` 공통 기준은 새 작업을 시작하거나 `/clear`, `/compact`를 실행할 때 자동으로 불러옵니다. 기존 작업을 재개할 때(`resume`)는 공통 기준을 다시 불러오지 않지만, 대시보드 서버 확인과 아키텍처 메모리 연결 훅은 실행됩니다. 하위 에이전트에도 `SubagentStart` 훅으로 공통 기준을 전달합니다.
 
 특정 요청에 공통 기준을 명시하려면 스킬 이름을 적으세요.
 
 ```text
-$proofline:proofline
+$emeth-discipline:emeth-discipline
 이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐줘.
 ```
 
@@ -71,12 +71,12 @@ $proofline:proofline
 
 | 명령 | 동작 |
 | --- | --- |
-| `$proofline` | 현재 모드와 기본 모드 확인 |
-| `$proofline normal` | 자연스러운 일반 문장으로 응답 |
-| `$proofline focus` | 필요한 맥락과 프로젝트 공통 용어, ASD-STE100 명료성 원칙으로 사용자 언어에 맞게 응답 |
-| `$proofline core` | 기술적 정확성을 유지하면서 최대한 짧게 응답 |
-| `$proofline default` | 새 작업에 적용할 기본 모드 확인 |
-| `$proofline default <mode>` | 기본 모드를 저장하고 현재 작업에도 적용 |
+| `$emeth-discipline` | 현재 모드와 기본 모드 확인 |
+| `$emeth-discipline normal` | 자연스러운 일반 문장으로 응답 |
+| `$emeth-discipline focus` | 필요한 맥락과 프로젝트 공통 용어, ASD-STE100 명료성 원칙으로 사용자 언어에 맞게 응답 |
+| `$emeth-discipline core` | 기술적 정확성을 유지하면서 최대한 짧게 응답 |
+| `$emeth-discipline default` | 새 작업에 적용할 기본 모드 확인 |
+| `$emeth-discipline default <mode>` | 기본 모드를 저장하고 현재 작업에도 적용 |
 
 초기 기본 모드는 `normal`입니다. 현재 모드는 작업별로 저장되며, 모드를 바꿔도 공통 품질 기준은 유지됩니다.
 
@@ -87,14 +87,14 @@ $proofline:proofline
 책임이나 호출 구조를 바꾸는 리팩터링:
 
 ```text
-$proofline:refactor-proof
+$emeth-discipline:refactor-proof
 사용자 설정 저장 책임을 서비스 계층으로 옮겨줘.
 ```
 
 원본 동작을 그대로 유지해야 하는 코드 이식:
 
 ```text
-$proofline:exact-port
+$emeth-discipline:exact-port
 이 원본 구현을 대상 프로젝트로 동작 변경 없이 옮겨줘.
 ```
 
@@ -106,13 +106,13 @@ $proofline:exact-port
 
 | 스킬 | 이런 때 사용합니다 | 하는 일 |
 | --- | --- | --- |
-| `$proofline:proofline` | 대화와 결과물 전반 | 자연스러운 문장, 요청 범위, 수정 권한, 판단 근거 확인 |
-| `$proofline:scope-integrity` | 규모가 크거나 위험하고 여러 단계로 진행되는 작업 | 요청한 목표·필수 조건·완료 기준 유지, 임의 누락·축소 방지 |
-| `$proofline:refactor-proof` | 책임, 의존 관계, 호출 구조, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경과 기존 동작 보존 여부 검증 |
-| `$proofline:exact-port` | 원본 동작을 그대로 옮겨야 하는 코드 이식 | 원본과 대상 비교, 사용자에게 승인받은 차이와 미확인 부분 기록 |
-| `$proofline:issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 결정과 검증 근거 기록 |
-| `$proofline:capability-growth` | 반복하는 수작업을 자동화할지 검토할 때 | 기존 도구와 자동화 후보 비교, 등록 전 사용자 승인 확인 |
-| `$proofline:dashboard-server` | 통합 대시보드를 이용할 때 | 현재 프로젝트 등록, 실행 중인 대시보드 열기·상태 확인·종료 |
+| `$emeth-discipline:emeth-discipline` | 대화와 결과물 전반 | 자연스러운 문장, 요청 범위, 수정 권한, 판단 근거 확인 |
+| `$emeth-discipline:scope-integrity` | 규모가 크거나 위험하고 여러 단계로 진행되는 작업 | 요청한 목표·필수 조건·완료 기준 유지, 임의 누락·축소 방지 |
+| `$emeth-discipline:refactor-proof` | 책임, 의존 관계, 호출 구조, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경과 기존 동작 보존 여부 검증 |
+| `$emeth-discipline:exact-port` | 원본 동작을 그대로 옮겨야 하는 코드 이식 | 원본과 대상 비교, 사용자에게 승인받은 차이와 미확인 부분 기록 |
+| `$emeth-discipline:issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 결정과 검증 근거 기록 |
+| `$emeth-discipline:capability-growth` | 반복하는 수작업을 자동화할지 검토할 때 | 기존 도구와 자동화 후보 비교, 등록 전 사용자 승인 확인 |
+| `$emeth-discipline:dashboard-server` | 통합 대시보드를 이용할 때 | 현재 프로젝트 등록, 실행 중인 대시보드 열기·상태 확인·종료 |
 
 ### Architecture
 
@@ -120,9 +120,9 @@ $proofline:exact-port
 
 | 스킬 | 이런 때 사용합니다 | 하는 일 |
 | --- | --- | --- |
-| `$proofline:architecture-memory-init` | 기존 프로젝트 전반을 먼저 분석하고 싶을 때 | 코드와 기존 문서를 바탕으로 구조·제약·결정 정리 |
-| `$proofline:architecture-memory` | 프로젝트 배경을 참고하거나 새로 결정한 내용을 남길 때 | 관련 문서 검색, 사용자 결정과 운영 환경 기록 |
-| `$proofline:architecture-memory-update` | 커밋된 코드 변경을 아키텍처 문서에 반영할 때 | 마지막 확인 커밋 이후의 변경 검토와 문서 갱신 |
+| `$emeth-discipline:architecture-memory-init` | 기존 프로젝트 전반을 먼저 분석하고 싶을 때 | 코드와 기존 문서를 바탕으로 구조·제약·결정 정리 |
+| `$emeth-discipline:architecture-memory` | 프로젝트 배경을 참고하거나 새로 결정한 내용을 남길 때 | 관련 문서 검색, 사용자 결정과 운영 환경 기록 |
+| `$emeth-discipline:architecture-memory-update` | 커밋된 코드 변경을 아키텍처 문서에 반영할 때 | 마지막 확인 커밋 이후의 변경 검토와 문서 갱신 |
 
 ### Workflow
 
@@ -130,19 +130,19 @@ $proofline:exact-port
 
 | 스킬 | 이런 때 사용합니다 | 하는 일 |
 | --- | --- | --- |
-| `$proofline:development-design` | 현재 아이디어를 설계로 발전시키거나 설계를 수정할 때 | 설명·구조 비교·초안·질문으로 기획과 기술 설계를 함께 완성 |
-| `$proofline:tenet-me` | 선택한 설계와 계약을 검토할 때 | 근거, 시스템 경계, 실패 경로와 기대 결과의 누락·모순 확인 |
-| `$proofline:figure-it-out` | 필요한 설계부터 구현까지 맡길 때 | Design 준비와 검토 후 구현 작업 생성 |
-| `$proofline:implementation-slice` | 독립적인 구현 작업을 나눌 때 | 필요한 경우에만 `PARALLEL.md`에 작업 범위와 연결 방식 정리 |
-| `$proofline:start-implementation` | 준비된 설계의 구현을 새 작업에서 시작할 때 | 모델과 추론 수준을 정하고 현재 프로젝트 폴더에 새 작업 생성 |
-| `$proofline:implement` | 준비된 설계를 현재 작업에서 구현할 때 | 구현·검증 후 현재 계약의 완료 처리 |
+| `$emeth-discipline:development-design` | 현재 아이디어를 설계로 발전시키거나 설계를 수정할 때 | 설명·구조 비교·초안·질문으로 기획과 기술 설계를 함께 완성 |
+| `$emeth-discipline:tenet-me` | 선택한 설계와 계약을 검토할 때 | 근거, 시스템 경계, 실패 경로와 기대 결과의 누락·모순 확인 |
+| `$emeth-discipline:figure-it-out` | 필요한 설계부터 구현까지 맡길 때 | Design 준비와 검토 후 구현 작업 생성 |
+| `$emeth-discipline:implementation-slice` | 독립적인 구현 작업을 나눌 때 | 필요한 경우에만 `PARALLEL.md`에 작업 범위와 연결 방식 정리 |
+| `$emeth-discipline:start-implementation` | 준비된 설계의 구현을 새 작업에서 시작할 때 | 모델과 추론 수준을 정하고 현재 프로젝트 폴더에 새 작업 생성 |
+| `$emeth-discipline:implement` | 준비된 설계를 현재 작업에서 구현할 때 | 구현·검증 후 현재 계약의 완료 처리 |
 
 ## 🔁 기획부터 구현까지
 
 **Design**은 목적·범위·선택한 구조와 이유부터 정확한 동작·실패 처리·기대 결과까지 담는 단일 설계 원본입니다. 별도 Spec으로 다시 작성하지 않습니다.
 
 ```text
-$proofline:development-design
+$emeth-discipline:development-design
 작업이 끝나면 사용자에게 알림을 보내고 싶어. 여기까지 생각했는데 구조와 실패 처리까지 같이 설계해줘.
 ```
 
@@ -151,21 +151,21 @@ $proofline:development-design
 설계부터 구현까지 맡기려면 다음과 같이 요청합니다.
 
 ```text
-$proofline:figure-it-out
+$emeth-discipline:figure-it-out
 사용자 알림 설정 개선을 설계부터 구현과 검증까지 완료해줘.
 ```
 
 현재 작업에서 필요한 설계를 준비하고 `tenet-me`로 검토합니다. `start-implementation`은 ready 계약의 ID를 새 구현 작업에 전달하고, `implement`가 해당 계약을 읽어 구현·검증합니다. 구현 중 전제가 달라지면 같은 작업에서 영향을 받는 설계만 수정하며, 중요한 사용자 선택은 확인합니다.
 
 ```text
-$proofline:tenet-me DESIGN-0001
-$proofline:start-implementation DESIGN-0001
+$emeth-discipline:tenet-me DESIGN-0001
+$emeth-discipline:start-implementation DESIGN-0001
 ```
 
 위 명령은 각각 별도로 호출합니다. 현재 작업에서 직접 구현하려면 다음과 같이 요청합니다.
 
 ```text
-$proofline:implement DESIGN-0001
+$emeth-discipline:implement DESIGN-0001
 ```
 
 이미 확보한 근거와 여전히 유효한 검증 결과는 재사용합니다. 새 구현 작업에는 계약 ID만 전달하고 원래 대화나 별도 인계 문서를 복사하지 않습니다. 모델은 [모델 선택 기준](skills/start-implementation/assets/model-routing.md)과 사용자 설정·실행 환경의 제한에 따라 정합니다.
@@ -177,12 +177,12 @@ $proofline:implement DESIGN-0001
 `issue-ledger`는 버그, 일반 작업, 기능, 조사, 문서화, 유지보수 항목을 프로젝트에 저장합니다.
 
 ```text
-$proofline:issue-ledger
+$emeth-discipline:issue-ledger
 설정 파일 호환성 문제를 이슈로 등록해줘.
 ```
 
 ```text
-$proofline:issue-ledger
+$emeth-discipline:issue-ledger
 PL-0012의 진행 상황과 확인 근거를 갱신해줘.
 ```
 
@@ -204,7 +204,7 @@ Design은 `.proofline/designs/<DESIGN-ID>-<이름>/DESIGN.md`에 저장합니다
 아키텍처 메모리는 프로젝트 구조, 운영 환경, 제약, 주요 결정과 그 이유를 Markdown 문서로 관리합니다. 첫 Design 저장부터 작은 Memory가 시작됩니다. 기존 프로젝트 전반의 분석이 필요하면 선택적으로 init을 요청합니다.
 
 ```text
-$proofline:architecture-memory-init
+$emeth-discipline:architecture-memory-init
 이 프로젝트의 아키텍처 메모리를 만들어줘.
 ```
 
@@ -215,7 +215,7 @@ $proofline:architecture-memory-init
 커밋된 코드 변경을 문서에 반영하려면 별도로 갱신을 요청합니다.
 
 ```text
-$proofline:architecture-memory-update
+$emeth-discipline:architecture-memory-update
 마지막으로 확인한 커밋 이후의 변경 사항을 아키텍처 문서에 반영해줘.
 ```
 
@@ -231,10 +231,10 @@ $proofline:architecture-memory-update
 
 | 명령 | 동작 |
 | --- | --- |
-| `$proofline:dashboard-server add` | 현재 폴더에 `.proofline/`이 있으면 프로젝트 등록 |
-| `$proofline:dashboard-server open` | 실행 중인 서버를 확인하고 대시보드 열기. 서버가 중지되어 있으면 시작하지 않음 |
-| `$proofline:dashboard-server status` | 실행 주소, 서버 식별 정보, 버전 또는 중지 원인 확인 |
-| `$proofline:dashboard-server stop` | 실행 상태와 실제 서버가 일치하는지 확인한 뒤 종료. 프로젝트 등록은 유지 |
+| `$emeth-discipline:dashboard-server add` | 현재 폴더에 `.proofline/`이 있으면 프로젝트 등록 |
+| `$emeth-discipline:dashboard-server open` | 실행 중인 서버를 확인하고 대시보드 열기. 서버가 중지되어 있으면 시작하지 않음 |
+| `$emeth-discipline:dashboard-server status` | 실행 주소, 서버 식별 정보, 버전 또는 중지 원인 확인 |
+| `$emeth-discipline:dashboard-server stop` | 실행 상태와 실제 서버가 일치하는지 확인한 뒤 종료. 프로젝트 등록은 유지 |
 
 프로젝트가 목록에 없으면 해당 프로젝트 폴더에서 `add`를 호출하세요. 이 명령은 프로젝트 파일을 새로 만들거나 다른 폴더를 검색하지 않습니다.
 
@@ -251,3 +251,9 @@ npm test
 ## 라이선스
 
 [MIT](LICENSE)
+
+## Proofline에서 이전
+
+플러그인과 마켓플레이스 식별자는 `emeth-discipline`, 공통 기준 스킬은 `$emeth-discipline`으로 변경되었습니다. 기존 설치는 자동으로 새 플러그인으로 전환되지 않습니다. 기존 Proofline을 비활성화하거나 제거한 뒤 위 설치 절차로 새 플러그인을 설치하고 새 작업을 시작하세요.
+
+기존 기록과 설정을 계속 사용하도록 프로젝트의 `.proofline/`, 전역 `proofline` 설정 디렉터리, 대시보드 브라우저 저장 키는 유지합니다. 이 경로들을 수동으로 바꿀 필요는 없습니다.

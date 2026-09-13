@@ -9,7 +9,7 @@
             "command": "node \"${PLUGIN_ROOT}/hooks/run.js\"",
             "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\run.js\"",
             "timeout": 20,
-            "statusMessage": "Loading Proofline..."
+            "statusMessage": "Loading Emeth Discipline..."
           }
         ]
       }
@@ -22,7 +22,7 @@
             "command": "node \"${PLUGIN_ROOT}/hooks/run.js\"",
             "commandWindows": "node \"$env:PLUGIN_ROOT\\hooks\\run.js\"",
             "timeout": 10,
-            "statusMessage": "Loading Proofline for subagent..."
+            "statusMessage": "Loading Emeth Discipline for subagent..."
           }
         ]
       }

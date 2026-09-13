@@ -1,4 +1,4 @@
-# Proofline 벤치마크
+# Emeth Discipline 벤치마크
 
 SuperJSON Error 스택 직렬화 / 2026-09-14 정리 / 조건별 1회
 

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Proofline Issue Ledger"
+  display_name: "Issue Ledger"
   short_description: "Record and update project work items"
   default_prompt: "Use $issue-ledger to record this project work item from the current context."

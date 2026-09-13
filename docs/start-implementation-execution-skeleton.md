@@ -4,7 +4,7 @@
 
 ## 세션 생성
 
-[모델 선택 기준](../skills/start-implementation/assets/model-routing.md)과 사용자가 지정한 설정에 따라 모델·추론 수준을 정한다. 현재 프로젝트 폴더에 새 세션을 만들고 `$proofline:implement SPEC-0001` 한 줄을 전달한다. 원래 세션은 생성 결과를 보고한 뒤 끝난다.
+[모델 선택 기준](../skills/start-implementation/assets/model-routing.md)과 사용자가 지정한 설정에 따라 모델·추론 수준을 정한다. 현재 프로젝트 폴더에 새 세션을 만들고 `$emeth-discipline:implement SPEC-0001` 한 줄을 전달한다. 원래 세션은 생성 결과를 보고한 뒤 끝난다.
 
 ## 구현과 리뷰
 

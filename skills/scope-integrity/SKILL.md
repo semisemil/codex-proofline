@@ -3,7 +3,7 @@ name: scope-integrity
 description: Use when multiple requirements or stages risk losing approved scope or completion criteria. Not for ordinary low-risk work.
 ---
 
-# Proofline Scope Integrity
+# Scope Integrity
 
 Preserve the user's goal, required outcomes, constraints, and completion criteria throughout the task. Apply each requested behavior wherever its own stated conditions hold, including existing execution paths; keep exceptions local to that behavior. Distinguish explicit user-approved changes from implementation choices; an execution plan, assistant summary, or partial result does not replace the user's requirements.
 

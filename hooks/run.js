@@ -47,13 +47,13 @@ async function run(input) {
       if (!result.ok && result.reason !== 'start-in-progress') throw new Error(result.reason);
     } catch (error) {
       // The dashboard must not suppress the prompt or memory connection.
-      process.stderr.write(`Proofline dashboard server not started: ${error.message}\n`);
+      process.stderr.write(`Emeth Discipline dashboard server not started: ${error.message}\n`);
     }
   }
 
   if (failure) {
     if (!contexts.length && !response.systemMessage) throw failure;
-    const message = `Proofline prompt unavailable: ${failure.message}`;
+    const message = `Emeth Discipline prompt unavailable: ${failure.message}`;
     response.systemMessage = [response.systemMessage, message].filter(Boolean).join('\n');
     process.stderr.write(`${message}\n`);
   }
@@ -73,7 +73,7 @@ async function main() {
 
 if (require.main === module) {
   main().catch((error) => {
-    process.stderr.write(`Proofline hook failed: ${error.message}\n`);
+    process.stderr.write(`Emeth Discipline hook failed: ${error.message}\n`);
     process.exitCode = 1;
   });
 }

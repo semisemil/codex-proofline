@@ -1,11 +1,11 @@
 {
-  "name": "proofline",
+  "name": "emeth-discipline",
   "interface": {
-    "displayName": "Proofline"
+    "displayName": "Emeth Discipline"
   },
   "plugins": [
     {
-      "name": "proofline",
+      "name": "emeth-discipline",
       "source": {
         "source": "local",
         "path": "./"

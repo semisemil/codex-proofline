@@ -1,9 +1,9 @@
 ---
-name: proofline
-description: "Apply Proofline's shared baseline rules for scope, authorization, evidence, language, compression, and code."
+name: emeth-discipline
+description: "Apply Emeth Discipline's shared baseline rules for scope, authorization, evidence, language, compression, and code."
 ---
 
-# Proofline
+# Emeth Discipline
 
 Apply rules within: explicit task, requested output, authorized target, and scope
 

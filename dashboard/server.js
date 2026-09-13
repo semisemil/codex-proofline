@@ -655,7 +655,7 @@ if (require.main === module) {
     startServer(parseArguments(process.argv.slice(2)));
   } catch (error) {
     sendParent({ ok: false, reason: 'invalid-arguments' });
-    process.stderr.write(`Proofline dashboard server failed: ${error.message}\n`);
+    process.stderr.write(`Emeth Discipline dashboard server failed: ${error.message}\n`);
     process.exitCode = 1;
   }
 }

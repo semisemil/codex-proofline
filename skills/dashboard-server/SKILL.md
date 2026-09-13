@@ -1,15 +1,15 @@
 ---
 name: dashboard-server
-description: Add the current Proofline project, or open, inspect, or stop the running Proofline dashboard server.
+description: Add the current Emeth Discipline project, or open, inspect, or stop the running Emeth Discipline dashboard server.
 ---
 
-# Proofline Dashboard Server
+# Dashboard Server
 
 Accept exactly one action: `add`, `open`, `status`, or `stop`.
 
 Resolve `<plugin-root>` from this SKILL.md; do not substitute a project-local script.
 
-- `add`: Treat the current working directory as the project root. If it does not contain a `.proofline` directory, report that it is not an initialized Proofline project and stop without creating state. Otherwise run `node <plugin-root>/dashboard/register-project.js register --project-root <absolute-current-working-directory>` and report its JSON result. Do not search parent, child, sibling, or other filesystem paths.
+- `add`: Treat the current working directory as the project root. If it does not contain a `.proofline` directory, report that it is not an initialized Emeth Discipline project and stop without creating state. Otherwise run `node <plugin-root>/dashboard/register-project.js register --project-root <absolute-current-working-directory>` and report its JSON result. Do not search parent, child, sibling, or other filesystem paths.
 - `open`: Open the verified running server with the current plugin version in `expected_version`. If stopped, report `stopped`; do not start it.
 - `status`: Report the verified running URL and identity, or the stopped reason.
 - `stop`: Stop only the process whose PID and health `instance_id` match the current server state.

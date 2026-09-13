@@ -53,7 +53,7 @@
   function applySavedAppearance() {
     try {
       const theme = localStorage.getItem('proofline.dashboard.theme');
-      const accent = localStorage.getItem('proofline.dashboard.accent');
+      const accent = (localStorage.getItem('proofline.dashboard.accent') || '').replace(/^#3459e6$/i, '#c93686');
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
       if (/^#[0-9a-fA-F]{6}$/.test(accent || '')) {
         document.documentElement.style.setProperty('--accent', accent);
@@ -76,7 +76,7 @@
     try {
       response = await fetch(path, { headers: { Accept: 'application/json' } });
     } catch (cause) {
-      throw new Error('Proofline 서버에 연결할 수 없습니다.', { cause });
+      throw new Error('Emeth Discipline 서버에 연결할 수 없습니다.', { cause });
     }
     if (!response.ok) {
       let detail = null;

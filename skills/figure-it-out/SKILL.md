@@ -1,6 +1,6 @@
 ---
 name: figure-it-out
-description: Think through a project change and carry it through the full Proofline development workflow.
+description: Think through a project change and carry it through the full Emeth Discipline development workflow.
 ---
 
 This session owns design preparation and hands the ready contract to an implementation session when implementation is requested.

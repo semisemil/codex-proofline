@@ -488,7 +488,7 @@ function printLinkWorkHelp() {
 }
 
 function printHelp() {
-  console.log(`Proofline Issue Ledger v2
+  console.log(`Emeth Discipline Issue Ledger v2
 
 Usage:
   issue-ledger.js list [--root DIR] [--all] [--search TEXT]

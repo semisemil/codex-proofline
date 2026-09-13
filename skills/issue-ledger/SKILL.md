@@ -3,13 +3,13 @@ name: issue-ledger
 description: Record and update concrete bugs, tasks, features, research, documentation, and maintenance in a project-local ledger. Use when the user asks to register or update project work, or when durable out-of-scope work should be preserved.
 ---
 
-# Proofline Issue Ledger
+# Issue Ledger
 
 ## Record
 
 Record durable work with an origin, current state, next action, or completion criterion. An explicit user request and current context are sufficient origin; do not investigate solely to register it. A reported bug remains `reported` until direct evidence confirms or refutes it. Reject vague guesses, preferences, temporary notes, and immediately completed work without future value when registration was not requested.
 
-Store one v2 JSON file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/`. Before any write, read `../proofline/SKILL.md` completely and apply it to the issue.
+Store one v2 JSON file per issue under `.proofline/issues/`. If `.proofline/` is absent, copy `assets/state-starter/`. Before any write, read `../emeth-discipline/SKILL.md` completely and apply it to the issue.
 
 Resolve bundled paths relative to this SKILL.md. Run the CLI from the project root as `node <skill-dir>/scripts/issue-ledger.js ...` so its default root is the project's `.proofline/issues`. Avoid only obvious title duplicates. Create from `assets/templates/issue-claim.json` for `bug | research` or `issue-objective.json` for other types. Replace every `REPLACE:` value and adapt the ID, type, mode, risk, arrays, and timestamps, then use the CLI `create` command. Infer available fields, but ask when identity or scope cannot be stated accurately. Cite the ID in the final report.
 

@@ -3,7 +3,7 @@ name: implementation-slice
 description: "Explicit-only planning of useful independent parallel work for a ready Design, without implementation or dispatch."
 ---
 
-# Proofline Design Slice
+# Design Slice
 
 Plan only. This optional step identifies independent work that benefits from parallel execution; a ready Design can proceed directly to implementation.
 

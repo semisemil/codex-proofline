@@ -1,13 +1,13 @@
 {
-  "name": "proofline",
-  "version": "0.10.1",
+  "name": "emeth-discipline",
+  "version": "0.10.1+codex.20260913180607",
   "description": "Codex가 요청 범위를 놓치지 않고, 실제로 확인한 내용만 완료로 보고하도록 돕는 플러그인입니다.",
   "author": {
     "name": "semisemil",
     "url": "https://github.com/semisemil"
   },
-  "homepage": "https://github.com/semisemil/codex-proofline",
-  "repository": "https://github.com/semisemil/codex-proofline",
+  "homepage": "https://github.com/semisemil/emeth-discipline",
+  "repository": "https://github.com/semisemil/emeth-discipline",
   "license": "MIT",
   "keywords": [
     "quality",
@@ -17,8 +17,8 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Proofline",
-    "brandColor": "#3459e6",
+    "displayName": "Emeth Discipline",
+    "brandColor": "#c93686",
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg",
     "logoDark": "./assets/icon.svg",
@@ -39,10 +39,10 @@
       "검증 결과와 완료 여부 보고"
     ],
     "defaultPrompt": [
-      "$proofline focus",
-      "$proofline:proofline 이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐 줘",
-      "$proofline:figure-it-out 사용자 알림 설정 개선을 필요한 기획부터 구현과 검증까지 맡아서 완료해 줘"
+      "$emeth-discipline focus",
+      "$emeth-discipline:emeth-discipline 이 문서를 처음 읽는 사람도 이해할 수 있게 고쳐 줘",
+      "$emeth-discipline:figure-it-out 사용자 알림 설정 개선을 필요한 기획부터 구현과 검증까지 맡아서 완료해 줘"
     ],
-    "websiteURL": "https://github.com/semisemil/codex-proofline"
+    "websiteURL": "https://github.com/semisemil/emeth-discipline"
   }
 }

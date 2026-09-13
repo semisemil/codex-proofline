@@ -134,7 +134,7 @@
         headers: { Accept: 'application/json', ...(options.headers || {}) },
       });
     } catch (cause) {
-      const error = new Error('서버 연결이 끊겼습니다. Proofline 서버 상태를 확인하세요.', { cause });
+      const error = new Error('서버 연결이 끊겼습니다. Emeth Discipline 서버 상태를 확인하세요.', { cause });
       error.code = 'server-unreachable';
       throw error;
     }
@@ -350,7 +350,7 @@
     elements.currentProjectPath.title = project?.root || '';
     elements.projectCount.textContent = String(state.projects.length);
     elements.viewTitle.textContent = { work: '작업 현황', documents: '프로젝트 문서', flow: '흐름 점검' }[state.view];
-    document.title = `${elements.viewTitle.textContent} · Proofline Pulse`;
+    document.title = `${elements.viewTitle.textContent} · Emeth Discipline`;
     const available = project?.availability === 'available';
     elements.globalSearch.disabled = !available;
     elements.refresh.disabled = !available || state.loading;
@@ -1146,7 +1146,7 @@
 
   async function loadPreferences() {
     applyTheme(localStorage.getItem(STORAGE.theme) || 'light');
-    applyAccent(localStorage.getItem(STORAGE.accent) || '#3459e6');
+    applyAccent((localStorage.getItem(STORAGE.accent) || '').replace(/^#3459e6$/i, '#c93686') || '#c93686');
     const backgroundMode = localStorage.getItem(STORAGE.background) || 'color';
     try {
       const blob = await readBackground();

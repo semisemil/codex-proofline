@@ -39,7 +39,7 @@ function pluginVersion(options = {}) {
     || path.join(__dirname, '..', '.codex-plugin', 'plugin.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   if (!manifest || typeof manifest.version !== 'string' || manifest.version.length === 0) {
-    throw new Error(`Invalid Proofline plugin version: ${manifestPath}`);
+    throw new Error(`Invalid Emeth Discipline plugin version: ${manifestPath}`);
   }
   return manifest.version;
 }
@@ -487,7 +487,7 @@ if (require.main === module) {
     }
     process.exitCode = exitCode;
   }).catch((error) => {
-    process.stderr.write(`Proofline dashboard control failed: ${error.message}\n`);
+    process.stderr.write(`Emeth Discipline dashboard control failed: ${error.message}\n`);
     process.exitCode = 1;
   });
 }

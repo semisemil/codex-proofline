@@ -154,8 +154,8 @@ test('missing, corrupt, unreadable, and unsupported state safely falls back and 
   assert.equal(readDefaultMode(unreadableOptions), 'normal');
 
   const log = fs.readFileSync(path.join(options.homeDir, '.codex', 'log', 'proofline-hook.log'), 'utf8');
-  assert.match(log, /Unsupported Proofline default mode/);
-  assert.match(log, /Unsupported Proofline session mode/);
+  assert.match(log, /Unsupported Emeth Discipline default mode/);
+  assert.match(log, /Unsupported Emeth Discipline session mode/);
   assert.match(log, /read denied for test/);
 });
 

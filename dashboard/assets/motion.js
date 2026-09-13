@@ -5,7 +5,7 @@
   const sidebarKey = 'proofline.dashboard.sidebar';
   try {
     const theme = localStorage.getItem('proofline.dashboard.theme');
-    const accent = localStorage.getItem('proofline.dashboard.accent');
+    const accent = (localStorage.getItem('proofline.dashboard.accent') || '').replace(/^#3459e6$/i, '#c93686');
     if (theme === 'light' || theme === 'dark') root.dataset.theme = theme;
     if (/^#[0-9a-f]{6}$/i.test(accent || '')) root.style.setProperty('--accent', accent);
     root.dataset.sidebar = localStorage.getItem(sidebarKey) === 'collapsed' ? 'collapsed' : 'expanded';
