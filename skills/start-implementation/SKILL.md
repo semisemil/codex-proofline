@@ -1,18 +1,20 @@
 ---
 name: start-implementation
-description: "Select model and reasoning and launch a new local implementation session for a ready Spec. Explicit invocation only."
+description: Select model and reasoning and launch a local implementation session for a ready Design or supported legacy Spec. Explicit invocation only.
 ---
 
 # Start Implementation
 
-Read the unique ready `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md` and use [model routing](assets/model-routing.md) to select model and reasoning. Respect user settings and limits. Report missing, ambiguous or non-ready Specs. Explain the selected settings and task-based reason in one sentence.
+Resolve the requested ready Design through [the contract resolver](../../dashboard/records/development-contracts.js), then use [model routing](assets/model-routing.md) to select model and reasoning. An unsuperseded ready legacy Spec is a compatible input. Respect user settings and limits; resolve material ambiguity instead of substituting another contract.
 
-Resolve the saved project matching the current folder. Check the runtime supports and permits the selected settings; when the creation tool requires an explicit user model choice, obtain it before dispatch. Do not substitute another project, model or location when these requirements cannot be met.
+Resolve the saved project matching the current folder. Check runtime support and authorization for the selected settings. When the creation tool requires an explicit user model choice, obtain it before dispatch. Explain the settings and task-based reason in one sentence.
 
 Build the creation arguments with:
 
-`node <plugin-root>/skills/start-implementation/scripts/prepare-launch.js --cwd <current-folder> --spec <SPEC-ID> --project-root <matching-project-folder> --project-id <project-id> --model <model> --reasoning <effort>`
+```text
+node <plugin-root>/skills/start-implementation/scripts/prepare-launch.js --cwd <current-folder> --design <DESIGN-ID> --project-root <matching-project-folder> --project-id <project-id> --model <model> --reasoning <effort>
+```
 
-Pass the returned JSON unchanged to `create_thread` once. It uses the matching project with an explicit `local` environment, including for Git repositories. The new prompt is exactly `$proofline:implement <SPEC-ID>` on one line; settings and location are separate arguments. Add no conversation history or handoff summary.
+Use `--spec <SPEC-ID>` instead of `--design` for legacy input. Pass the returned JSON unchanged to `create_thread` once. It selects the matching project's local environment; the prompt contains only `$proofline:implement <contract-ID>`. No conversation history or duplicate handoff document is needed.
 
-Report the returned task link and end. Do not wait for implementation results, send follow-up work or monitor completion. If the runtime requires an initial status confirmation, take one nonblocking snapshot only when a real task ID is available. Report creation failures; an uncertain result is not a reason to create a duplicate task. The new session owns implementation and verification.
+Report the created task. The new session owns implementation and verification. Follow runtime-required initial status checks; an uncertain creation result is not a reason to create a duplicate task.

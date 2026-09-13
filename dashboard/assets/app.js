@@ -623,14 +623,14 @@
     const section = make('section', 'issue-flow');
     section.append(make('h3', '', '연결 문서'));
     const chain = make('dl', 'linked-documents');
-    for (const [kind, ids] of [['plan', issue.plan_ids || []], ['spec', issue.spec_ids || []]]) {
-      chain.append(make('dt', '', kind === 'plan' ? '플랜' : '스펙'));
+    for (const [kind, ids] of [['design', issue.design_ids || []], ['plan', issue.plan_ids || []], ['spec', issue.spec_ids || []]]) {
+      chain.append(make('dt', '', ({ design: '설계', plan: '기존 플랜', spec: '기존 스펙' })[kind]));
       const group = make('dd');
       if (ids.length === 0) {
         group.append(make('span', 'linked-document-empty', '연결 없음'));
       } else {
         for (const id of ids) {
-          const record = (kind === 'plan' ? state.index.plans : state.index.specs)?.find((item) => item.id === id);
+          const record = state.index[({ design: 'designs', plan: 'plans', spec: 'specs' })[kind]]?.find((item) => item.id === id);
           const link = button('', 'text-link linked-document');
           link.append(make('span', 'linked-document-id', id), make('span', '', record?.title || '문서를 찾을 수 없음'));
           link.addEventListener('click', () => openDocument(kind, id));
@@ -650,7 +650,7 @@
     const controls = make('section', 'filters document-filters');
     controls.setAttribute('aria-label', '문서 필터와 정렬');
     const kind = controlGroup('종류', 'axis-filter');
-    kind.append(selectControl('종류', state.documentKind, [['all', '플랜과 스펙'], ['plan', '플랜'], ['spec', '스펙']], (value) => {
+    kind.append(selectControl('종류', state.documentKind, [['all', '전체 문서'], ['design', '설계'], ['plan', '기존 플랜'], ['spec', '기존 스펙']], (value) => {
       state.documentKind = value; renderView();
     }, 'documents:kind'));
     const status = controlGroup('상태', 'axis-filter');
@@ -692,7 +692,7 @@
     list.id = 'document-list';
     list.hidden = state.documentListCollapsed;
     if (documents.length === 0) {
-      list.append(emptyState((state.index.plans?.length || state.index.specs?.length) ? '검색 결과 없음' : '등록된 문서 없음'));
+      list.append(emptyState((state.index.designs?.length || state.index.plans?.length || state.index.specs?.length) ? '검색 결과 없음' : '등록된 문서 없음'));
     } else {
       for (const item of documents) list.append(renderDocumentOption(item));
     }
@@ -710,7 +710,7 @@
     option.setAttribute('aria-pressed', String(selected));
     const identity = make('span', 'document-identity');
     option.dataset.kind = item.document_kind;
-    const kind = make('span', `document-kind kind-${item.document_kind}`, item.document_kind === 'plan' ? '플랜' : '스펙');
+    const kind = make('span', `document-kind kind-${item.document_kind}`, ({ design: '설계', plan: '기존 플랜', spec: '기존 스펙' })[item.document_kind]);
     const kindIcon = make('span', `nav-symbol ${item.document_kind === 'plan' ? 'icon-plan' : 'icon-document'}`);
     kindIcon.setAttribute('aria-hidden', 'true');
     kind.prepend(kindIcon);
@@ -722,6 +722,7 @@
       make('span', `document-state status-${item.status}`, core.STATUSES[item.status] || item.status),
     );
     if (item.revision) option.append(make('span', 'document-revision', `v${item.revision}`));
+    if (item.superseded_by) option.append(make('span', 'document-related', `승계: ${item.superseded_by}`));
     if ((item.related_issues?.length || item.linked_issue_ids?.length)) {
       option.append(make('span', related.mismatch ? 'document-related mismatch' : 'document-related', related.label));
     }
@@ -748,7 +749,7 @@
     }
     const header = make('header', 'document-detail-header');
     header.append(
-      make('p', `eyebrow kind-${detail.kind}`, detail.kind === 'plan' ? '플랜' : '스펙'),
+      make('p', `eyebrow kind-${detail.kind}`, ({ design: '설계', plan: '기존 플랜', spec: '기존 스펙' })[detail.kind]),
       make('h2', '', detail.title),
       make('p', 'document-path', detail.relative_path),
     );
@@ -847,7 +848,7 @@
         const article = make('article', `signal-card signal-${signal.signal}`);
         article.append(
           make('p', 'signal-name', core.SIGNALS[signal.signal] || signal.signal),
-          make('h3', '', `${({ issue: '이슈', plan: '플랜', spec: '스펙' })[signal.target?.kind] || signal.target?.kind || '기록'} · ${signal.target?.id || '알 수 없음'}`),
+          make('h3', '', `${({ issue: '이슈', design: '설계', plan: '플랜', spec: '스펙' })[signal.target?.kind] || signal.target?.kind || '기록'} · ${signal.target?.id || '알 수 없음'}`),
           detailField('관찰된 상태', signal.observed),
           detailField('기본 다음 행동', signal.next_action),
         );

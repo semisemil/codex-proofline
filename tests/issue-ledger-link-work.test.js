@@ -152,6 +152,24 @@ test('link-work stores one canonical context link and is idempotent', (t) => {
   assert.equal(fs.readFileSync(filePath, 'utf8'), beforeNoOp);
 });
 
+test('Design work links round-trip through the issue ledger and dashboard with readiness signals', (t) => {
+  const { root, projectRoot, filePath } = createFixture(t);
+  const overrides = { kind: 'design', workId: 'DESIGN-0001', workPath: '.proofline/designs/DESIGN-0001-example/DESIGN.md' };
+  assert.equal(runLinkWork(root, overrides).status, 0);
+  const issue = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  assert.deepEqual(issue.context, [{ kind: 'Design', location: overrides.workPath }]);
+  const { buildProjectIndex } = require('../dashboard/records/project-index.js');
+  const index = buildProjectIndex({ id: '11111111-1111-4111-8111-111111111111', root: projectRoot }).publicIndex;
+  assert.deepEqual(index.issues[0].design_ids, ['DESIGN-0001']);
+  assert.deepEqual(index.designs[0].linked_issue_ids, ['PL-0001']);
+  assert.equal(index.diagnostics.length, 0);
+  assert.ok(index.issues[0].flow_signal_ids.includes('issue:PL-0001:implementation-ready'));
+  const before = fs.readFileSync(filePath, 'utf8');
+  const rejected = runLinkWork(root, { ...overrides, workId: 'DESIGN-0002', workPath: '.proofline/designs/DESIGN-0002-missing/DESIGN.md', relatedIssues: [] });
+  assert.equal(rejected.status, 1);
+  assert.equal(fs.readFileSync(filePath, 'utf8'), before);
+});
+
 test('link-work rejects a mismatched work ID before changing the issue', (t) => {
   const { root, filePath } = createFixture(t);
   const before = fs.readFileSync(filePath, 'utf8');

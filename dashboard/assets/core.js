@@ -35,7 +35,7 @@
   const SIGNALS = Object.freeze({
     'work-definition-only': '작업 정의만 있음',
     'plan-draft': '설계 결정이 남음',
-    'spec-needed': '스펙 작성 대기',
+    'spec-needed': '설계 승계 검토',
     'implementation-not-ready': '구현 준비 안 됨',
     'implementation-ready': '구현 가능',
     'state-mismatch': '상태 불일치 가능성',
@@ -114,14 +114,14 @@
 
   function documentLookup(index) {
     const result = new Map();
-    for (const document of [...(index?.plans || []), ...(index?.specs || [])]) {
+    for (const document of [...(index?.designs || []), ...(index?.plans || []), ...(index?.specs || [])]) {
       result.set(document.id, document);
     }
     return result;
   }
 
   function issueSearchText(issue, documents) {
-    const linked = [...(issue.plan_ids || []), ...(issue.spec_ids || [])]
+    const linked = [...(issue.design_ids || []), ...(issue.plan_ids || []), ...(issue.spec_ids || [])]
       .flatMap((id) => [id, documents.get(id)?.title || '']);
     return normalize([
       issue.id,
@@ -248,6 +248,7 @@
   function selectDocuments(index, filters = {}) {
     const needle = normalize(filters.search);
     const documents = [
+      ...(index?.designs || []).map((item) => ({ ...item, document_kind: 'design' })),
       ...(index?.plans || []).map((item) => ({ ...item, document_kind: 'plan' })),
       ...(index?.specs || []).map((item) => ({ ...item, document_kind: 'spec' })),
     ];

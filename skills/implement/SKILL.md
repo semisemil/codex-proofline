@@ -1,22 +1,22 @@
 ---
 name: implement
-description: "Implement a ready Spec in the current session. Explicit invocation only."
+description: Implement and verify a ready Design or supported legacy Spec in the current session. Explicit invocation only.
 ---
 
 # Implement
 
-Implement the unique ready `.proofline/specs/<SPEC-ID>-<slug>/SPEC.md` in this session with its current model and reasoning. Report a missing, ambiguous or non-ready Spec. `start-implementation` owns session creation; the Spec and required sources are the implementation contract.
+Resolve the requested contract with:
 
-## Implement
+```text
+node <plugin-root>/dashboard/records/development-contracts.js --project-root <current-project> --id <DESIGN-ID-or-legacy-SPEC-ID>
+```
 
-Complete the Spec across the affected files and layers in this session.
+Use the returned body and revision as the implementation contract. A missing, ambiguous, replaced, or non-ready contract cannot be implemented by choosing another one silently. `start-implementation` owns session creation; this session retains its model and reasoning.
 
-## Finish
+Implement the returned contract using verification suited to its required behavior, final observations, material failure paths, and affected compatibility.
 
-Finish when all Spec conditions are met. This workflow has no separate review stage or reviewer. Complete authorized delivery obligations at their required stage before reporting completion.
+When implementation evidence invalidates a design assumption, use [development-design](../development-design/SKILL.md) in this session to revise the affected decision/contract. Reuse existing evidence; seek a user decision only for changes to purpose, scope, observable behavior, or consequential constraints and cost. Return to implementation after the revised contract is ready. Review only affected paths; no automatic new session or full preparation restart.
 
-Set the Spec status to `completed`, preserving its body, identity and revision, through the existing document writer:
+Finish when current evidence establishes every condition of the final revision. Follow [document operations](../development-design/references/document-operations.md) to mark the current Design (or supported legacy Spec) completed without changing its body or revision. Complete authorized delivery obligations before reporting.
 
-`node <plugin-root>/writers/document-writer.js write --kind spec --project-root <root> --relative-path <SPEC.md> --change-kind operational`
-
-Pass the complete updated Markdown on stdin. Report the implementation and verification results, plus any write or registration failure.
+At the work boundary, connected [Architecture Memory](../architecture-memory/SKILL.md) may record evidenced structural changes and durable constraints. Implementation, acceptance, and operational verification remain distinct. Report implementation/verification results and separate document, registration, or Memory failures.

@@ -13,7 +13,7 @@ const {
   readDefaultMode,
   setCurrentMode,
   setDefaultMode,
-} = require('../hooks/proofline-state');
+} = require('../lib/proofline-state');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-state-'));

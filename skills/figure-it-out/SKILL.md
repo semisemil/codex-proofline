@@ -3,10 +3,8 @@ name: figure-it-out
 description: Think through a project change and carry it through the full Proofline development workflow.
 ---
 
-Run from the earliest incomplete applicable stage. This invoking session owns preparation and hands the ready Spec to a new implementation session.
+This session owns design preparation and hands the ready contract to an implementation session when implementation is requested.
 
-If preparation remains, follow [Preparation](references/preparation-task.md) directly in this session using the current request and existing context. Preserve every explicit output, identifier, path, command, number, and example. Keep the current model and reasoning; model routing does not apply to preparation.
+Start from the current idea or existing artifact. Use [development-design](../development-design/SKILL.md) only for missing or revised design work, then [tenet-me](../tenet-me/SKILL.md) for material intent, structure, contract, and evidence gaps. Reuse settled choices and inspected facts. Revise only affected parts of the same Design; do not produce a second contract or restart completed discovery. An already ready, reviewed contract can proceed directly.
 
-From the prepared or already ready Spec, load [$start-implementation](../start-implementation/SKILL.md) once to select settings and create the new implementation session in the current project folder. After creation, report the new task and end this workflow without waiting for implementation results. The new session owns implementation, verification, and completion.
-
-Resolve facts from evidence. Ask only for unresolved material decisions, then resume. Stage contracts own boundaries and stop conditions.
+When the Design is ready and material review decisions are resolved, use [start-implementation](../start-implementation/SKILL.md) once to create the implementation task. A supported ready legacy Spec may be handed off without conversion. Return the new task and end; its session owns implementation, verification, and completion. Runtime-required initial status checks remain applicable.

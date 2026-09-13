@@ -95,6 +95,7 @@ function loadRecords(projectRoot) {
   const pending = jsonFile(safePath(state.architectureRoot, `${WORK}/state.json`), 128 * 1024 * 1024);
   if (pending && (pending.schema_version !== 1 || !['draft', 'applying', 'applied'].includes(pending.phase))) fail('memory-state-invalid', 'Invalid publication state; inspect the pending workflow before retrieval.');
   if (pending?.phase === 'applying') fail('memory-applying', 'Memory publication is incomplete; resume workflow.js apply first.');
+  if (jsonFile(safePath(state.architectureRoot, `${WORK}/record.json`), 128 * 1024 * 1024)) fail('memory-record-pending', 'Resume record.js ensure before relying on an interrupted record publication');
   const sources = new Map(state.manifest.documents.map((document) => [document.path, readArchitectureDocument(state, document.id).content]));
   return recordsFromSources(state, sources);
 }
@@ -328,4 +329,4 @@ function main(argv = process.argv.slice(2)) {
 }
 
 if (require.main === module) main();
-module.exports = { loadRecords, recordsFromSources, sections, search, read, parseArgs, MAX_CORPUS_BYTES };
+module.exports = { loadRecords, recordsFromSources, sections, search, read, receiptFor, parseArgs, MAX_CORPUS_BYTES };

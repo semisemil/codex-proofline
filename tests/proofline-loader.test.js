@@ -4,10 +4,10 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
-const { composeProoflinePrompt } = require('../hooks/proofline-prompt.js');
+const { composeProoflinePrompt } = require('../lib/proofline-prompt.js');
 
 const repoRoot = path.resolve(__dirname, '..');
-const loaderPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
+const loaderPath = path.join(repoRoot, 'hooks', 'run.js');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-loader-'));
@@ -17,6 +17,7 @@ function fixture(t) {
     root,
     env: {
       ...process.env,
+      PROOFLINE_BENCHMARK_DISABLE_DASHBOARD: '1',
       APPDATA: configRoot,
       XDG_CONFIG_HOME: configRoot,
       PLUGIN_DATA: path.join(root, 'plugin-data'),
@@ -38,6 +39,7 @@ function runLoader(
     env,
     input: JSON.stringify({
       hook_event_name: hookEventName,
+      cwd: path.dirname(env.PLUGIN_DATA),
       session_id: sessionId,
       source,
       ...(hookEventName === 'SubagentStart'
@@ -52,11 +54,23 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value), 'utf8');
 }
 
+function context(result) {
+  return result.stdout ? JSON.parse(result.stdout).hookSpecificOutput?.additionalContext : '';
+}
+
+function copyRuntime(plugin) {
+  fs.cpSync(path.join(repoRoot, 'hooks'), path.join(plugin, 'hooks'), { recursive: true });
+  fs.cpSync(path.join(repoRoot, 'lib'), path.join(plugin, 'lib'), { recursive: true });
+  const memory = path.join(plugin, 'skills/architecture-memory/scripts');
+  fs.mkdirSync(memory, { recursive: true });
+  fs.copyFileSync(path.join(repoRoot, 'skills/architecture-memory/scripts/storage.js'), path.join(memory, 'storage.js'));
+}
+
 test('startup inserts normal at the response slot', (t) => {
   const { env } = fixture(t);
   const result = runLoader(env, 'session-a', 'startup');
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, composeProoflinePrompt('normal'));
+  assert.equal(context(result), composeProoflinePrompt('normal'));
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), 'utf8')),
     { mode: 'normal' },
@@ -71,7 +85,7 @@ test('startup, clear, and compact preserve the stored mode for one session', (t)
   for (const source of ['startup', 'clear', 'compact']) {
     const result = runLoader(env, 'session-a', source);
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, composeProoflinePrompt('focus'));
+    assert.equal(context(result), composeProoflinePrompt('focus'));
     assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf8')), { mode: 'focus' });
   }
 });
@@ -85,8 +99,8 @@ test('new session IDs initialize from the latest default without changing existi
   const fresh = runLoader(env, 'session-b', 'startup');
   assert.equal(existing.status, 0, existing.stderr);
   assert.equal(fresh.status, 0, fresh.stderr);
-  assert.equal(existing.stdout, composeProoflinePrompt('core'));
-  assert.equal(fresh.stdout, composeProoflinePrompt('focus'));
+  assert.equal(context(existing), composeProoflinePrompt('core'));
+  assert.equal(context(fresh), composeProoflinePrompt('focus'));
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.PLUGIN_DATA, 'proofline-mode', 'session-a.json'), 'utf8')),
     { mode: 'core' },
@@ -112,7 +126,7 @@ test('SubagentStart receives the parent session Proofline mode', (t) => {
 
   const result = runLoader(env, 'session-a', undefined, loaderPath, 'SubagentStart');
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, composeProoflinePrompt('focus'));
+  assert.equal(context(result), composeProoflinePrompt('focus'));
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath, 'utf8')), { mode: 'focus' });
 });
 
@@ -123,12 +137,10 @@ test('a missing selected mode fails and records the exact component path', (t) =
   const skillDir = path.join(tempPlugin, 'skills', 'proofline');
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.mkdirSync(skillDir, { recursive: true });
-  fs.copyFileSync(loaderPath, path.join(hooksDir, 'load-proofline.js'));
-  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-prompt.js'), path.join(hooksDir, 'proofline-prompt.js'));
-  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-state.js'), path.join(hooksDir, 'proofline-state.js'));
+  copyRuntime(tempPlugin);
   fs.copyFileSync(path.join(repoRoot, 'skills', 'proofline', 'SKILL.md'), path.join(skillDir, 'SKILL.md'));
 
-  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'load-proofline.js'));
+  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'run.js'));
   assert.equal(result.status, 1);
   const logPath = path.join(env.HOME, '.codex', 'log', 'proofline-hook.log');
   const entries = fs.readFileSync(logPath, 'utf8').trim().split(/\r?\n/).map(JSON.parse);
@@ -140,11 +152,9 @@ test('a missing baseline fails and records the exact component path', (t) => {
   const tempPlugin = path.join(root, 'plugin');
   const hooksDir = path.join(tempPlugin, 'hooks');
   fs.mkdirSync(hooksDir, { recursive: true });
-  fs.copyFileSync(loaderPath, path.join(hooksDir, 'load-proofline.js'));
-  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-prompt.js'), path.join(hooksDir, 'proofline-prompt.js'));
-  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-state.js'), path.join(hooksDir, 'proofline-state.js'));
+  copyRuntime(tempPlugin);
 
-  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'load-proofline.js'));
+  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'run.js'));
   assert.equal(result.status, 1);
 
   const logPath = path.join(env.HOME, '.codex', 'log', 'proofline-hook.log');
@@ -163,15 +173,13 @@ test('a missing response slot fails and records the baseline path', (t) => {
   const skillDir = path.join(tempPlugin, 'skills', 'proofline');
   fs.mkdirSync(hooksDir, { recursive: true });
   fs.mkdirSync(skillDir, { recursive: true });
-  fs.copyFileSync(loaderPath, path.join(hooksDir, 'load-proofline.js'));
-  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-prompt.js'), path.join(hooksDir, 'proofline-prompt.js'));
-  fs.copyFileSync(path.join(repoRoot, 'hooks', 'proofline-state.js'), path.join(hooksDir, 'proofline-state.js'));
+  copyRuntime(tempPlugin);
   const baseline = fs.readFileSync(path.join(repoRoot, 'skills', 'proofline', 'SKILL.md'), 'utf8')
     .replace('<!-- proofline-response-mode -->', '');
   fs.writeFileSync(path.join(skillDir, 'SKILL.md'), baseline, 'utf8');
   fs.copyFileSync(path.join(repoRoot, 'skills', 'proofline', 'normal.md'), path.join(skillDir, 'normal.md'));
 
-  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'load-proofline.js'));
+  const result = runLoader(env, 'session-a', 'startup', path.join(hooksDir, 'run.js'));
   assert.equal(result.status, 1);
   const logPath = path.join(env.HOME, '.codex', 'log', 'proofline-hook.log');
   const entry = JSON.parse(fs.readFileSync(logPath, 'utf8').trim());

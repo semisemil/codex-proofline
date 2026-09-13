@@ -6,7 +6,7 @@ const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '..');
-const hookPath = path.join(repoRoot, 'hooks', 'next-document-number.js');
+const hookPath = path.join(repoRoot, 'hooks', 'run.js');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-number-'));
@@ -69,40 +69,40 @@ test('issue-ledger receives the next issue number from issue filenames', (t) => 
   );
 });
 
-test('implementation-spec receives the next specification number from Spec directories', (t) => {
+test('development-design receives the next number from Design directories', (t) => {
   const root = fixture(t);
-  fs.mkdirSync(path.join(root, '.proofline/specs/SPEC-0004-response-modes'), { recursive: true });
-  fs.mkdirSync(path.join(root, '.proofline/specs/SPEC-0020-another-spec'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.proofline/designs/DESIGN-0004-response-modes'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.proofline/designs/DESIGN-0020-another'), { recursive: true });
 
   assert.equal(
-    context(runHook(root, '  $proofline:implementation-spec   \nWrite a Spec.')),
-    'Next specification number: SPEC-0021',
+    context(runHook(root, '  $proofline:development-design   \nDevelop a design.')),
+    'Next design number: DESIGN-0021',
   );
 });
 
-test('development-plan receives the next plan number and missing ledgers start at one', (t) => {
+test('Design numbering grows beyond four digits and starts at one for a new project', (t) => {
   const populated = fixture(t);
-  fs.mkdirSync(path.join(populated, '.proofline/plan/PLAN-9999-roadmap'), { recursive: true });
+  fs.mkdirSync(path.join(populated, '.proofline/designs/DESIGN-9999-roadmap'), { recursive: true });
   assert.equal(
-    context(runHook(populated, '$proofline:development-plan\nWrite a Plan.')),
-    'Next plan number: PLAN-10000',
+    context(runHook(populated, '$proofline:development-design\nDevelop a design.')),
+    'Next design number: DESIGN-10000',
   );
 
   const empty = fixture(t);
   assert.equal(
-    context(runHook(empty, '$proofline:development-plan')),
-    'Next plan number: PLAN-0001',
+    context(runHook(empty, '$proofline:development-design')),
+    'Next design number: DESIGN-0001',
   );
 });
 
-test('figure-it-out receives candidate Plan and Spec numbers', (t) => {
+test('figure-it-out receives only a Design number independent of legacy document numbering', (t) => {
   const root = fixture(t);
   fs.mkdirSync(path.join(root, '.proofline/plan/PLAN-0003-roadmap'), { recursive: true });
   fs.mkdirSync(path.join(root, '.proofline/specs/SPEC-0011-settings'), { recursive: true });
 
   assert.equal(
     context(runHook(root, '$proofline:figure-it-out\nTake this change through implementation.')),
-    'Next plan number: PLAN-0004\nNext specification number: SPEC-0012',
+    'Next design number: DESIGN-0001',
   );
 });
 

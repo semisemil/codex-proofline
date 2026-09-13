@@ -1,72 +1,20 @@
 ---
 name: tenet-me
-description: "Review intent, outcome, and verification paths in a Spec, Plan, design, or stateful workflow using current evidence. Use only when the user explicitly invokes $tenet-me or $figure-it-out owns the explicit workflow."
+description: Review a Design, legacy planning artifact, or implementation for unsupported choices, system conflicts, and missing or indecisive outcomes. Use when explicitly invoked or figure-it-out owns the workflow.
 ---
 
 # Tenet Me
 
-Review the target as a conversation. Read `CONTEXT.md` and the reviewed area's ADRs first. If terminology conflicts or the user confirms a canonical term or important decision, maintain the domain model with `domain-modeling`.
+Review the target against its source intent and current evidence. Reuse available facts and project/domain context. Read related Memory only when its conditions or decisions affect the reviewed path; a stored assertion retains its original source and limits.
 
-## Dependency graph
+Trace each intended result through its consequential decisions, assumptions, responsibilities, state/data transitions, affected contracts, and final observations. Preserve source scope, strength, exceptions, identifiers, and explicit examples. Repository facts constrain delivery without adding new goals. Keep this reasoning internal; report the material findings and decisions.
 
-Build one internal directed graph containing every current intended result at its original strength, its decisions, constraints, prerequisites, transitions, verification paths, and evidence boundaries.
+For a design, examine whether the chosen approach can achieve its purpose under the stated conditions, whether a plausible alternative or counterexample exposes a consequential tradeoff, and whether the contract expresses that choice without gaps. Trace interactions across actual boundaries, including failure/retry paths and reused data when relevant. Expected observations must distinguish required behavior from a plausible violation. An expectation derived only from the candidate implementation, or an assertion copied into Memory and cited back, is circular evidence.
 
-- For a Plan, trace each intended result through the selected direction and the material decisions and constraints that shape it
-- For an implementation Spec, trace source intent to each required behavior and expected result, then trace each result back to its source and through the affected path; judge whether it distinguishes correct behavior without requiring a test plan or test commands in the Spec
-- Treat model familiarity, examples, current implementation, and an unversioned algorithm or policy name as non-authoritative for omitted result-changing semantics
-- Treat an oracle or expected result derived from the candidate implementation as circular rather than a verification path
-- Treat the requested outcome and explicit boundaries as the scope ceiling; repository facts may constrain delivery but cannot create another intended result
-- Treat every explicit identifier, output field name, path, command, quantity, and example as a source edge; omission, translation, or renaming breaks that edge
+Pre-implementation review establishes implementability and decisive expected results; future code and test results are not missing evidence. For implemented behavior, inspect current evidence for the final contract. User acceptance establishes a choice, inspected code establishes observed structure, and neither proves unobserved operating outcomes.
 
-For every required result, backtrace to an initial or current state or evidence boundary, then verify forward over the same edges. Leave unsupported edges unresolved.
+Resolve source-answerable facts directly. Ask only when a material result choice remains: explain the affected outcome, established evidence, unresolved issue, and recommended direction. Result-preserving implementation details use narrow project-consistent defaults. Fixed interview rounds belong to separately invoked grilling, not this review.
 
-For a pre-implementation Spec, judge whether its behavior is implementable, its expected results are decisive, and its paths conflict with the existing system; future code, test cases, and test results are not missing evidence. For an existing implementation or completed result, require current evidence and treat missing required implementation or verification as a possible gap.
+After an answer or new fact, update only dependent judgments and reuse unchanged evidence. Return findings to the owning design/implementation work for local revision; do not create another contract. Preserve unresolved evidence boundaries when no available investigation or decision can resolve them. Stop when no material investigation or user decision remains actionable; a review is not a blanket guarantee of success.
 
-Classify paths internally:
-
-- `closed`: every required edge is supported;
-- `broken`: a critical edge contradicts the source or cannot exist within the target boundary;
-- `undetermined`: current evidence decides neither.
-
-The main agent owns the graph, path judgments, and user decisions. On new evidence or an answer:
-
-- update the affected edge;
-- propagate only to dependent paths;
-- preserve unrelated judgments;
-- recompute ready decisions.
-
-## Evidence and decisions
-
-Resolve repository and supplied-material facts without asking the user. Inspect small, bounded lookups directly. Use parallel read-only subagents only when:
-
-- at least two investigations are independent;
-- each has enough scope or expected work to justify a separate context;
-- parallel work is cheaper than handling them directly.
-
-Limit each subagent to its assigned facts and evidence. Subagents do not judge the graph or choose questions.
-
-Integrate each result only into supported edges. Do not delay unrelated ready decisions. Before asking, distinguish a material result choice from a necessary implementation detail. A detail is not material merely because it must be fixed or appears in a file, schema, or API. If plausible choices do not materially change the requested capability, compatibility with an existing consumer or authority, safety, privacy, data retention, or meaningful scope and cost, use the narrowest repository-consistent default and do not promote it into a user requirement or acceptance condition.
-
-In each numbered round, ask every user decision whose prerequisites are resolved and that is independent of the others in that round. For each, state in natural Korean:
-
-- affected result;
-- blocking edge and importance;
-- confirmed evidence;
-- recommended direction.
-
-Wait for numbered answers, apply them, propagate their effects, and recompute the next round. Remove resolved or inapplicable decisions.
-
-When neither a user decision nor an investigation can change a path judgment, briefly summarize the results and remaining evidence boundaries, then stop.
-
-## Output
-
-Use natural Korean without unnecessary emoji or forced foreign-language headings. By default, omit:
-
-- the internal graph;
-- full state tables;
-- internal path-state names;
-- whole-document verdicts.
-
-Show only the current decisions or final result.
-
-When `../figure-it-out/SKILL.md` owns the workflow, return the final result to it for the next revision or stage.
+At a meaningful work boundary, connected [Architecture Memory](../architecture-memory/SKILL.md) may capture durable newly established context or retire disproved assumptions. Preserve attribution and state; a review conclusion alone does not promote a proposal to an accepted or verified fact. Read-only/no-memory instructions suppress these writes.

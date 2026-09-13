@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawnGit } = require('../../lib/git-policy.js');
+const { spawnGit } = require('./git-policy.js');
 
 const MAIN_SETTINGS = Object.freeze({ model: 'gpt-6-astra', reasoning: 'low' });
 const SPEC = '.proofline/specs/SPEC-0001/SPEC.md';

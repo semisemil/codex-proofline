@@ -94,7 +94,7 @@ function runDocument(fixture, document, options = {}) {
     documentCli,
     'write',
     '--kind', document.kind,
-    '--project-root', fixture.projectRoot,
+    '--project-root', options.projectRoot ?? fixture.projectRoot,
     '--relative-path', document.relativePath,
   ];
   if (options.changeKind) {
@@ -103,6 +103,7 @@ function runDocument(fixture, document, options = {}) {
   return spawnSync(process.execPath, args, {
     encoding: 'utf8',
     env: fixture.env,
+    cwd: options.cwd,
     input: options.content === undefined ? document.content : options.content,
   });
 }
@@ -114,6 +115,42 @@ function documentPath(fixture, document) {
 function registry(fixture) {
   return JSON.parse(fs.readFileSync(getRegistryPath({ env: fixture.env }), 'utf8'));
 }
+
+test('Design writer resolves a dot project root from the CLI working directory', (t) => {
+  const fixture = makeFixture(t);
+  const document = {
+    kind: 'design',
+    relativePath: '.proofline/designs/DESIGN-0001-free/DESIGN.md',
+    content: specContent().replace('SPEC-0001', 'DESIGN-0001'),
+  };
+  const result = runDocument(fixture, document, { projectRoot: '.', cwd: fixture.projectRoot });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).write.status, 'created');
+  assert.deepEqual(fs.readFileSync(documentPath(fixture, document)), Buffer.from(document.content));
+  assert.equal(registry(fixture).projects[0].root, fs.realpathSync(fixture.projectRoot));
+});
+
+test('Spec writer resolves a relative project root from the CLI working directory', (t) => {
+  const fixture = makeFixture(t);
+  const result = runDocument(fixture, documents.spec, { projectRoot: 'project', cwd: fixture.root });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(fs.readFileSync(documentPath(fixture, documents.spec)), Buffer.from(documents.spec.content));
+  assert.equal(registry(fixture).projects[0].root, fs.realpathSync(fixture.projectRoot));
+});
+
+test('document writer rejects empty and nonexistent project roots without writing or registering', (t) => {
+  const fixture = makeFixture(t);
+  for (const projectRoot of ['', 'missing-project']) {
+    const result = runDocument(fixture, documents.plan, { projectRoot, cwd: fixture.root });
+    assert.equal(result.status, 1);
+    assert.equal(JSON.parse(result.stderr).error.code, 'project-root-invalid');
+  }
+  assert.equal(fs.existsSync(documentPath(fixture, documents.plan)), false);
+  assert.equal(fs.existsSync(path.join(fixture.root, 'missing-project')), false);
+  assert.equal(fs.existsSync(getRegistryPath({ env: fixture.env })), false);
+});
 
 test('Issue create registers only after the file write succeeds', (t) => {
   const fixture = makeFixture(t);

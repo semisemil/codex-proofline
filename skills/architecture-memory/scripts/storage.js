@@ -46,7 +46,8 @@ function saveJson(file, value) { atomicWrite(file, `${JSON.stringify(value, null
 function binding(project) {
   const value = jsonFile(safePath(project, BINDING), 4096);
   if (value === null) return null;
-  if (value.schema_version !== 1 || Object.keys(value).sort().join(',') !== 'root,schema_version'
+  if (value.schema_version !== 1 || Object.keys(value).some(key => !['root', 'schema_version', 'enabled'].includes(key))
+      || (value.enabled !== undefined && typeof value.enabled !== 'boolean')
       || !relative(value.root).startsWith('docs/')) fail('memory-binding-invalid', 'Invalid project memory binding.');
   safePath(project, value.root);
   return value;

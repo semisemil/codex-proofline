@@ -410,7 +410,7 @@ function routeApiRequest(request, response, target, options, service, architectu
   }
 
   const documentMatch = target.pathname.match(
-    /^\/api\/v1\/projects\/([0-9a-f-]+)\/documents\/(issue|plan|spec)\/([A-Z]+-\d{4,})$/,
+    /^\/api\/v1\/projects\/([0-9a-f-]+)\/documents\/(issue|plan|spec|design)\/([A-Z]+-\d{4,})$/,
   );
   if ((request.method === 'GET' || request.method === 'HEAD')
       && documentMatch

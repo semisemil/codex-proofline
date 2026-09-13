@@ -6,7 +6,7 @@ const test = require('node:test');
 const {
   gitEnvironment,
   safeDirectoryArgs,
-} = require('../lib/git-policy.js');
+} = require('./helpers/git-policy.js');
 
 test('safe.directory is exact and process-local', () => {
   const root = path.resolve('fixture repo');

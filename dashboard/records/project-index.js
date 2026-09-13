@@ -12,12 +12,14 @@ const {
 } = require('../registry.js');
 const {
   ISSUE_ID,
+  DESIGN_ID,
   PLAN_ID,
   RecordError,
   SPEC_ID,
   isInside,
   parseCurrentRecord,
 } = require('./record-parser.js');
+const { supersessionMap } = require('./development-contracts.js');
 
 const PROJECT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ACTIVE_ISSUE_STATUSES = new Set(['open', 'doing']);
@@ -36,6 +38,7 @@ const RECORD_DIRECTORY_DEFINITIONS = Object.freeze([
   { directoryName: 'issues', fileName: null, idPattern: null },
   { directoryName: 'plan', fileName: 'PLAN.md', idPattern: PLAN_ID },
   { directoryName: 'specs', fileName: 'SPEC.md', idPattern: SPEC_ID },
+  { directoryName: 'designs', fileName: 'DESIGN.md', idPattern: DESIGN_ID },
 ]);
 const ARCHITECTURE_MEMORY_DIRECTORY = '.architecture-memory';
 const ARCHITECTURE_MANIFEST = 'manifest.json';
@@ -44,8 +47,8 @@ const ARCHITECTURE_DISCOVERY_DIRECTORIES = 1024;
 
 const SIGNAL_TEXT = {
   'work-definition-only': {
-    observed: '활성 이슈에 연결된 Plan과 Spec이 없습니다.',
-    nextAction: 'Plan 또는 Spec 연결 필요성을 검토합니다.',
+    observed: '활성 이슈에 연결된 설계 문서가 없습니다.',
+    nextAction: 'Design 연결 필요성을 검토합니다.',
   },
   'plan-draft': {
     observed: '연결된 Plan에 남은 설계 결정이 있습니다.',
@@ -53,18 +56,18 @@ const SIGNAL_TEXT = {
   },
   'spec-needed': {
     observed: '연결된 Plan은 ready지만 Spec이 없습니다.',
-    nextAction: 'Spec 작성 필요성을 결정합니다.',
+    nextAction: 'Design 승계 필요성을 결정합니다.',
   },
   'implementation-not-ready': {
-    observed: '연결된 Spec이 draft 또는 blocked입니다.',
-    nextAction: 'Spec의 구현 준비 조건을 충족합니다.',
+    observed: '연결된 구현 계약이 draft 또는 blocked입니다.',
+    nextAction: '계약의 구현 준비 조건을 충족합니다.',
   },
   'implementation-ready': {
-    observed: '연결된 Spec이 ready입니다.',
+    observed: '연결된 구현 계약이 ready입니다.',
     nextAction: '사용자가 승인한 구현 작업 여부를 확인합니다.',
   },
   'state-mismatch': {
-    observed: 'Issue와 Spec의 완료 상태가 일치하지 않을 수 있습니다.',
+    observed: 'Issue와 구현 계약의 완료 상태가 일치하지 않을 수 있습니다.',
     nextAction: '원본 상태를 확인합니다.',
   },
   'link-mismatch': {
@@ -241,6 +244,7 @@ function collectCandidates(projectState, diagnostics) {
   for (const definition of [
     { kind: 'plan', directoryName: 'plan', fileName: 'PLAN.md', idPattern: PLAN_ID },
     { kind: 'spec', directoryName: 'specs', fileName: 'SPEC.md', idPattern: SPEC_ID },
+    { kind: 'design', directoryName: 'designs', fileName: 'DESIGN.md', idPattern: DESIGN_ID },
   ]) {
     const recordsDirectory = path.join(rootReal, '.proofline', definition.directoryName);
     for (const entry of directoryEntries(
@@ -311,6 +315,17 @@ function parseCandidates(projectState, diagnostics, options = {}) {
       ));
     }
   }
+  try {
+    const next = supersessionMap(records);
+    for (const record of records) if (next.has(record.id)) {
+      record.originalStatus = record.status;
+      record.status = 'superseded';
+      record.supersededBy = next.get(record.id);
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic(error.code, '.proofline/designs', error.message));
+    for (const record of records) if (record.kind !== 'issue') { record.status = 'blocked'; record.contractError = error.code; }
+  }
   return records;
 }
 
@@ -320,7 +335,8 @@ function canonicalDocumentPath(kind, location) {
   }
   const pattern = kind === 'plan'
     ? /^\.proofline\/plan\/(PLAN-\d{4,})-[^/]+\/PLAN\.md$/
-    : /^\.proofline\/specs\/(SPEC-\d{4,})-[^/]+\/SPEC\.md$/;
+    : kind === 'design' ? /^\.proofline\/designs\/(DESIGN-\d{4,})-[^/]+\/DESIGN\.md$/
+      : /^\.proofline\/specs\/(SPEC-\d{4,})-[^/]+\/SPEC\.md$/;
   const match = location.match(pattern);
   return match ? { id: match[1], path: location } : null;
 }
@@ -330,7 +346,7 @@ function linkRecords(records, diagnostics) {
   const documents = records.filter((record) => record.kind !== 'issue');
   const issueById = new Map(issues.map((issue) => [issue.id, issue]));
   const documentByPath = new Map(documents.map((document) => [document.relativePath, document]));
-  const links = new Map(issues.map((issue) => [issue.id, { plan: new Set(), spec: new Set() }]));
+  const links = new Map(issues.map((issue) => [issue.id, { plan: new Set(), spec: new Set(), design: new Set() }]));
   const linkedIssues = new Map(documents.map((document) => [`${document.kind}:${document.id}`, new Set()]));
   const mismatchedIssues = new Set();
   const mismatchedDocuments = new Set();
@@ -357,7 +373,7 @@ function linkRecords(records, diagnostics) {
   for (const issue of issues) {
     for (const context of issue.context) {
       const kind = String(context?.kind || '').toLowerCase();
-      if (kind !== 'plan' && kind !== 'spec') {
+      if (!['plan', 'spec', 'design'].includes(kind)) {
         continue;
       }
       const canonical = canonicalDocumentPath(kind, context.location);
@@ -423,8 +439,11 @@ function calculateFlow(linkState) {
 
   for (const issue of linkState.issues) {
     const issueLinks = linkState.links.get(issue.id);
-    const plans = [...issueLinks.plan].map((id) => documentsByKey.get(`plan:${id}`));
-    const specs = [...issueLinks.spec].map((id) => documentsByKey.get(`spec:${id}`));
+    const plans = [...issueLinks.plan].map((id) => documentsByKey.get(`plan:${id}`)).filter(record => record.status !== 'superseded');
+    const specs = [
+      ...[...issueLinks.spec].map(id => documentsByKey.get(`spec:${id}`)),
+      ...[...issueLinks.design].map(id => documentsByKey.get(`design:${id}`)),
+    ].filter(record => record.status !== 'superseded');
 
     if (ACTIVE_ISSUE_STATUSES.has(issue.status) && plans.length === 0 && specs.length === 0) {
       addIssueSignal(issue, 'work-definition-only');
@@ -624,6 +643,7 @@ function unavailableIndex(project, readAt) {
       issues: [],
       plans: [],
       specs: [],
+      designs: [],
       flow_signals: [],
       diagnostics: [],
       read_at: readAt,
@@ -718,6 +738,7 @@ function buildProjectIndex(project, options = {}) {
       updated_at: issue.updatedAt,
       plan_ids: [...issueLinks.plan].sort(),
       spec_ids: [...issueLinks.spec].sort(),
+      design_ids: [...issueLinks.design].sort(),
       flow_signal_ids: flow.signalIdsByIssue.get(issue.id),
     };
   }).sort((left, right) => left.id.localeCompare(right.id));
@@ -726,6 +747,7 @@ function buildProjectIndex(project, options = {}) {
     id: record.id,
     title: record.title,
     status: record.status,
+    superseded_by: record.supersededBy || null,
     related_issues: record.relatedIssues,
     linked_issue_ids: [...linkState.linkedIssues.get(`plan:${record.id}`)].sort(),
     relative_path: record.relativePath,
@@ -736,6 +758,7 @@ function buildProjectIndex(project, options = {}) {
     id: record.id,
     title: record.title,
     status: record.status,
+    superseded_by: record.supersededBy || record.metadata.superseded_by,
     related_issues: record.relatedIssues,
     linked_issue_ids: [...linkState.linkedIssues.get(`spec:${record.id}`)].sort(),
     relative_path: record.relativePath,
@@ -743,6 +766,14 @@ function buildProjectIndex(project, options = {}) {
     kind: record.specKind,
     revision: record.revision,
   })).sort((left, right) => left.id.localeCompare(right.id));
+
+  const designs = linkState.documents.filter(record => record.kind === 'design').map(record => ({
+    id: record.id, title: record.title, status: record.status, related_issues: record.relatedIssues,
+    linked_issue_ids: [...linkState.linkedIssues.get(`design:${record.id}`)].sort(),
+    relative_path: record.relativePath, updated_at: record.updatedAt, kind: record.specKind,
+    revision: record.revision, supersedes: record.metadata.supersedes,
+    superseded_by: record.supersededBy || record.metadata.superseded_by,
+  })).sort((a, b) => a.id.localeCompare(b.id));
 
   diagnostics.sort((left, right) => left.relative_path.localeCompare(right.relative_path)
     || left.code.localeCompare(right.code));
@@ -753,6 +784,7 @@ function buildProjectIndex(project, options = {}) {
       issues,
       plans,
       specs,
+      designs,
       flow_signals: flow.signals,
       diagnostics,
       read_at: readAt,
@@ -767,6 +799,7 @@ function publicDocument(record) {
     id: record.id,
     title: record.title,
     status: record.status,
+    superseded_by: record.supersededBy || record.metadata.superseded_by || null,
     metadata: record.metadata,
     content_type: record.contentType,
     body: record.body,
@@ -939,7 +972,7 @@ class ProjectIndexService {
   }
 
   getDocument(projectId, kind, recordId) {
-    const patterns = { issue: ISSUE_ID, plan: PLAN_ID, spec: SPEC_ID };
+    const patterns = { issue: ISSUE_ID, plan: PLAN_ID, spec: SPEC_ID, design: DESIGN_ID };
     if (!patterns[kind] || !patterns[kind].test(recordId || '')) {
       throw new ProjectApiError('record-id-invalid', '기록 종류 또는 ID가 올바르지 않습니다.', 400);
     }
@@ -963,6 +996,8 @@ class ProjectIndexService {
         includeBody: true,
         readMode: 'document',
       });
+      if (indexed.supersededBy) { current.status = 'superseded'; current.supersededBy = indexed.supersededBy; }
+      if (indexed.contractError) current.status = 'blocked';
       return publicDocument(current);
     } catch (error) {
       this.invalidateProject(project.id);

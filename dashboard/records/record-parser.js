@@ -12,6 +12,8 @@ const READ_CHUNK_BYTES = 4096;
 const ISSUE_ID = /^PL-\d{4,}$/;
 const PLAN_ID = /^PLAN-\d{4,}$/;
 const SPEC_ID = /^SPEC-\d{4,}$/;
+const DESIGN_ID = /^DESIGN-\d{4,}$/;
+const DEVELOPMENT_ID = /^(?:DESIGN|SPEC|PLAN)-\d{4,}$/;
 const SPEC_KINDS = new Set(['feature', 'bug', 'refactor', 'exact_port', 'maintenance']);
 const SPEC_STATUSES = new Set(['draft', 'ready', 'blocked', 'completed', 'cancelled', 'superseded']);
 
@@ -186,7 +188,7 @@ function readSecureRecord(filePath, options) {
   let buffer;
   try {
     const prefixOnly = options.readMode === 'summary'
-      && (options.kind === 'plan' || options.kind === 'spec');
+      && ['plan', 'spec', 'design'].includes(options.kind);
     buffer = readRecordBytes(fileReal, stat.size, prefixOnly);
   } catch (error) {
     if (error instanceof RecordError) {
@@ -306,7 +308,7 @@ function parsePlanMetadata(metadataText) {
   return metadata;
 }
 
-function parseSpecMetadata(metadataText) {
+function parseSpecMetadata(metadataText, design = false) {
   let metadata;
   try {
     metadata = JSON.parse(metadataText.replace(/^\uFEFF/, ''));
@@ -321,19 +323,23 @@ function parseSpecMetadata(metadataText) {
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)
       || Object.keys(metadata).sort().join(',') !== [...required].sort().join(',')
       || metadata.schema_version !== 2
-      || !SPEC_ID.test(metadata.id || '')
+      || !(design ? DESIGN_ID : SPEC_ID).test(metadata.id || '')
       || typeof metadata.title !== 'string' || metadata.title.trim() === ''
       || !SPEC_KINDS.has(metadata.kind)
       || !SPEC_STATUSES.has(metadata.status)
       || !Number.isInteger(metadata.revision) || metadata.revision < 1
       || !Array.isArray(metadata.supersedes)
-      || metadata.supersedes.some((id) => !SPEC_ID.test(id))
+      || metadata.supersedes.some((id) => !(design ? DEVELOPMENT_ID : SPEC_ID).test(id) || design && id === metadata.id)
       || new Set(metadata.supersedes).size !== metadata.supersedes.length
-      || (metadata.superseded_by !== null && !SPEC_ID.test(metadata.superseded_by || ''))) {
-    throw new RecordError('record-metadata-invalid', 'Spec metadata가 올바르지 않습니다.');
+      || (metadata.superseded_by !== null && (!(design ? DESIGN_ID : SPEC_ID).test(metadata.superseded_by || '') || design && metadata.superseded_by === metadata.id))) {
+    throw new RecordError('record-metadata-invalid', `${design ? 'Design' : 'Spec'} metadata가 올바르지 않습니다.`);
   }
   metadata.related_issues = validateRelatedIssues(metadata.related_issues);
   return metadata;
+}
+
+function parseDesignMetadata(metadataText) {
+  return parseSpecMetadata(metadataText, true);
 }
 
 function safeIssueBody(view) {
@@ -403,7 +409,7 @@ function parseCurrentRecord(options) {
   const { metadataText, body } = parseFrontmatter(content);
   const metadata = options.kind === 'plan'
     ? parsePlanMetadata(metadataText)
-    : parseSpecMetadata(metadataText);
+    : options.kind === 'design' ? parseDesignMetadata(metadataText) : parseSpecMetadata(metadataText);
   if (options.expectedId && metadata.id !== options.expectedId) {
     throw new RecordError('record-id-mismatch', '기록 폴더 ID와 본문 ID가 일치하지 않습니다.');
   }
@@ -419,8 +425,8 @@ function parseCurrentRecord(options) {
     updatedAt: modifiedAt,
     fileModifiedAt: modifiedAt,
     relatedIssues: metadata.related_issues,
-    revision: options.kind === 'spec' ? metadata.revision : undefined,
-    specKind: options.kind === 'spec' ? metadata.kind : undefined,
+    revision: options.kind !== 'plan' ? metadata.revision : undefined,
+    specKind: options.kind !== 'plan' ? metadata.kind : undefined,
     source: {
       filePath: options.filePath,
       directory: options.directory,
@@ -430,6 +436,8 @@ function parseCurrentRecord(options) {
 }
 
 module.exports = {
+  DESIGN_ID,
+  DEVELOPMENT_ID,
   ISSUE_ID,
   MAX_RECORD_BYTES,
   PLAN_ID,
@@ -441,5 +449,6 @@ module.exports = {
   parseFrontmatter,
   parsePlanMetadata,
   parseSpecMetadata,
+  parseDesignMetadata,
   readSecureRecord,
 };

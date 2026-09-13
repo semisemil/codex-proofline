@@ -12,12 +12,15 @@ const {
   stopServer,
 } = require('../dashboard/control');
 
+const { composeProoflinePrompt } = require('../lib/proofline-prompt');
+
 const repoRoot = path.resolve(__dirname, '..');
-const hookPath = path.join(repoRoot, 'hooks', 'start-dashboard-server.js');
+const hookPath = path.join(repoRoot, 'hooks', 'run.js');
 
 function isolatedEnvironment(root) {
   return {
     ...process.env,
+    PLUGIN_DATA: path.join(root, 'plugin-data'),
     APPDATA: path.join(root, 'appdata'),
     HOME: path.join(root, 'home'),
     USERPROFILE: path.join(root, 'home'),
@@ -48,7 +51,8 @@ test('all four SessionStart sources reuse one server without project mutation', 
       }),
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, '');
+    assert.equal(result.stdout ? JSON.parse(result.stdout).hookSpecificOutput.additionalContext : '',
+      source === 'resume' ? '' : composeProoflinePrompt('normal'));
     const status = await inspectServer({ directory });
     assert.equal(status.status, 'running');
     instanceIds.push(status.instance_id);
@@ -62,12 +66,12 @@ test('all four SessionStart sources reuse one server without project mutation', 
 test('hook registration covers SessionStart only and all sources', () => {
   const config = JSON.parse(fs.readFileSync(path.join(repoRoot, 'hooks', 'hooks.json'), 'utf8'));
   const entry = config.hooks.SessionStart.find((candidate) => candidate.hooks.some((hook) => (
-    hook.command.includes('start-dashboard-server.js')
+    hook.command.includes('run.js')
   )));
 
   assert.equal(entry.matcher, 'startup|resume|clear|compact');
   assert.equal(config.hooks.SessionEnd, undefined);
-  assert.equal(entry.hooks[0].commandWindows.includes('start-dashboard-server.js'), true);
+  assert.equal(entry.hooks[0].commandWindows.includes('run.js'), true);
 });
 
 test('benchmark mode completes without starting a dashboard server', async (t) => {
@@ -86,7 +90,7 @@ test('benchmark mode completes without starting a dashboard server', async (t) =
   });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, '');
+  assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, composeProoflinePrompt('normal'));
   assert.equal((await inspectServer({ directory })).status, 'stopped');
   assert.equal(fs.existsSync(directory), false);
 });
@@ -122,7 +126,7 @@ test('startup replaces an expired lock whose owner PID was reused', async (t) =>
   const status = await inspectServer({ directory });
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout, '');
+  assert.equal(JSON.parse(result.stdout).hookSpecificOutput.additionalContext, composeProoflinePrompt('normal'));
   assert.equal(status.status, 'running');
   assert.equal(fs.existsSync(path.join(directory, 'server.json')), true);
   assert.equal(fs.existsSync(lockPath), false);

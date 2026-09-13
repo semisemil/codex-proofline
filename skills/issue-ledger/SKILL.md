@@ -23,7 +23,7 @@ Run `node <skill-dir>/scripts/issue-ledger.js list` to find candidates, then `sh
 
 An issue is a current-state record, not a session log or experiment report. Keep `state.current_summary` current. Require `next_action` for `open | doing | blocked`; require `blocker` and `unblock_condition` for `blocked`; forbid them for `resolved | cancelled | superseded`. A resolved summary states cause or goal, change, and result.
 
-For Plan or Spec linkage and progress handoff, apply `references/work-link.md`.
+For Design or legacy document linkage and progress handoff, apply `references/work-link.md`.
 
 Keep only decisions and state transitions in `events`. Do not log wording, formatting, routine commands, or every work session. Replace the mutable current summary; Git preserves prose history. A meaningful status, next-action, blocker, milestone, decision, or completion change must rewrite or explicitly reconfirm `current_summary`.
 

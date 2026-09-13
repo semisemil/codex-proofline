@@ -13,11 +13,14 @@ const {
   parseFrontmatter,
   parsePlanMetadata,
   parseSpecMetadata,
+  parseDesignMetadata,
 } = require('../dashboard/records/record-parser.js');
+const { assertDesignWrite } = require('../dashboard/records/development-contracts.js');
 const { registerProject, rootKey } = require('../dashboard/registry.js');
 
 const PLAN_PATH = /^\.proofline\/plan\/(PLAN-\d{4,})-([^/\\]+)\/PLAN\.md$/;
 const SPEC_PATH = /^\.proofline\/specs\/(SPEC-\d{4,})-([^/\\]+)\/SPEC\.md$/;
+const DESIGN_PATH = /^\.proofline\/designs\/(DESIGN-\d{4,})-([^/\\]+)\/DESIGN\.md$/;
 const CHANGE_KINDS = new Set(['major', 'operational']);
 
 class DocumentWriterError extends Error {
@@ -37,12 +40,12 @@ function parseArgs(argv) {
   if (command !== 'write') {
     throw writerError(
       'invalid-command',
-      'Usage: document-writer.js write --kind plan|spec --project-root DIR --relative-path PATH [--change-kind major|operational]'
+      'Usage: document-writer.js write --kind design|plan|spec --project-root DIR --relative-path PATH [--change-kind major|operational] [--memory off]'
     );
   }
 
   const options = {};
-  const allowed = new Set(['kind', 'project_root', 'relative_path', 'change_kind']);
+  const allowed = new Set(['kind', 'project_root', 'relative_path', 'change_kind', 'memory', 'language']);
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
     if (!argument.startsWith('--')) {
@@ -63,11 +66,12 @@ function parseArgs(argv) {
     index += 1;
   }
 
-  if (!new Set(['plan', 'spec']).has(options.kind)) {
-    throw writerError('document-kind-invalid', '--kind는 plan 또는 spec이어야 합니다.');
+  if (!new Set(['design', 'plan', 'spec']).has(options.kind)) {
+    throw writerError('document-kind-invalid', '--kind는 design, plan 또는 spec이어야 합니다.');
   }
-  if (typeof options.project_root !== 'string' || !path.isAbsolute(options.project_root)) {
-    throw writerError('project-root-invalid', '--project-root에는 절대 경로가 필요합니다.');
+  if (options.memory !== undefined && options.memory !== 'off') throw writerError('invalid-argument', '--memory accepts off only');
+  if (typeof options.project_root !== 'string' || options.project_root.length === 0) {
+    throw writerError('project-root-invalid', '--project-root에는 프로젝트 경로가 필요합니다.');
   }
   if (typeof options.relative_path !== 'string' || options.relative_path.length === 0) {
     throw writerError('document-path-invalid', '--relative-path 값이 필요합니다.');
@@ -110,7 +114,7 @@ function resolveTarget(root, kind, relativePath) {
   if (relativePath.includes('\0') || relativePath.includes('\\')) {
     throw writerError('document-path-invalid', '문서 경로는 프로젝트 상대 POSIX 경로여야 합니다.');
   }
-  const match = (kind === 'plan' ? PLAN_PATH : SPEC_PATH).exec(relativePath);
+  const match = ({ plan: PLAN_PATH, spec: SPEC_PATH, design: DESIGN_PATH }[kind]).exec(relativePath);
   if (!match || match[2] === '.' || match[2] === '..') {
     throw writerError('document-path-invalid', `${kind} 문서 경로가 올바르지 않습니다: ${relativePath}`);
   }
@@ -127,7 +131,7 @@ function metadataFor(kind, content, expectedId) {
     const frontmatter = parseFrontmatter(content);
     metadata = kind === 'plan'
       ? parsePlanMetadata(frontmatter.metadataText)
-      : parseSpecMetadata(frontmatter.metadataText);
+      : kind === 'design' ? parseDesignMetadata(frontmatter.metadataText) : parseSpecMetadata(frontmatter.metadataText);
   } catch (error) {
     throw writerError(error.code || 'document-metadata-invalid', error.message, error);
   }
@@ -257,7 +261,7 @@ function validateTransition(kind, existingMetadata, nextMetadata, changeKind) {
     if (changeKind !== undefined) {
       throw writerError('change-kind-invalid', '새 문서에는 --change-kind를 사용하지 않습니다.');
     }
-    if (kind === 'spec' && nextMetadata.revision !== 1) {
+    if (kind !== 'plan' && nextMetadata.revision !== 1) {
       throw writerError('spec-revision-invalid', '새 Spec revision은 1이어야 합니다.');
     }
     return;
@@ -287,7 +291,7 @@ function validateTransition(kind, existingMetadata, nextMetadata, changeKind) {
 }
 
 function ensureSnapshot(root, target, existing, revision) {
-  const relativePath = `.proofline/specs/${path.basename(path.dirname(target))}/revisions/REV-${revision}.md`;
+  const relativePath = `${path.relative(root, path.dirname(target)).split(path.sep).join('/')}/revisions/REV-${revision}.md`;
   const snapshot = path.join(root, ...relativePath.split('/'));
   const current = readExisting(root, snapshot);
   if (current) {
@@ -319,11 +323,12 @@ function registrationResult(projectRoot) {
   }
 }
 
-function writeDocument(options, sourceBuffer) {
+function writeDocumentUnlocked(options, sourceBuffer) {
   const projectRoot = canonicalProjectRoot(options.project_root);
   const content = decodeContent(sourceBuffer);
   const { expectedId, target } = resolveTarget(projectRoot, options.kind, options.relative_path);
   const nextMetadata = metadataFor(options.kind, content, expectedId);
+  if (options.kind === 'design') assertDesignWrite(projectRoot, nextMetadata, options.relative_path);
   const existing = readExisting(projectRoot, target);
 
   if (existing && existing.equals(sourceBuffer)) {
@@ -335,10 +340,11 @@ function writeDocument(options, sourceBuffer) {
         id: nextMetadata.id,
         title: nextMetadata.title,
         path: options.relative_path,
-        revision: options.kind === 'spec' ? nextMetadata.revision : undefined,
+        revision: options.kind !== 'plan' ? nextMetadata.revision : undefined,
         snapshot: null,
       },
       registration: null,
+      ...(options.kind === 'design' ? { memory: memoryResult(projectRoot, options) } : {}),
     };
   }
 
@@ -346,9 +352,19 @@ function writeDocument(options, sourceBuffer) {
     ? metadataFor(options.kind, decodeContent(existing), expectedId)
     : null;
   validateTransition(options.kind, existingMetadata, nextMetadata, options.change_kind);
+  if (options.kind === 'design' && existingMetadata) {
+    if (existingMetadata.supersedes.some(id => !nextMetadata.supersedes.includes(id))) {
+      throw writerError('contract-history-changed', 'Preserve existing supersedes links');
+    }
+    const oldBody = parseFrontmatter(decodeContent(existing)).body;
+    const nextBody = parseFrontmatter(content).body;
+    if (options.change_kind === 'operational' && oldBody !== nextBody) {
+      throw writerError('contract-revision-required', 'Design body changes require a major revision');
+    }
+  }
 
   let snapshot = null;
-  if (options.kind === 'spec' && existing && options.change_kind === 'major') {
+  if (options.kind !== 'plan' && existing && options.change_kind === 'major') {
     snapshot = ensureSnapshot(projectRoot, target, existing, existingMetadata.revision);
   }
 
@@ -369,11 +385,36 @@ function writeDocument(options, sourceBuffer) {
       id: nextMetadata.id,
       title: nextMetadata.title,
       path: options.relative_path,
-      revision: options.kind === 'spec' ? nextMetadata.revision : undefined,
+      revision: options.kind !== 'plan' ? nextMetadata.revision : undefined,
       snapshot,
     },
     registration: registrationResult(projectRoot),
+    ...(options.kind === 'design' ? { memory: memoryResult(projectRoot, options) } : {}),
   };
+}
+
+function memoryResult(projectRoot, options) {
+  if (options.memory === 'off') return { status: 'disabled' };
+  try { return require('../skills/architecture-memory/scripts/record.js').ensureMemory(projectRoot, { language: options.language }); }
+  catch (error) { return { status: 'failed', error: { code: error.code || 'memory-start-failed', message: error.message } }; }
+}
+
+function writeDocument(options, sourceBuffer) {
+  if (options.kind !== 'design') return writeDocumentUnlocked(options, sourceBuffer);
+  const root = canonicalProjectRoot(options.project_root);
+  ensureSafeDirectory(root, path.join(root, '.proofline'));
+  const lock = path.join(root, '.proofline', '.design-write.lock');
+  assertSafeExistingPath(root, lock, 'file');
+  if (fs.existsSync(lock)) {
+    const owner = Number(fs.readFileSync(lock, 'utf8'));
+    if (!Number.isInteger(owner) || owner <= 0) throw writerError('document-locked', 'Invalid Design lock');
+    try { process.kill(owner, 0); throw writerError('document-locked', 'Another Design write is active'); }
+    catch (error) { if (error.code !== 'ESRCH') throw error; }
+    fs.unlinkSync(lock);
+  }
+  fs.writeFileSync(lock, String(process.pid), { flag: 'wx' });
+  try { return writeDocumentUnlocked(options, sourceBuffer); }
+  finally { fs.unlinkSync(lock); }
 }
 
 function formatError(error) {

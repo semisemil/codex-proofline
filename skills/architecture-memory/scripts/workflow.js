@@ -112,11 +112,11 @@ function baseline(manifest, sources) {
       .replace(/^#+[^\n]*(?:\n|$)/gm, '').replace(/^\*\*(confirmed|inferred|proposed|unknown)\/(current|planned|historical)\*\*\s*$/gm, '').trim()));
   if (missing.length) S.fail('memory-baseline-incomplete', `Missing nonempty baseline documents: ${missing.map(([, kind]) => kind).join(', ')}`);
 }
-function candidate(project, directory) {
+function candidate(project, directory, requireBaseline = true) {
   const draft = draftDirectory(directory);
   const manifest = parseManifest(S.textFile(S.safePath(draft, MANIFEST), 256 * 1024) || '');
   const sources = new Map(manifest.documents.map((document) => [document.path, S.textFile(S.safePath(draft, document.path))]));
-  baseline(manifest, sources);
+  if (requireBaseline) baseline(manifest, sources);
   const corpus = recordsFromSources({ projectRoot: project, architectureRoot: directory, manifest }, sources);
   return { manifest, sources, corpus };
 }
@@ -128,13 +128,14 @@ function report(state, directory) {
 }
 function begin(project, mode, options = {}) {
   const found = locate(project, options.root);
-  if (mode === 'update' && (!found.existing || !found.existing.manifest.managed)) S.fail('memory-not-initialized', 'Initialize and enable memory explicitly first.');
+  if (mode === 'update' && (!found.existing || !found.existing.manifest.managed || S.binding(project)?.enabled === false)) S.fail('memory-not-initialized', 'Memory must be connected and enabled before Git reconciliation.');
   if (!found.existing && fs.existsSync(found.directory) && !fs.existsSync(statePath(found.directory))
       && fs.readdirSync(found.directory).some((name) => name !== '.architecture-memory')) {
     S.fail('memory-root-conflict', 'Existing documents are not managed; choose an empty --root or establish an integration scope.');
   }
   if (!fs.existsSync(found.directory)) fs.mkdirSync(found.directory, { recursive: true });
   return S.exclusive(found.directory, () => {
+    if (S.jsonFile(S.safePath(found.directory, `${S.WORK}/record.json`), 128 * 1024 * 1024)) S.fail('memory-record-pending', 'Resume record.js ensure before starting init/update');
     const old = fs.existsSync(statePath(found.directory)) ? loadState(found.directory) : null;
     if (old && old.root !== found.root) S.fail('memory-state-invalid', 'Work root does not match the selected memory.');
     if (old && old.phase !== 'applied') {
@@ -286,7 +287,7 @@ function prepareEntries(project, found, state) {
     if (JSON.stringify(current) !== JSON.stringify(state.inventory)) S.fail('memory-source-changed', 'Uncommitted inventory changed during initialization.');
     for (const [name, hash] of Object.entries(state.observations)) if (S.hash(S.textFile(S.safePath(project, name))) !== hash) S.fail('memory-source-changed', `Changed source: ${name}`);
   }
-  const result = candidate(project, found.directory);
+  const result = candidate(project, found.directory, state.mode === 'init');
   if (state.connection_only) result.manifest.git_checkpoint = found.existing.manifest.git_checkpoint;
   else result.manifest.git_checkpoint = state.snapshot;
   const files = [...result.sources].map(([name, body]) => [`${found.root}/${name}`, body]);

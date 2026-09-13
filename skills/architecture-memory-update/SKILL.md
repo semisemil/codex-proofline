@@ -1,6 +1,6 @@
 ---
 name: architecture-memory-update
-description: Update or seed opted-in architecture memory from Git.
+description: Reconcile connected architecture memory with Git, including a minimal collection started by a Design save.
 ---
 
 Explicit requests only. Resolve `<workflow>` to `<plugin-root>/skills/architecture-memory/scripts/workflow.js` from this file. Append `--project-root <project>` to each command.

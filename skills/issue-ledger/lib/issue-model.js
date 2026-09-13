@@ -23,6 +23,11 @@
   const terminalStatuses = new Set(['resolved', 'cancelled', 'superseded']);
   const requestedWorkTypes = new Set(['task', 'feature', 'documentation', 'maintenance']);
   const linkedWorkKinds = new Map([
+    ['design', {
+      label: 'Design',
+      idPattern: /^DESIGN-\d{4,}$/,
+      locationPattern: /^\.proofline\/designs\/(DESIGN-\d{4,})-[^/]+\/DESIGN\.md$/
+    }],
     ['plan', {
       label: 'Plan',
       idPattern: /^PLAN-\d{4,}$/,
@@ -856,7 +861,7 @@
     }
     const kind = linkedWorkKinds.get(work.kind);
     if (!kind) {
-      throw new Error('link_work.work.kind는 plan 또는 spec이어야 합니다.');
+      throw new Error('link_work.work.kind는 design, plan 또는 spec이어야 합니다.');
     }
     if (!kind.idPattern.test(work.id || '')) {
       throw new Error(`link_work.work.id가 ${kind.label} ID 형식이 아닙니다.`);

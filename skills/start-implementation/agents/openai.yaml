@@ -1,7 +1,7 @@
 interface:
   display_name: "Proofline Start Implementation"
-  short_description: "Start a new implementation session for a ready Spec"
-  default_prompt: "Use $start-implementation to select model and reasoning and launch this ready Spec in a new session in the current project folder."
+  short_description: "Start a new implementation session for a ready Design"
+  default_prompt: "Use $start-implementation to select model and reasoning and launch this ready Design in a new session in the current project folder."
 
 policy:
   allow_implicit_invocation: false

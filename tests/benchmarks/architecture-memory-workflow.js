@@ -6,7 +6,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const W = require('../../skills/architecture-memory/scripts/workflow.js');
-const { notice } = require('../../hooks/architecture-memory.js');
+const { notice } = require('../../lib/architecture-memory.js');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-workflow-benchmark-'));
 const frames = [];
 function git(...args) {

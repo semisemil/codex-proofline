@@ -4,11 +4,11 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
-const { composeProoflinePrompt } = require('../hooks/proofline-prompt.js');
+const { composeProoflinePrompt } = require('../lib/proofline-prompt.js');
 
 const repoRoot = path.resolve(__dirname, '..');
-const hookPath = path.join(repoRoot, 'hooks', 'proofline-mode.js');
-const loaderPath = path.join(repoRoot, 'hooks', 'load-proofline.js');
+const hookPath = path.join(repoRoot, 'hooks', 'run.js');
+const loaderPath = path.join(repoRoot, 'hooks', 'run.js');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-mode-'));
@@ -18,6 +18,7 @@ function fixture(t) {
     root,
     env: {
       ...process.env,
+      PROOFLINE_BENCHMARK_DISABLE_DASHBOARD: '1',
       APPDATA: configRoot,
       XDG_CONFIG_HOME: configRoot,
       PLUGIN_DATA: path.join(root, 'plugin-data'),
@@ -34,6 +35,7 @@ function runHook(env, prompt, sessionId = 'session-a') {
     input: JSON.stringify({
       hook_event_name: 'UserPromptSubmit',
       session_id: sessionId,
+      cwd: path.dirname(env.PLUGIN_DATA),
       turn_id: 'turn-1',
       prompt,
     }),
@@ -47,6 +49,7 @@ function runLoader(env, sessionId = 'session-a') {
     input: JSON.stringify({
       hook_event_name: 'SessionStart',
       session_id: sessionId,
+      cwd: path.dirname(env.PLUGIN_DATA),
       source: 'startup',
     }),
   });
@@ -98,7 +101,7 @@ test('mode changes are ASCII case-insensitive and emit the SessionStart prompt',
   assert.equal(prompt, composeProoflinePrompt('focus'));
   const loaded = runLoader(env);
   assert.equal(loaded.status, 0, loaded.stderr);
-  assert.equal(prompt, loaded.stdout);
+  assert.equal(prompt, JSON.parse(loaded.stdout).hookSpecificOutput.additionalContext);
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'focus' });
 });
 
@@ -142,7 +145,7 @@ test('saved caveman preferences load and report as core for existing and new ses
   for (const sessionId of ['session-a', 'session-b']) {
     const loaded = runLoader(env, sessionId);
     assert.equal(loaded.status, 0, loaded.stderr);
-    assert.equal(loaded.stdout, composeProoflinePrompt('core'));
+    assert.equal(JSON.parse(loaded.stdout).hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
   }
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env, 'session-b'), 'utf8')), { mode: 'core' });
 });
@@ -154,7 +157,7 @@ test('default changes persist first and immediately apply to the current session
   assert.equal(response.hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
   const loaded = runLoader(env);
   assert.equal(loaded.status, 0, loaded.stderr);
-  assert.equal(response.hookSpecificOutput.additionalContext, loaded.stdout);
+  assert.equal(response.hookSpecificOutput.additionalContext, JSON.parse(loaded.stdout).hookSpecificOutput.additionalContext);
   assert.deepEqual(
     JSON.parse(fs.readFileSync(path.join(env.APPDATA, 'proofline', 'config.json'), 'utf8')),
     { defaultMode: 'core' },

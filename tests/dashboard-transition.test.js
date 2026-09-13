@@ -16,11 +16,9 @@ test('SessionStart uses the global server hook and has no project dashboard refr
     hook.command,
     hook.commandWindows,
   ]));
-  const dashboardCommands = commands.filter((command) => command.includes('dashboard'));
-  assert.ok(dashboardCommands.length > 0);
-  assert.ok(dashboardCommands.every((command) => command.includes('start-dashboard-server.js')));
-  assert.ok(hooks.some((entry) => entry.matcher === 'startup|resume|clear|compact'
-    && entry.hooks.some((hook) => hook.command.includes('start-dashboard-server.js'))));
+  assert.equal(commands.length, 2);
+  assert.ok(commands.every((command) => command.includes('run.js')));
+  assert.equal(hooks[0].matcher, 'startup|resume|clear|compact');
   assert.equal(fs.existsSync(path.join(repoRoot, 'hooks', 'refresh-dashboard.js')), false);
 });
 test('new state starter creates no static dashboard and documents the global entry point', (t) => {

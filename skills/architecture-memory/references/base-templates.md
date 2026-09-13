@@ -151,7 +151,7 @@ Use [recording](recording.md) for section routing and evidence. Mark confidence 
 
 ## <Related plans>
 
-- <Relative link to a detailed project Plan>
+- <Relative link to the authoritative Design>
 ~~~
 
 Keep only architecture-affecting summaries. Link detailed product plans instead of copying them.

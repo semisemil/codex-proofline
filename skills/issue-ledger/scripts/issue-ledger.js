@@ -189,7 +189,7 @@ function readSpecMetadata(content) {
 
 function validateWorkBacklink(issueId, work, projectRoot) {
   const artifactPath = path.resolve(projectRoot, work.location.replace(/\\/g, '/'));
-  const label = work.kind === 'plan' ? 'Plan' : 'Spec';
+  const label = ({ design: 'Design', plan: 'Plan', spec: 'Spec' })[work.kind];
   if (!fs.existsSync(artifactPath) || !fs.statSync(artifactPath).isFile()) {
     fail(`연결할 ${label} 문서가 없습니다: ${artifactPath}`);
   }
@@ -481,7 +481,7 @@ function commandLinkWork(options) {
 
 function printLinkWorkHelp() {
   console.log(`Usage:
-  issue-ledger.js link-work ID --kind plan|spec --work-id ID --path PATH \\
+  issue-ledger.js link-work ID --kind design|plan|spec --work-id ID --path PATH \\
     --current-summary TEXT --next-action TEXT [--status open|doing|blocked] \\
     [--blocker TEXT --unblock-condition TEXT] [--updated-at ISO] \\
     [--project-root DIR] [--root DIR]`);

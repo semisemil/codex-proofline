@@ -9,7 +9,7 @@ const { promisify } = require('node:util');
 const W = require('../skills/architecture-memory/scripts/workflow.js');
 const S = require('../skills/architecture-memory/scripts/storage.js');
 const { loadRecords } = require('../skills/architecture-memory/scripts/memory.js');
-const { notice } = require('../hooks/architecture-memory.js');
+const { notice } = require('../lib/architecture-memory.js');
 
 function fixture(t, gitEnabled = true) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'proofline-memory-workflow-'));
@@ -329,10 +329,10 @@ test('invalid durable states fail closed and reject unsafe journal targets befor
 test('registered hook CLI emits bounded valid context and stays empty without a binding', (t) => {
   const f = fixture(t);
   const plugin = path.resolve(__dirname, '..');
-  const hook = path.join(plugin, 'hooks/architecture-memory.js');
+  const hook = path.join(plugin, 'hooks/run.js');
   const config = JSON.parse(fs.readFileSync(path.join(plugin, 'hooks/hooks.json')));
   for (const event of ['SessionStart', 'SubagentStart', 'UserPromptSubmit']) {
-    assert.ok(config.hooks[event].some((group) => group.hooks.some((command) => command.command.includes('/hooks/architecture-memory.js'))));
+    assert.ok(config.hooks[event].some((group) => group.hooks.some((command) => command.command.includes('/hooks/run.js'))));
   }
   const run = () => spawnSync(process.execPath, [hook], { input: JSON.stringify({ cwd: f.root, session_id: 'cli', hook_event_name: 'UserPromptSubmit' }), encoding: 'utf8', env: { ...process.env, PLUGIN_DATA: path.join(f.root, '.test-hook') } });
   assert.equal(run().stdout, '');
