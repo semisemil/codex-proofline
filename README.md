@@ -61,7 +61,7 @@ codex
 Codex가 열리면 다음 순서로 마무리합니다.
 
 1. `/hooks`를 엽니다.
-2. Emeth Discipline의 `SessionStart`, `SubagentStart`, `UserPromptSubmit`, `PreToolUse` 훅을 확인하고 승인합니다.
+2. Emeth Discipline의 `SessionStart`, `SubagentStart`, `UserPromptSubmit` 훅을 확인하고 승인합니다.
 3. 새 작업을 시작합니다.
 
 ## 🚀 빠르게 사용하기
