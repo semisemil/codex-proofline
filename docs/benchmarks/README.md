@@ -8,7 +8,9 @@ None은 플러그인 미사용, Core는 공통 기준 적용, Workflow는 준비
 | --- | --- | ---: | ---: | ---: | ---: |
 | Astra / low | None | 196/196 | 4분 57초 | $0.973 | 3/14 |
 | Astra / low | Core | 196/196 | 4분 23초 | $0.929 | 5/14 |
+| Astra / low | Core · focus | 196/196 | 5분 51초 | $1.098 | 5/14 |
 | Astra / low | Workflow | 196/196 | 8분 31초 | $2.126 | 7/14 |
+| Astra / low | Workflow · focus | 196/196 | 7분 36초 | $1.808 | 5/14 |
 | Sol / medium | None | 196/196 | 14분 55초 | $1.396 | 5/14 |
 | Sol / medium | Core | 196/196 | 8분 36초 | $1.027 | 4/14 |
 | Sol / medium | Workflow | 196/196 | 12분 48초 | $1.647 | 8/14 |
