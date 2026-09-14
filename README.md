@@ -23,16 +23,26 @@ None은 플러그인 미사용, Core는 공통 기준 적용, Workflow는 설계
 | --- | --- | ---: | ---: | ---: | ---: |
 | Astra / low | None | 196/196 | 4분 57초 | $0.973 | 3/14 |
 | Astra / low | Core | 196/196 | 4분 23초 | $0.929 | 5/14 |
+| Astra / low | Core · focus | 196/196 | 5분 51초 | $1.098 | 5/14 |
 | Astra / low | Workflow | 196/196 | 8분 31초 | $2.126 | 7/14 |
+| Astra / low | Workflow · focus | 196/196 | 7분 36초 | $1.808 | 5/14 |
 | Sol / medium | None | 196/196 | 14분 55초 | $1.396 | 5/14 |
 | Sol / medium | Core | 196/196 | 8분 36초 | $1.027 | 4/14 |
 | Sol / medium | Workflow | 196/196 | 12분 48초 | $1.647 | 8/14 |
 
 외부 테스트는 신규 요구 80개와 기존 회귀 116개이며, 모든 조건에서 196개를 통과했습니다.
+추가 코드 검사는 동일한 진단 항목 14개의 통과 수입니다. 조건별 1회 결과이므로 일반적인 성능 우위를 뜻하지 않습니다. [비용 계산 기준과 측정 상세](docs/benchmarks/README.md)
 
-Workflow는 요구사항, 설계 근거, 기대 결과를 `DESIGN.md`에 남기고 구현 작업이 이를 읽어 작업했습니다. 후속 작업에서의 재사용 효과는 이번 측정에 포함하지 않았습니다.
+### WebAgent와 SubAgent 비용
 
-추가 코드 검사는 동일한 진단 항목 14개의 통과 수입니다. 변경 전 코드도 실패하는 항목을 포함하므로 추가 검사 실패를 모두 새 회귀로 해석하지 않습니다. 조건별 1회 결과이므로 일반적인 성능 우위를 뜻하지 않습니다. [비용 계산 기준과 측정 상세](docs/benchmarks/README.md)
+같은 두 문제를 ChatGPT Chat과 Subagent에 위임한 비용 비교 입니다. 비용은 **API 단가 기준 달러($) 추정치**이며, SubAgent는 부모와 자식 비용을 합산했습니다.
+
+| 작업 | SubAgent | WebAgent |
+| --- | ---: | ---: |
+| 코드 검토 | $0.486 | $0.167 |
+| 작업 배치 | $0.319 | $0.168 |
+
+부모 모델은 Astra / medium입니다. 도구 연결 후 요청부터 답변 검토까지 측정했습니다. [측정 조건과 사용량](docs/benchmarks/webagent-sol-comparison.md)
 
 ## 📦 설치
 
@@ -46,7 +56,7 @@ codex plugin add emeth-discipline@emeth-discipline
 codex
 ```
 
-훅과 보조 도구를 실행하려면 Node.js 22 이상이 설치되어 있고, 터미널에서 `node`를 실행할 수 있어야 합니다. 구현 Workflow에는 Git 저장소가 필요합니다.
+구현 Workflow에는 Git 저장소가 필요합니다.
 
 Codex가 열리면 다음 순서로 마무리합니다.
 
@@ -85,17 +95,19 @@ $emeth-discipline:emeth-discipline
 일부 스킬은 Codex가 작업에 맞춰 불러오고, 기획·구현 시작처럼 직접 호출해야 하는 스킬도 있습니다. 적용할 기준을 분명히 하고 싶다면 아래처럼 스킬 이름을 적으세요.
 
 책임이나 호출 구조를 바꾸는 리팩터링:
-
 ```text
 $emeth-discipline:refactor-proof
 사용자 설정 저장 책임을 서비스 계층으로 옮겨줘.
 ```
-
 원본 동작을 그대로 유지해야 하는 코드 이식:
-
 ```text
 $emeth-discipline:exact-port
 이 원본 구현을 대상 프로젝트로 동작 변경 없이 옮겨줘.
+```
+ChatGPT Chat에 조사 요청:
+```text
+$emeth-discipline:webagent
+이 설계를 ChatGPT Chat의 Sol에 검토받고, 지적 사항을 확인해 줘.
 ```
 
 ## 🧩 포함된 스킬
@@ -112,6 +124,7 @@ $emeth-discipline:exact-port
 | `$emeth-discipline:exact-port` | 원본 동작을 그대로 옮겨야 하는 코드 이식 | 원본과 대상 비교, 사용자에게 승인받은 차이와 미확인 부분 기록 |
 | `$emeth-discipline:issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 결정과 검증 근거 기록 |
 | `$emeth-discipline:capability-growth` | 반복하는 수작업을 자동화할지 검토할 때 | 기존 도구와 자동화 후보 비교, 등록 전 사용자 승인 확인 |
+| `$emeth-discipline:webagent` | ChatGPT Chat에 독립적인 검토·조사를 위임할 때 | 새 대화 생성과 기존 대화 재사용, 응답 대기와 결과 회수 |
 | `$emeth-discipline:dashboard-server` | 통합 대시보드를 이용할 때 | 현재 프로젝트 등록, 실행 중인 대시보드 열기·상태 확인·종료 |
 
 ### Architecture
@@ -139,15 +152,14 @@ $emeth-discipline:exact-port
 
 ## 🔁 기획부터 구현까지
 
-**Design**은 목적·범위·선택한 구조와 이유부터 정확한 동작·실패 처리·기대 결과까지 담는 단일 설계 원본입니다. 별도 Spec으로 다시 작성하지 않습니다.
+**Design**은 목적·범위·선택한 구조와 이유부터 정확한 동작·실패 처리·기대 결과까지 담는 단일 설계 원본입니다.
 
 ```text
 $emeth-discipline:development-design
 작업이 끝나면 사용자에게 알림을 보내고 싶어. 여기까지 생각했는데 구조와 실패 처리까지 같이 설계해줘.
 ```
 
-이미 정한 기획은 재사용하고, 필요한 부분에 설명·비교·초안·질문을 사용합니다. 설계 요청은 설계에서 끝나며, grilling은 필요할 때 별도로 조합할 수 있습니다. `ready`는 중요한 동작이나 구조를 새로 정하지 않고 구현할 수 있는 상태입니다. 구현 승인이나 실제 운영 성과를 뜻하지 않습니다.
-
+이미 정한 기획은 재사용하고, 필요한 부분에 설명·비교·초안·질문을 사용합니다.
 설계부터 구현까지 맡기려면 다음과 같이 요청합니다.
 
 ```text
@@ -155,7 +167,8 @@ $emeth-discipline:figure-it-out
 사용자 알림 설정 개선을 설계부터 구현과 검증까지 완료해줘.
 ```
 
-현재 작업에서 필요한 설계를 준비하고 `tenet-me`로 검토합니다. `start-implementation`은 ready 계약의 ID를 새 구현 작업에 전달하고, `implement`가 해당 계약을 읽어 구현·검증합니다. 구현 중 전제가 달라지면 같은 작업에서 영향을 받는 설계만 수정하며, 중요한 사용자 선택은 확인합니다.
+현재 작업에서 필요한 설계를 준비하고 `tenet-me`로 검토합니다. `start-implementation`은 설계 문서를 새 구현 작업에 전달하고,
+`implement`가 해당 계약을 읽어 구현·검증합니다. 구현 중 전제가 달라지면 같은 작업에서 영향을 받는 설계만 수정하며, 중요한 사용자 선택은 확인합니다.
 
 ```text
 $emeth-discipline:tenet-me DESIGN-0001
@@ -168,9 +181,8 @@ $emeth-discipline:start-implementation DESIGN-0001
 $emeth-discipline:implement DESIGN-0001
 ```
 
-이미 확보한 근거와 여전히 유효한 검증 결과는 재사용합니다. 새 구현 작업에는 계약 ID만 전달하고 원래 대화나 별도 인계 문서를 복사하지 않습니다. 모델은 [모델 선택 기준](skills/start-implementation/assets/model-routing.md)과 사용자 설정·실행 환경의 제한에 따라 정합니다.
+모델은 [모델 선택 기준](skills/start-implementation/assets/model-routing.md)과 사용자 설정·실행 환경의 제한에 따라 정합니다.
 
-기존 Plan·Spec 파일은 보존합니다. 승계되지 않은 ready Spec은 계속 구현할 수 있습니다. 기존 문서의 설계를 새로 수정할 때 필요한 대상만 Design으로 승계하며, 실행과 대시보드에서 활성 계약 원본을 하나로 해석합니다.
 
 ## 🗂️ 이슈 기록
 
@@ -195,9 +207,8 @@ PL-0012의 진행 상황과 확인 근거를 갱신해줘.
     PL-0001.json
 ```
 
-이슈마다 JSON 파일 하나에 현재 상태, 다음 조치, 완료 조건, 결정과 검증 근거를 저장합니다. 상세 로그나 실험 보고서는 별도 파일로 연결합니다. 기존 Markdown 이슈도 읽을 수 있으며, 내용을 갱신할 때 검토를 거쳐 JSON으로 전환합니다.
-
-Design은 `.proofline/designs/<DESIGN-ID>-<이름>/DESIGN.md`에 저장합니다. 이슈를 지정하면 관련 작업을 연결할 수 있습니다. 기존 Plan·Spec은 원래 위치에서 읽습니다.
+이슈마다 JSON 파일 하나에 현재 상태, 다음 조치, 완료 조건, 결정과 검증 근거를 저장합니다. 상세 로그나 실험 보고서는 별도 파일로 연결합니다.
+Design은 `.proofline/designs/<DESIGN-ID>-<이름>/DESIGN.md`에 저장합니다. 이슈를 지정하면 관련 작업을 연결할 수 있습니다.
 
 ## 🏛️ 아키텍처 메모리
 
@@ -251,9 +262,3 @@ npm test
 ## 라이선스
 
 [MIT](LICENSE)
-
-## Proofline에서 이전
-
-플러그인과 마켓플레이스 식별자는 `emeth-discipline`, 공통 기준 스킬은 `$emeth-discipline`으로 변경되었습니다. 기존 설치는 자동으로 새 플러그인으로 전환되지 않습니다. 기존 Proofline을 비활성화하거나 제거한 뒤 위 설치 절차로 새 플러그인을 설치하고 새 작업을 시작하세요.
-
-기존 기록과 설정을 계속 사용하도록 프로젝트의 `.proofline/`, 전역 `proofline` 설정 디렉터리, 대시보드 브라우저 저장 키는 유지합니다. 이 경로들을 수동으로 바꿀 필요는 없습니다.

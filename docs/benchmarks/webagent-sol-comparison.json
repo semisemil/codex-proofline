@@ -1,0 +1,368 @@
+{
+  "date": "2026-09-14",
+  "source": "https://learn.chatgpt.com/docs/pricing#token-rates",
+  "ratesPerMillion": {
+    "Astra": [
+      250,
+      25,
+      1250
+    ],
+    "Sol": [
+      100,
+      10,
+      500
+    ]
+  },
+  "conditions": "Same individual prompts, Sol high subagents with fork_turns=none, parent Astra medium. Web uses previously measured Sol/High Chat. Native parent 86.6k-87.6k versus Web 75.5k-76.2k input per response; sequential non-counterbalanced trials with different cache states, not identical context. Includes parent spawn/wait/review and child usage versus Web ask/review. Excludes preparation, measurement, reporting. One sample per task. Rates applied separately by actual model.",
+  "samples": [
+    {
+      "task": "short",
+      "parentModel": "gpt-6-astra",
+      "childModel": "gpt-5.6-sol",
+      "childEffort": "high",
+      "parent": {
+        "records": [
+          {
+            "ordinal": 1208,
+            "responseId": "resp_08f5faf83adff613016aa7442b883887d0adedd7bfb6d1192b",
+            "input_tokens": 86613,
+            "cached_input_tokens": 79488,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 230,
+            "reasoning_output_tokens": 36,
+            "total_tokens": 86843
+          },
+          {
+            "ordinal": 1214,
+            "responseId": "resp_08f5faf83adff613016aa74434d50087d0bbb573b386c690b6",
+            "input_tokens": 86865,
+            "cached_input_tokens": 86400,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 21,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 86886
+          },
+          {
+            "ordinal": 1222,
+            "responseId": "resp_08f5faf83adff613016aa7443b7f2887d09301bd5ae72eb5ba",
+            "input_tokens": 87010,
+            "cached_input_tokens": 86656,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 107,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 87117
+          }
+        ],
+        "totals": {
+          "input_tokens": 260488,
+          "cached_input_tokens": 252544,
+          "output_tokens": 358,
+          "reasoning_output_tokens": 36,
+          "uncached_input_tokens": 7944
+        },
+        "modelResponses": 3,
+        "standardCredits": 8.7471,
+        "apiEstimateUsd": 0.349884
+      },
+      "child": {
+        "records": [
+          {
+            "ordinal": 15,
+            "responseId": "resp_09705f8725e2dfcf016aa744375e5487d08ab9959ba912f48e",
+            "input_tokens": 33237,
+            "cached_input_tokens": 0,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 142,
+            "reasoning_output_tokens": 73,
+            "total_tokens": 33379
+          }
+        ],
+        "totals": {
+          "input_tokens": 33237,
+          "cached_input_tokens": 0,
+          "output_tokens": 142,
+          "reasoning_output_tokens": 73,
+          "uncached_input_tokens": 33237
+        },
+        "modelResponses": 1,
+        "standardCredits": 3.3947,
+        "apiEstimateUsd": 0.135788
+      },
+      "totalStandardCredits": 12.1418,
+      "web": {
+        "model": "GPT-5.6 Sol",
+        "effort": "High (retained UI setting; not changed by test)",
+        "modelResponses": 2,
+        "totals": {
+          "input_tokens": 151285,
+          "cached_input_tokens": 150528,
+          "output_tokens": 175,
+          "reasoning_output_tokens": 0,
+          "uncached_input_tokens": 757
+        },
+        "standardCredits": 4.1712,
+        "records": [
+          {
+            "ordinal": 1153,
+            "responseId": "resp_08f5faf83adff613016aa74339175887d082b958d443b60ab3",
+            "input_tokens": 75501,
+            "cached_input_tokens": 75264,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 105,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 75606
+          },
+          {
+            "ordinal": 1158,
+            "responseId": "resp_08f5faf83adff613016aa74357bb7487d08b64d82039a739c9",
+            "input_tokens": 75784,
+            "cached_input_tokens": 75264,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 70,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 75854
+          }
+        ],
+        "answer": {
+          "deduplicates": false,
+          "retriesFailures": true,
+          "cachesUndefined": true,
+          "fix": "load(k)의 Promise를 즉시 cache에 넣어 동시 호출이 공유하게 하고, 실패 시 catch에서 해당 키를 삭제해 다음 호출이 다시 load하도록 한다."
+        },
+        "qualityPassed": true,
+        "apiEstimateUsd": 0.166848
+      },
+      "answer": {
+        "deduplicates": false,
+        "retriesFailures": true,
+        "cachesUndefined": true,
+        "fix": "load(k) Promise를 await 전에 캐시에 저장하고, 거부되면 해당 Promise가 아직 캐시 값일 때만 삭제한다. 성공한 Promise는 undefined 결과도 그대로 캐시한다."
+      },
+      "qualityPassed": true,
+      "webSavingsPercent": 65.64595035332488,
+      "totalApiEstimateUsd": 0.485672
+    },
+    {
+      "task": "schedule",
+      "parentModel": "gpt-6-astra",
+      "childModel": "gpt-5.6-sol",
+      "childEffort": "high",
+      "parent": {
+        "records": [
+          {
+            "ordinal": 1227,
+            "responseId": "resp_08f5faf83adff613016aa744458ff887d096f6315bd37c9a9b",
+            "input_tokens": 87174,
+            "cached_input_tokens": 86784,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 218,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 87392
+          },
+          {
+            "ordinal": 1233,
+            "responseId": "resp_08f5faf83adff613016aa7444ec2f487d08e3afbf0d961120f",
+            "input_tokens": 87414,
+            "cached_input_tokens": 87040,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 21,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 87435
+          },
+          {
+            "ordinal": 1244,
+            "responseId": "resp_08f5faf83adff613016aa7445fb36887d0ba5ecef5b4852ce4",
+            "input_tokens": 87619,
+            "cached_input_tokens": 87296,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 153,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 87772
+          }
+        ],
+        "totals": {
+          "input_tokens": 262207,
+          "cached_input_tokens": 261120,
+          "output_tokens": 392,
+          "reasoning_output_tokens": 0,
+          "uncached_input_tokens": 1087
+        },
+        "modelResponses": 3,
+        "standardCredits": 7.28975,
+        "apiEstimateUsd": 0.29159
+      },
+      "child": {
+        "records": [
+          {
+            "ordinal": 15,
+            "responseId": "resp_0c0efe8e4118e58c016aa7445252a487d0bb1dda8cc795089f",
+            "input_tokens": 33262,
+            "cached_input_tokens": 32000,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 461,
+            "reasoning_output_tokens": 352,
+            "total_tokens": 33723
+          }
+        ],
+        "totals": {
+          "input_tokens": 33262,
+          "cached_input_tokens": 32000,
+          "output_tokens": 461,
+          "reasoning_output_tokens": 352,
+          "uncached_input_tokens": 1262
+        },
+        "modelResponses": 1,
+        "standardCredits": 0.6767,
+        "apiEstimateUsd": 0.027068
+      },
+      "totalStandardCredits": 7.96645,
+      "web": {
+        "model": "GPT-5.6 Sol",
+        "effort": "High (retained UI setting; not changed by test)",
+        "modelResponses": 2,
+        "totals": {
+          "input_tokens": 152153,
+          "cached_input_tokens": 151424,
+          "output_tokens": 185,
+          "reasoning_output_tokens": 0,
+          "uncached_input_tokens": 729
+        },
+        "standardCredits": 4.1991,
+        "records": [
+          {
+            "ordinal": 1163,
+            "responseId": "resp_08f5faf83adff613016aa7435ea39087d0a906e2412f29923a",
+            "input_tokens": 75909,
+            "cached_input_tokens": 75648,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 105,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 76014
+          },
+          {
+            "ordinal": 1168,
+            "responseId": "resp_08f5faf83adff613016aa7436cb73487d0b5d43cc4ed04438a",
+            "input_tokens": 76244,
+            "cached_input_tokens": 75776,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 80,
+            "reasoning_output_tokens": 0,
+            "total_tokens": 76324
+          }
+        ],
+        "answer": {
+          "makespan": 12,
+          "workers": [
+            [
+              {
+                "job": "A",
+                "start": 0,
+                "end": 3
+              },
+              {
+                "job": "C",
+                "start": 3,
+                "end": 5
+              },
+              {
+                "job": "D",
+                "start": 5,
+                "end": 9
+              },
+              {
+                "job": "F",
+                "start": 9,
+                "end": 11
+              }
+            ],
+            [
+              {
+                "job": "B",
+                "start": 0,
+                "end": 5
+              },
+              {
+                "job": "E",
+                "start": 5,
+                "end": 8
+              },
+              {
+                "job": "G",
+                "start": 8,
+                "end": 12
+              }
+            ]
+          ],
+          "lowerBound": 12
+        },
+        "qualityPassed": true,
+        "apiEstimateUsd": 0.167964
+      },
+      "answer": {
+        "makespan": 12,
+        "workers": [
+          [
+            {
+              "job": "A",
+              "start": 0,
+              "end": 3
+            },
+            {
+              "job": "C",
+              "start": 3,
+              "end": 5
+            },
+            {
+              "job": "D",
+              "start": 5,
+              "end": 9
+            },
+            {
+              "job": "F",
+              "start": 9,
+              "end": 11
+            }
+          ],
+          [
+            {
+              "job": "B",
+              "start": 0,
+              "end": 5
+            },
+            {
+              "job": "E",
+              "start": 5,
+              "end": 8
+            },
+            {
+              "job": "G",
+              "start": 8,
+              "end": 12
+            }
+          ]
+        ],
+        "lowerBound": 12
+      },
+      "qualityPassed": true,
+      "webSavingsPercent": 47.29019826899058,
+      "totalApiEstimateUsd": 0.318658
+    }
+  ],
+  "costKind": "api_equivalent_estimate_usd",
+  "apiRatesUsdPerMillion": {
+    "Astra": {
+      "uncachedInput": 10,
+      "cachedInput": 1,
+      "output": 50
+    },
+    "Sol": {
+      "uncachedInput": 4,
+      "cachedInput": 0.4,
+      "output": 20
+    }
+  },
+  "apiSources": [
+    "https://developers.openai.com/api/docs/models/gpt-6-astra",
+    "https://developers.openai.com/api/docs/models/gpt-5.6-sol"
+  ]
+}

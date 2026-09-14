@@ -1,0 +1,4 @@
+{
+  "short": "다음 코드를 검토하라. const cache=new Map(); async function get(k){if(cache.has(k))return cache.get(k);const v=await load(k);cache.set(k,v);return v;} 요구사항은 같은 키의 동시 요청이 load를 한 번만 실행하고, 실패하면 다음 호출이 재시도하며, undefined 성공값도 캐시하는 것이다. 세 요구의 현재 충족 여부와 최소 수정 원칙을 JSON {\"deduplicates\":boolean,\"retriesFailures\":boolean,\"cachesUndefined\":boolean,\"fix\":string}만으로 답하라. fix는 한국어 180자 이내. 도구·웹 검색 없이 판단하라.",
+  "schedule": "동일한 작업자 2명이 t=0부터 다음 비선점 작업을 실행한다. A=3, B=5, C=2(A 후), D=4(A 후), E=3(B와 C 후), F=2(D와 E 후), G=4(C 후). 괄호가 없으면 선행 작업 없음. 작업자는 한 번에 하나만 실행하며 인계 시간은 0이다. 최소 완료 시각과 최적 배치를 구하고 총 작업량 하한으로 최적성을 확인하라. JSON {\"makespan\":number,\"workers\":[[{\"job\":string,\"start\":number,\"end\":number}]],\"lowerBound\":number}만 답하라. workers는 정확히 2개 배열. 도구·웹 검색 없이 판단하라."
+}

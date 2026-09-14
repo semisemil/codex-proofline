@@ -27,6 +27,10 @@ None은 플러그인 미사용, Core는 공통 기준 적용, Workflow는 준비
 
 두 Workflow 모두 준비 세션과 구현 세션으로 구성되며 별도 구현 하위 에이전트는 없습니다.
 
+## WebAgent와 SubAgent 비용
+
+Sol / high 비교의 API 단가 기준 추정 비용입니다. 코드 검토는 SubAgent $0.486, WebAgent $0.167, 작업 배치는 각각 $0.319, $0.168입니다. SubAgent는 Astra 부모와 Sol 자식 비용을 합산했습니다. 도구 연결 후 요청부터 답변 검토까지 측정했습니다. [측정 조건과 사용량](webagent-sol-comparison.md)
+
 ## 추가 검사
 
 ### Astra
