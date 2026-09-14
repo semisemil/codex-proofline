@@ -8,8 +8,8 @@ const root = path.resolve(__dirname, '..');
 
 test('the documented Design envelope can be consumed by the actual parser', () => {
   const source = fs.readFileSync(path.join(root, 'skills/development-design/references/document-operations.md'), 'utf8');
-  const json = source.match(/```json\n([\s\S]*?)\n```/)[1];
-  const metadata = parseDesignMetadata(json);
+  const json = source.match(/```json\r?\n([\s\S]*?)\r?\n```/)[1];
+  const metadata = parseDesignMetadata(json.replaceAll('<DESIGN-ID>', 'DESIGN-0001').replaceAll('<design-title>', 'Example design'));
   assert.equal(metadata.id, 'DESIGN-0001');
   assert.equal(metadata.revision, 1);
   assert.equal(metadata.status, 'draft');

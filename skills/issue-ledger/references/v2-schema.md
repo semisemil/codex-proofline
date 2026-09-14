@@ -1,6 +1,6 @@
 # Issue Ledger v2
 
-Read this reference for normal update operation shapes, reviewed migration, schema repair, or tool maintenance. Creation from templates does not require the full reference. Resolve `<skill-dir>` to the directory containing this skill and run the CLI from the project root.
+Read this reference for normal update operation shapes, schema repair, or tool maintenance. Creation from templates does not require the full reference. Resolve `<skill-dir>` to the directory containing this skill and run the CLI from the project root.
 
 ## Canonical groups
 
@@ -64,7 +64,3 @@ Minimal operation shapes:
 ```
 
 For an atomic change, put the same inner objects without `current_summary` in order under `{"type":"batch","current_summary":"...","updated_at":"...","operations":[...]}`. When a new decision and its new evidence are created together, add the D-event first, then add evidence targeting that D-ID. Omit active-state fields from a terminal `set_state`; include the cancellation or replacement decision in the same batch.
-
-## Legacy migration
-
-The dashboard and query tool read legacy Markdown without treating its duplicated body as v2 state. Migrate one issue during a meaningful update. Extract the current summary, active next action, claims or objective, completion criteria, effective decisions, direct evidence, relations, and artifact links. Split overgrown scope before conversion. Delete the old Markdown only after the v2 issue validates; Git remains the prose-history source.

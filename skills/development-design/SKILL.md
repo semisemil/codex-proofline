@@ -41,7 +41,7 @@ During authorized implementation, revise affected decisions and contract section
 
 ## Save and finish
 
-Read [document operations](references/document-operations.md) for writing, revision, succession, or lifecycle changes. Report `no-op` if state is unchanged. Save through its writer and report the path, revision/status, material open decisions, and separate write/registration/Memory results.
+Read [document operations](references/document-operations.md) for writing, revision, succession, or lifecycle changes. Use the writer's `read` and `patch` for existing Design edits, submitting changed spans with the source hash. Report `no-op` if state is unchanged. Save through its writer and report the path, revision/status, material open decisions, and separate write/registration/Memory results.
 
 The first Design save starts minimal Memory unless disabled or prohibited. At the settled decision boundary, use [Architecture Memory](../architecture-memory/SKILL.md) to preserve only context that will affect future decisions, with source, scope, and confidence/lifecycle. Link the Design for details; do not duplicate its contract. A failed Memory write does not undo a successful Design save. Continue work whose required evidence remains available and report the unresolved recording result.
 

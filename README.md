@@ -123,7 +123,6 @@ $emeth-discipline:webagent
 | `$emeth-discipline:refactor-proof` | 책임, 의존 관계, 호출 구조, 상태 흐름을 바꾸는 리팩터링 | 실제 구조 변경과 기존 동작 보존 여부 검증 |
 | `$emeth-discipline:exact-port` | 원본 동작을 그대로 옮겨야 하는 코드 이식 | 원본과 대상 비교, 사용자에게 승인받은 차이와 미확인 부분 기록 |
 | `$emeth-discipline:issue-ledger` | 버그나 후속 작업을 프로젝트에 남길 때 | 현재 상태, 다음 조치, 완료 조건, 결정과 검증 근거 기록 |
-| `$emeth-discipline:capability-growth` | 반복하는 수작업을 자동화할지 검토할 때 | 기존 도구와 자동화 후보 비교, 등록 전 사용자 승인 확인 |
 | `$emeth-discipline:webagent` | ChatGPT Chat에 독립적인 검토·조사를 위임할 때 | 새 대화 생성과 기존 대화 재사용, 응답 대기와 결과 회수 |
 | `$emeth-discipline:dashboard-server` | 통합 대시보드를 이용할 때 | 현재 프로젝트 등록, 실행 중인 대시보드 열기·상태 확인·종료 |
 

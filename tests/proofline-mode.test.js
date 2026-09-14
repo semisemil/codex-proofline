@@ -112,6 +112,54 @@ test('a valid command is applied before the remaining task', (t) => {
   assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'core' });
 });
 
+for (const mode of ['normal', 'focus', 'core']) {
+  test(`reselecting ${mode} keeps the mode without reinjecting the prompt`, (t) => {
+    const { env } = fixture(t);
+    output(runLoader(env));
+    output(runHook(env, `$emeth-discipline ${mode}`));
+    const response = output(runHook(env, `$emeth-discipline ${mode.toUpperCase()}\nContinue the task.`));
+    assert.match(response.systemMessage, new RegExp(`현재 모드 ${mode} 유지`));
+    assert.equal(response.hookSpecificOutput, undefined);
+    assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode });
+  });
+}
+
+test('saving the current mode as default persists it without reinjection, including repeated saves', (t) => {
+  const { env } = fixture(t);
+  output(runHook(env, '$emeth-discipline focus'));
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = output(runHook(env, '$emeth-discipline default focus'));
+    assert.match(response.systemMessage, /기본 모드 focus 저장, 현재 모드 focus 유지/);
+    assert.equal(response.hookSpecificOutput, undefined);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(env.APPDATA, 'proofline', 'config.json'), 'utf8')), { defaultMode: 'focus' });
+    assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'focus' });
+  }
+  const loaded = output(runLoader(env, 'new-session'));
+  assert.equal(loaded.hookSpecificOutput.additionalContext, composeProoflinePrompt('focus'));
+});
+
+test('reselecting the saved default still injects when the current session mode differs', (t) => {
+  const { env } = fixture(t);
+  output(runHook(env, '$emeth-discipline default core'));
+  output(runHook(env, '$emeth-discipline focus'));
+  const response = output(runHook(env, '$emeth-discipline default core'));
+  assert.equal(response.hookSpecificOutput.additionalContext, composeProoflinePrompt('core'));
+  assert.deepEqual(JSON.parse(fs.readFileSync(statePath(env), 'utf8')), { mode: 'core' });
+});
+
+test('reselecting an unchanged mode still reports persistence failures', (t) => {
+  const { root, env } = fixture(t);
+  output(runLoader(env));
+  const blocked = path.join(root, 'blocked');
+  fs.writeFileSync(blocked, 'file');
+  const currentFailure = output(runHook({ ...env, PLUGIN_DATA: blocked }, '$emeth-discipline normal'));
+  assert.match(currentFailure.systemMessage, /현재 모드 변경 실패/);
+  assert.equal(currentFailure.hookSpecificOutput, undefined);
+  const defaultFailure = output(runHook({ ...env, APPDATA: blocked, XDG_CONFIG_HOME: blocked }, '$emeth-discipline default normal'));
+  assert.match(defaultFailure.systemMessage, /기본 모드 저장 실패/);
+  assert.equal(defaultFailure.hookSpecificOutput, undefined);
+});
+
 test('invalid modes, missing shapes, and extra arguments preserve the current mode and continue work', (t) => {
   const { env } = fixture(t);
   output(runHook(env, '$emeth-discipline focus'));

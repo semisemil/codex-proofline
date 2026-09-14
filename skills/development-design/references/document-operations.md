@@ -1,12 +1,12 @@
 # Design document operations
 
-Use `.proofline/designs/DESIGN-0001-<slug>/DESIGN.md`. Preserve identity and location; never overwrite an ID collision. The body is free-form. Frontmatter is JSON between Markdown `---` delimiters:
+Use `.proofline/designs/<DESIGN-ID>-<slug>/DESIGN.md`. For a new Design, choose an unused ID following the project convention: `DESIGN-` followed by at least four digits. Use the same ID in the directory name and frontmatter. For an existing Design, preserve its ID and location. Never overwrite an ID collision. The body is free-form. Frontmatter is JSON between Markdown `---` delimiters; replace `<DESIGN-ID>` and `<design-title>` with the document's values:
 
 ```json
 {
   "schema_version": 2,
-  "id": "DESIGN-0001",
-  "title": "Stable title",
+  "id": "<DESIGN-ID>",
+  "title": "<design-title>",
   "kind": "feature",
   "status": "draft",
   "revision": 1,
@@ -18,13 +18,35 @@ Use `.proofline/designs/DESIGN-0001-<slug>/DESIGN.md`. Preserve identity and loc
 
 Kinds: `feature | bug | refactor | exact_port | maintenance`. Status: `draft | ready | blocked | completed | cancelled | superseded`. `related_issues` contains explicit `PL-*` targets only; apply [work links](../../issue-ledger/references/work-link.md) for those targets.
 
-For creation or body/link edits, write complete UTF-8 Markdown on stdin to:
+For creation, write complete UTF-8 Markdown on stdin to:
 
 ```text
 node <plugin-root>/writers/document-writer.js write --kind design --project-root <absolute-project-root> --relative-path <project-relative-design-path> --language <document-language>
 ```
 
 Add `--memory off` when recording is prohibited for this request. Existing disabled project settings remain authoritative. Writer results separate `write`, `registration`, and `memory`; a partial result is not an all-or-nothing failure. An unchanged save may finish an interrupted Memory connection without rewriting the Design.
+
+## Edit an existing Design
+
+Read the text and its SHA-256 together before editing:
+
+```text
+node <plugin-root>/writers/document-writer.js read --project-root <absolute-project-root> --id DESIGN-0001
+```
+
+Reuse this read while the text remains in context. After a successful patch, use its returned `sha256` with the updated text for further edits. Send only changed spans as UTF-8 JSON on stdin to:
+
+```text
+node <plugin-root>/writers/document-writer.js patch --project-root <absolute-project-root> --id DESIGN-0001 --change-kind major
+```
+
+```json
+{"expected_sha256":"<sha256 from read>","edits":[{"old":"\"revision\": 1","new":"\"revision\": 2"},{"old":"The request returns an ID.","new":"A successful request returns an ID."}]}
+```
+
+Edits apply in order in memory. Each `old` must match exactly once, including whitespace; include surrounding text to distinguish repeated passages. Use an empty `new` to delete, or replace an existing anchor to insert text. Include required metadata changes in the same patch. Preserve unchanged text instead of reproducing the document in the tool call. The JSON input and resulting document each have a 2 MiB limit.
+
+The writer checks the hash of the whole source, then validates and saves through the same revision, snapshot, registration, and Memory path as `write`. A stale hash or missing/ambiguous match saves no document changes. Read and reconcile a changed source before retrying; do not merely substitute a fresh hash. The same `--memory off` and `--language` options apply. Full-document `write` remains available for complete replacements and legacy documents.
 
 ## Revision and completion
 

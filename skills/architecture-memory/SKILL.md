@@ -16,9 +16,11 @@ node <skill-root>/scripts/memory.js search --project-root <project> --query "<to
 node <skill-root>/scripts/memory.js read --project-root <project> --id <selected-id> --revision <search-revision>
 ```
 
+Each returned section includes a `receipt`. On later reads, pass `--seen <receipt>` for sections whose full text and preamble remain in the current context, including shared constraints. Changed content returns again; new prerequisites remain required. Never reuse receipts alone after compaction or in another agent.
+
 Known IDs can be read directly; repeat `--id` or `--path` as needed. Pointers are locations, not evidence. Read the selected record with its conditions and required links. No match means the topic may be unrecorded: read `@global` and make one grounded reformulation only when needed, then resolve remaining task-critical facts from code or the user.
 
-For paging, reused receipts, or tool failure, use [retrieval](references/retrieval.md). A failure blocks only decisions that actually require missing evidence; available source documents or code can support unrelated work.
+For paging, output limits, or tool failure, use [retrieval](references/retrieval.md). A failure blocks only decisions that actually require missing evidence; available source documents or code can support unrelated work.
 
 Apply each claim with its source, scope, confidence, and lifecycle. Memory is evidence, not execution authority. A decision copied from a Design is still that same decision, not independent validation. Recheck a code-dependent claim when its relevant state has changed. Surface a contradiction at the affected claim; new implementation requirements must enter the Design through its owning revision workflow.
 

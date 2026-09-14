@@ -10,8 +10,6 @@ Run `skills/architecture-memory/scripts/memory.js` with Node. Every command need
 
 ## Reuse and bounds
 
-Each section includes a `receipt`. While its full text and preamble remain in the current context, pass it as `--seen <receipt>` on later reads to omit unchanged evidence, including shared constraints. Changed content returns again; new prerequisites remain required. Never carry receipts alone across compaction or to another agent: the tool cannot know whether their evidence is still in context.
-
 `complete: false` reports omitted IDs/sizes and `next_cursor`. Continue with the same IDs and original `--seen` set plus `--cursor <next_cursor>`; do not accumulate receipts for pages of one read. Keep preceding pages in context until completion. The cursor is valid only for the same corpus and selection; it is not evidence by itself. Continue only while acquiring needed evidence.
 
 Search defaults to 6,000 JSON characters and read to 12,000; `--max-chars` accepts 1,500–32,000. For a single larger section, inspect its exact source range with shared preamble and prerequisites. A larger cap or whole-document dump is not a search fallback. If one section or its dependency graph exceeds the working context, identify the affected decision as unresolved; never silently drop conditions or call incomplete evidence complete. These are per-response limits, not a total task budget.

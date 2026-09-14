@@ -37,15 +37,17 @@ function writerError(code, message, cause) {
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
-  if (!['write', 'status'].includes(command)) {
+  if (!['write', 'status', 'read', 'patch'].includes(command)) {
     throw writerError(
       'invalid-command',
-      'Usage: document-writer.js write --kind design|plan|spec --project-root DIR --relative-path PATH, or status --project-root DIR --id DESIGN-ID|SPEC-ID --status STATE [--memory off]'
+      'Usage: document-writer.js write --kind design|plan|spec --project-root DIR --relative-path PATH; status --project-root DIR --id DESIGN-ID|SPEC-ID --status STATE; read|patch --project-root DIR --id DESIGN-ID'
     );
   }
 
-  const options = command === 'status' ? { command } : {};
-  const allowed = new Set(command === 'status'
+  const options = command === 'write' ? {} : { command };
+  const allowed = new Set(command === 'read' ? ['project_root', 'id']
+    : command === 'patch' ? ['project_root', 'id', 'change_kind', 'memory', 'language']
+    : command === 'status'
     ? ['project_root', 'id', 'status', 'memory', 'language']
     : ['kind', 'project_root', 'relative_path', 'change_kind', 'memory', 'language']);
   for (let index = 0; index < rest.length; index += 1) {
@@ -73,6 +75,10 @@ function parseArgs(argv) {
       throw writerError('invalid-argument', 'Supply --id DESIGN-ID|SPEC-ID and --status STATE');
     }
     options.kind = options.id.startsWith('DESIGN-') ? 'design' : 'spec';
+  }
+  if (command === 'read' || command === 'patch') {
+    if (!/^DESIGN-\d{4,}$/.test(options.id || '')) throw writerError('invalid-argument', 'Supply --id DESIGN-ID');
+    options.kind = 'design';
   }
   if (!new Set(['design', 'plan', 'spec']).has(options.kind)) {
     throw writerError('document-kind-invalid', '--kind는 design, plan 또는 spec이어야 합니다.');
@@ -432,6 +438,57 @@ function writeDocument(options, sourceBuffer) {
   return withDocumentLock(options, () => writeDocumentUnlocked(options, sourceBuffer));
 }
 
+function readDesignSource(options) {
+  const root = canonicalProjectRoot(options.project_root);
+  const record = readDevelopmentRecord(root, options.id);
+  const { target } = resolveTarget(root, 'design', record.relativePath);
+  const source = readExisting(root, target);
+  if (!source) throw writerError('contract-unavailable', 'Document not found');
+  const text = decodeContent(source);
+  metadataFor('design', text, options.id);
+  return { record, source, text, sha256: crypto.createHash('sha256').update(source).digest('hex') };
+}
+
+function readDocument(options) {
+  const { record, text, sha256 } = readDesignSource(options);
+  return { id: options.id, path: record.relativePath, sha256, text };
+}
+
+function patchDocument(options, buffer) {
+  let patch;
+  try { patch = JSON.parse(decodeContent(buffer)); }
+  catch (error) {
+    if (error instanceof DocumentWriterError) throw error;
+    throw writerError('document-patch-invalid', 'Supply UTF-8 JSON with expected_sha256 and edits');
+  }
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)
+      || Object.keys(patch).some(key => !['expected_sha256', 'edits'].includes(key))
+      || typeof patch.expected_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(patch.expected_sha256)
+      || !Array.isArray(patch.edits) || !patch.edits.length
+      || patch.edits.some(edit => !edit || typeof edit !== 'object' || Array.isArray(edit)
+        || Object.keys(edit).some(key => !['old', 'new'].includes(key))
+        || typeof edit.old !== 'string' || !edit.old.length || typeof edit.new !== 'string')) {
+    throw writerError('document-patch-invalid', 'Supply expected_sha256 and nonempty edits containing old/new strings');
+  }
+  return withDocumentLock(options, () => {
+    const { record, source, text, sha256 } = readDesignSource(options);
+    if (sha256 !== patch.expected_sha256) throw writerError('document-changed', 'Read the changed document and reconcile before patching');
+    let updated = text;
+    for (const edit of patch.edits) {
+      const start = updated.indexOf(edit.old);
+      if (start < 0 || updated.indexOf(edit.old, start + 1) !== -1) {
+        throw writerError('document-patch-match', 'Each old string must match exactly once; include enough context');
+      }
+      updated = updated.slice(0, start) + edit.new + updated.slice(start + edit.old.length);
+      if (Buffer.byteLength(updated, 'utf8') > MAX_RECORD_BYTES) throw writerError('document-too-large', 'Patched document exceeds 2 MiB');
+    }
+    const bom = source.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf])) ? source.subarray(0, 3) : Buffer.alloc(0);
+    const next = Buffer.concat([bom, Buffer.from(updated, 'utf8')]);
+    const result = writeDocumentUnlocked({ ...options, relative_path: record.relativePath }, next, source);
+    return { ...result, sha256: crypto.createHash('sha256').update(next).digest('hex') };
+  });
+}
+
 function updateDocumentStatus(options) {
   if (!/^(?:DESIGN|SPEC)-\d{4,}$/.test(options.id || '') || typeof options.status !== 'string' || !options.status) {
     throw writerError('invalid-argument', 'Supply a Design or legacy Spec ID and status');
@@ -474,7 +531,9 @@ function formatError(error) {
 function main(argv = process.argv.slice(2), sourceBuffer) {
   try {
     const options = parseArgs(argv);
-    const result = options.command === 'status'
+    const result = options.command === 'read' ? readDocument(options)
+      : options.command === 'patch' ? patchDocument(options, sourceBuffer === undefined ? fs.readFileSync(0) : sourceBuffer)
+      : options.command === 'status'
       ? updateDocumentStatus(options)
       : writeDocument(options, sourceBuffer === undefined ? fs.readFileSync(0) : sourceBuffer);
     process.stdout.write(`${JSON.stringify(result)}\n`);
@@ -496,4 +555,6 @@ module.exports = {
   parseArgs,
   writeDocument,
   updateDocumentStatus,
+  readDocument,
+  patchDocument,
 };
